@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -97,6 +98,46 @@ class CategoryControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CategoryRequest(""))))
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void updateReturns200WhenValid() throws Exception {
+        when(categoryService.update(eq(1L), any())).thenReturn(new CategoryResponse(1L, "Home Appliances"));
+
+        mockMvc.perform(put("/api/v1/categories/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CategoryRequest("Home Appliances"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.categoryName").value("Home Appliances"));
+    }
+
+    @Test
+    void updateReturns404WhenMissing() throws Exception {
+        when(categoryService.update(eq(99L), any()))
+                .thenThrow(new ResourceNotFoundException("Category not found with id 99"));
+
+        mockMvc.perform(put("/api/v1/categories/99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CategoryRequest("Home Appliances"))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void deleteReturns200WhenSuccessful() throws Exception {
+        mockMvc.perform(delete("/api/v1/categories/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void deleteReturns404WhenMissing() throws Exception {
+        doThrow(new ResourceNotFoundException("Category not found with id 99"))
+                .when(categoryService).delete(99L);
+
+        mockMvc.perform(delete("/api/v1/categories/99"))
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false));
     }
 
