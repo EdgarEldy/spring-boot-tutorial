@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import edgareldy.springboottutorial.entity.Category;
 import edgareldy.springboottutorial.entity.Product;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,9 @@ class ProductRepositoryTest {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private EntityManager entityManager;
+
     private Category electronics;
     private Category furniture;
 
@@ -43,6 +47,19 @@ class ProductRepositoryTest {
                 .category(electronics).productName("Keyboard").unitPrice(79.99f).build());
         productRepository.save(Product.builder()
                 .category(furniture).productName("Desk").unitPrice(199.99f).build());
+    }
+
+    @Test
+    void findAllEagerlyLoadsCategoryForEveryProduct() {
+        var page = productRepository.findAll(PageRequest.of(0, 10));
+
+        assertThat(page.getContent()).hasSize(2);
+        for (Product product : page.getContent()) {
+            boolean categoryLoaded = entityManager.getEntityManagerFactory()
+                    .getPersistenceUnitUtil()
+                    .isLoaded(product, "category");
+            assertThat(categoryLoaded).as("category should be eagerly fetched by @EntityGraph").isTrue();
+        }
     }
 
     @Test
