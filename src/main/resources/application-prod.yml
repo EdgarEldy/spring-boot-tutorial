@@ -19,6 +19,9 @@ management:
 logging:
   level:
     root: INFO
+  file:
+    name: logs/app.log
   structured:
     format:
       console: ecs
+      file: ecs
