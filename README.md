@@ -308,16 +308,16 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 | Method | URL | Description |
 |---|---|---|
-| GET | `/api/categories` | Paginated list of categories |
-| GET | `/api/categories/{id}` | Category detail |
-| POST | `/api/categories` | Create a category |
-| PUT | `/api/categories/{id}` | Update a category |
-| DELETE | `/api/categories/{id}` | Delete a category |
-| GET | `/api/products` | Paginated list, filterable by `categoryId`, sortable by `productName`/`unitPrice` |
-| GET | `/api/products/{id}` | Product detail |
-| POST | `/api/products` | Create a product |
-| PUT | `/api/products/{id}` | Update a product |
-| DELETE | `/api/products/{id}` | Delete a product |
+| GET | `/api/v1/categories` | Paginated list of categories |
+| GET | `/api/v1/categories/{id}` | Category detail |
+| POST | `/api/v1/categories` | Create a category |
+| PUT | `/api/v1/categories/{id}` | Update a category |
+| DELETE | `/api/v1/categories/{id}` | Delete a category |
+| GET | `/api/v1/products` | Paginated list, filterable by `categoryId`, sortable by `productName`/`unitPrice` |
+| GET | `/api/v1/products/{id}` | Product detail |
+| POST | `/api/v1/products` | Create a product |
+| PUT | `/api/v1/products/{id}` | Update a product |
+| DELETE | `/api/v1/products/{id}` | Delete a product |
 
 ### Tasks
 
@@ -339,11 +339,11 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 | Method | URL | Description |
 |---|---|---|
-| GET | `/api/customers` | Paginated list, search by name (`?search=`) |
-| GET | `/api/customers/{id}` | Customer detail |
-| POST | `/api/customers` | Create a customer |
-| PUT | `/api/customers/{id}` | Update a customer |
-| DELETE | `/api/customers/{id}` | Delete a customer |
+| GET | `/api/v1/customers` | Paginated list, search by name (`?search=`) |
+| GET | `/api/v1/customers/{id}` | Customer detail |
+| POST | `/api/v1/customers` | Create a customer |
+| PUT | `/api/v1/customers/{id}` | Update a customer |
+| DELETE | `/api/v1/customers/{id}` | Delete a customer |
 
 ### Tasks
 
@@ -361,12 +361,12 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 | Method | URL | Description |
 |---|---|---|
-| GET | `/api/orders` | Paginated list, filterable by `customerId`/`productId` |
-| GET | `/api/orders/{id}` | Order detail |
-| POST | `/api/orders` | Create an order (`total` computed automatically) |
-| PUT | `/api/orders/{id}` | Update an order |
-| DELETE | `/api/orders/{id}` | Delete an order |
-| GET | `/api/customers/{id}/orders` | Orders for a given customer |
+| GET | `/api/v1/orders` | Paginated list, filterable by `customerId`/`productId` |
+| GET | `/api/v1/orders/{id}` | Order detail |
+| POST | `/api/v1/orders` | Create an order (`total` computed automatically) |
+| PUT | `/api/v1/orders/{id}` | Update an order |
+| DELETE | `/api/v1/orders/{id}` | Delete an order |
+| GET | `/api/v1/customers/{id}/orders` | Orders for a given customer |
 
 ### Tasks
 
@@ -391,9 +391,9 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 | Method | URL | Description | Access |
 |---|---|---|---|
-| POST | `/api/auth/register` | Sign up | Public |
-| POST | `/api/auth/login` | Sign in, returns a JWT | Public |
-| GET | `/api/auth/me` | Current user profile | Authenticated |
+| POST | `/api/v1/auth/register` | Sign up | Public |
+| POST | `/api/v1/auth/login` | Sign in, returns a JWT | Public |
+| GET | `/api/v1/auth/me` | Current user profile | Authenticated |
 
 ### Authorization rules
 
@@ -434,6 +434,7 @@ Includes `Category` and `Product`, given their direct link in the model.
 - List responses are always paginated (`Page<T>` → `PageResponse<T>` DTO)
 - Endpoint names are plural, `kebab-case` when composed
 - Every endpoint documented with `@Operation(summary = "...")`
+- All REST endpoints are versioned under the `/api/v1` prefix (e.g. `/api/v1/categories`), so the API can introduce a breaking `/api/v2` later without touching existing clients
 
 ## Concepts covered
 
