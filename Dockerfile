@@ -14,10 +14,12 @@ RUN mvn -B clean package -DskipTests
 FROM eclipse-temurin:17-jre-jammy AS runtime
 WORKDIR /app
 
-RUN useradd --system --create-home appuser
+RUN useradd --system --create-home appuser \
+    && mkdir -p /app/logs \
+    && chown -R appuser:appuser /app
 USER appuser
 
-COPY --from=build /workspace/target/spring-boot-tutorial-*.jar app.jar
+COPY --from=build --chown=appuser:appuser /workspace/target/spring-boot-tutorial-*.jar app.jar
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
