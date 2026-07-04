@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 /**
  * Centralized exception handler that translates every exception thrown by a
  * controller (directly or through a service) into a consistent
- * {@code ApiResponse<Void>}, so callers never have to parse a different
- * error shape depending on which endpoint failed.
+ * {@code ApiResponse<ErrorResponse>}, so callers never have to parse a
+ * different error shape depending on which endpoint failed.
  * <p>
  * Created edgar.muhamyangabo on 7/4/26
  * Author : edgar.muhamyangabo
