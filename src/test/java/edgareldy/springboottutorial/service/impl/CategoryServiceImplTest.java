@@ -100,6 +100,30 @@ class CategoryServiceImplTest {
     }
 
     @Test
+    void updateAppliesRequestAndReturnsResponse() {
+        CategoryRequest request = new CategoryRequest("Home Appliances");
+        CategoryResponse updatedResponse = new CategoryResponse(1L, "Home Appliances");
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(categoryRepository.save(category)).thenReturn(category);
+        when(categoryMapper.toResponse(category)).thenReturn(updatedResponse);
+
+        assertThat(categoryService.update(1L, request)).isEqualTo(updatedResponse);
+
+        verify(categoryMapper).updateEntityFromRequest(request, category);
+    }
+
+    @Test
+    void updateThrowsWhenMissing() {
+        CategoryRequest request = new CategoryRequest("Home Appliances");
+        when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> categoryService.update(99L, request))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(categoryRepository, never()).save(any());
+    }
+
+    @Test
     void deleteRemovesCategoryWhenEmpty() {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(productRepository.existsByCategoryId(1L)).thenReturn(false);
