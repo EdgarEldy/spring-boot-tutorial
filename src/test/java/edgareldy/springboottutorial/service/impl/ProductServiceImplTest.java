@@ -126,6 +126,43 @@ class ProductServiceImplTest {
     }
 
     @Test
+    void updateResolvesCategoryAndSaves() {
+        ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", 99.99f);
+        ProductResponse updatedResponse = new ProductResponse(1L, "Mechanical Keyboard", 99.99f, 1L, "Electronics");
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepository.save(product)).thenReturn(product);
+        when(productMapper.toResponse(product)).thenReturn(updatedResponse);
+
+        assertThat(productService.update(1L, request)).isEqualTo(updatedResponse);
+
+        verify(productMapper).updateEntityFromRequest(request, product);
+    }
+
+    @Test
+    void updateThrowsWhenProductMissing() {
+        ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", 99.99f);
+        when(productRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.update(99L, request))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(productRepository, never()).save(any());
+    }
+
+    @Test
+    void updateThrowsWhenCategoryMissing() {
+        ProductRequest request = new ProductRequest(99L, "Mechanical Keyboard", 99.99f);
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.update(1L, request))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(productRepository, never()).save(any());
+    }
+
+    @Test
     void deleteRemovesProductWhenExists() {
         when(productRepository.existsById(1L)).thenReturn(true);
 
