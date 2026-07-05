@@ -16,7 +16,7 @@ Repository: https://github.com/EdgarEldy/spring-boot-tutorial
 - [Project structure](#project-structure)
 - [Standard response format](#standard-response-format)
 - [Spring AOP](#spring-aop)
-- [feature/config](#featureconfig)
+- [feature/core-architecture](#featurecore-architecture)
 - [feature/products](#featureproducts)
 - [feature/customers](#featurecustomers)
 - [feature/orders](#featureorders)
@@ -105,7 +105,7 @@ customers (id, first_name, last_name, telephone, email, address)
 |---|---|
 | `master` | Stable, production-ready code. No direct commits only merges from `develop`. |
 | `develop` | Integration branch. All `feature/*` branches are merged here before `master`. |
-| `feature/config` | Technical foundation: project structure, configuration, baseline security, Docker, CI. |
+| `feature/core-architecture` | Technical foundation: project structure, configuration, baseline security, Docker, CI. |
 | `feature/products` | `Category` and `Product` CRUD. |
 | `feature/customers` | `Customer` CRUD. |
 | `feature/orders` | `Order` CRUD, business logic linking products and customers. |
@@ -263,33 +263,42 @@ The project uses **Spring AOP** to illustrate aspect-oriented programming, kept 
 - Also serves as a teaching base for the other advice types (`@Before`, `@After`, `@AfterReturning`, `@AfterThrowing`) alongside `@Around`
 - Can later be reused for auditing (e.g. tracing who created/modified an order) without polluting business code
 
-## feature/config
+## feature/core-architecture
 
-Technical foundation shared by the whole project, to be merged first into `develop`.
+Technical foundation shared by the whole project, to be merged first into `develop`. Originally named `feature/config`; renamed to better reflect that it lays out the whole architectural skeleton (config, cross-cutting concerns, containerization, CI), not just configuration files.
 
 ### Tasks
 
-- [ ] Initialize the project via Spring Initializr (Maven, Java 17, Spring Boot 3.5.x)
-- [ ] Dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-starter-actuator`, `spring-boot-starter-security`, `spring-boot-starter-aop`, `flyway-core`, `flyway-database-postgresql`, `postgresql` driver, `lombok`, `mapstruct` + `mapstruct-processor`, `springdoc-openapi-starter-webmvc-ui`, `jjwt-api`/`jjwt-impl`/`jjwt-jackson`
-- [ ] Test dependencies: `spring-boot-starter-test`, `spring-security-test`, `testcontainers` (junit-jupiter, postgresql)
-- [ ] Create the package tree shown above
-- [ ] `application.yml`: shared configuration (app name, port, JSON date format)
-- [ ] `application-dev.yml`: local datasource, `spring.jpa.show-sql=true`, Flyway enabled
-- [ ] `application-test.yml`: Testcontainers datasource
-- [ ] `application-prod.yml`: datasource via environment variables, JSON logs
-- [ ] Flyway script `V1__init_schema.sql` (categories, products, customers, orders tables with FKs)
-- [ ] `GlobalExceptionHandler` (`@RestControllerAdvice`): handles `ResourceNotFoundException` (404), `MethodArgumentNotValidException` (400, field details), `BusinessRuleException` (422), generic `Exception` (500)
-- [ ] Standard `ErrorResponse` DTO: `timestamp`, `status`, `error`, `message`, `path`, optional `fieldErrors` list
-- [ ] Generic `ApiResponse<T>` (`dto/common/ApiResponse.java`) and `PageResponse<T>` (`dto/common/PageResponse.java`) DTOs, used to wrap every controller response
-- [ ] `LoggingAspect` and `ExecutionTimeAspect` (`aspect/`): logging and execution-time measurement via Spring AOP (see [Spring AOP](#spring-aop))
-- [ ] `OpenApiConfig`: title, description, version, JWT security scheme in Swagger UI
-- [ ] Actuator: expose `health`, `info`, `metrics` in dev; `health` only in prod
-- [ ] Structured logging (`logback-spring.xml` or Actuator ECS/JSON config)
-- [ ] `CorsConfig`: allow `localhost:3000`/`localhost:5173` in dev
-- [ ] Multi-stage `Dockerfile` (Maven build + lightweight JRE image)
-- [ ] `docker-compose.yml`: `app` service + `db` service (PostgreSQL 16) with volumes and environment variables
-- [ ] `.github/workflows/ci.yml`: Maven build + tests on every push/PR
-- [ ] Branch `README` explaining the configuration choices
+- [x] Initialize the project via Spring Initializr (Maven, Java 17, Spring Boot 3.5.16)
+- [x] Dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-starter-actuator`, `spring-boot-starter-security`, `spring-boot-starter-aop`, `flyway-core`, `flyway-database-postgresql`, `postgresql` driver, `lombok`, `mapstruct` + `mapstruct-processor`, `springdoc-openapi-starter-webmvc-ui`, `jjwt-api`/`jjwt-impl`/`jjwt-jackson`
+- [x] Test dependencies: `spring-boot-starter-test`, `spring-security-test`, `testcontainers` (junit-jupiter, postgresql)
+- [x] Create the package tree shown above
+- [x] `application.yml`: shared configuration (app name, port, JSON date format)
+- [x] `application-dev.yml`: local datasource, `spring.jpa.show-sql=true`, Flyway enabled
+- [x] `application-test.yml`: Testcontainers datasource
+- [x] `application-prod.yml`: datasource via environment variables, JSON logs
+- [x] Flyway script `V1__init_schema.sql` (categories, products, customers, orders tables with FKs)
+- [x] `GlobalExceptionHandler` (`@RestControllerAdvice`): handles `ResourceNotFoundException` (404), `MethodArgumentNotValidException` (400, field details), `BusinessRuleException` (422), generic `Exception` (500)
+- [x] Standard `ErrorResponse` DTO: `timestamp`, `status`, `error`, `message`, `path`, optional `fieldErrors` list
+- [x] Generic `ApiResponse<T>` (`dto/common/ApiResponse.java`) and `PageResponse<T>` (`dto/common/PageResponse.java`) DTOs, used to wrap every controller response
+- [x] `LoggingAspect` and `ExecutionTimeAspect` (`aspect/`): logging and execution-time measurement via Spring AOP (see [Spring AOP](#spring-aop))
+- [x] `OpenApiConfig`: title, description, version, JWT security scheme in Swagger UI
+- [x] Actuator: expose `health`, `info`, `metrics` in dev; `health` only in prod
+- [x] Structured logging (`logback-spring.xml` and Actuator ECS/JSON config, combined)
+- [x] `CorsConfig`: allow `localhost:3000`/`localhost:5173` in dev
+- [x] Multi-stage `Dockerfile` (Maven build + lightweight JRE image)
+- [x] `docker-compose.yml`: `app` service + `db` service (PostgreSQL 16) with volumes and environment variables
+- [x] `.github/workflows/ci.yml`: Maven build + tests on every push/PR
+- [x] Branch `README` explaining the configuration choices (see below)
+
+### Configuration notes
+
+- **Spring Boot 3.5.16, not 4.1.x.** The project was first scoped around Spring Boot 4.1 / Spring Framework 7, but springdoc-openapi had no release compatible with Spring Framework 7 on Maven Central at implementation time. Spring Boot 3.5.16 (Spring Framework 6) is fully compatible with every required dependency (springdoc, MapStruct, jjwt) and is still an actively maintained line, so it was chosen instead.
+- **`dependencyManagement` explicitly imports `spring-boot-dependencies`** as `${project.parent.version}`, in addition to inheriting it via `<parent>`. This is redundant (the parent POM already provides the same bill of materials) but was requested explicitly to make version management visible directly in `dependencyManagement`.
+- **`hibernate.ddl-auto` is `validate` in every profile**, never `update` or `create`. Flyway's `V1__init_schema.sql` is the single source of truth for the schema; Hibernate only checks that entity mappings agree with it. This avoids the classic drift where a forgotten entity annotation silently alters the schema in one environment but not another.
+- **Structured logging combines two mechanisms on purpose.** `logback-spring.xml` includes Spring Boot's own default appenders (`defaults.xml`, `console-appender.xml`) instead of redefining them, and adds a prod-only `file-appender.xml` include via `<springProfile name="prod">`. The actual JSON formatting comes from Spring Boot 3.4+'s native `logging.structured.format.console`/`.file` properties (set to `ecs` in `application-prod.yml`), so no extra dependency (e.g. `logstash-logback-encoder`) or hand-written JSON encoder was needed.
+- **`CorsConfig` is annotated `@Profile("dev")`.** Only local frontend dev servers (`localhost:3000`, `localhost:5173`) get a CORS exemption; prod is expected to declare its own, narrower policy once a real frontend origin exists.
+- **Testcontainers only, no H2.** `application-test.yml` declares no datasource at all: `TestcontainersConfiguration`'s `@ServiceConnection` `PostgreSQLContainer` bean wires the datasource automatically. Using real PostgreSQL in tests (instead of an in-memory H2 database) avoids behavioral differences between the two engines (types, constraints, SQL dialect) that would otherwise only surface in production.
 
 ## feature/products
 
@@ -299,16 +308,16 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 | Method | URL | Description |
 |---|---|---|
-| GET | `/api/categories` | Paginated list of categories |
-| GET | `/api/categories/{id}` | Category detail |
-| POST | `/api/categories` | Create a category |
-| PUT | `/api/categories/{id}` | Update a category |
-| DELETE | `/api/categories/{id}` | Delete a category |
-| GET | `/api/products` | Paginated list, filterable by `categoryId`, sortable by `productName`/`unitPrice` |
-| GET | `/api/products/{id}` | Product detail |
-| POST | `/api/products` | Create a product |
-| PUT | `/api/products/{id}` | Update a product |
-| DELETE | `/api/products/{id}` | Delete a product |
+| GET | `/api/v1/categories` | Paginated list of categories |
+| GET | `/api/v1/categories/{id}` | Category detail |
+| POST | `/api/v1/categories` | Create a category |
+| PUT | `/api/v1/categories/{id}` | Update a category |
+| DELETE | `/api/v1/categories/{id}` | Delete a category |
+| GET | `/api/v1/products` | Paginated list, filterable by `categoryId`, sortable by `productName`/`unitPrice` |
+| GET | `/api/v1/products/{id}` | Product detail |
+| POST | `/api/v1/products` | Create a product |
+| PUT | `/api/v1/products/{id}` | Update a product |
+| DELETE | `/api/v1/products/{id}` | Delete a product |
 
 ### Tasks
 
@@ -330,11 +339,11 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 | Method | URL | Description |
 |---|---|---|
-| GET | `/api/customers` | Paginated list, search by name (`?search=`) |
-| GET | `/api/customers/{id}` | Customer detail |
-| POST | `/api/customers` | Create a customer |
-| PUT | `/api/customers/{id}` | Update a customer |
-| DELETE | `/api/customers/{id}` | Delete a customer |
+| GET | `/api/v1/customers` | Paginated list, search by name (`?search=`) |
+| GET | `/api/v1/customers/{id}` | Customer detail |
+| POST | `/api/v1/customers` | Create a customer |
+| PUT | `/api/v1/customers/{id}` | Update a customer |
+| DELETE | `/api/v1/customers/{id}` | Delete a customer |
 
 ### Tasks
 
@@ -352,12 +361,12 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 | Method | URL | Description |
 |---|---|---|
-| GET | `/api/orders` | Paginated list, filterable by `customerId`/`productId` |
-| GET | `/api/orders/{id}` | Order detail |
-| POST | `/api/orders` | Create an order (`total` computed automatically) |
-| PUT | `/api/orders/{id}` | Update an order |
-| DELETE | `/api/orders/{id}` | Delete an order |
-| GET | `/api/customers/{id}/orders` | Orders for a given customer |
+| GET | `/api/v1/orders` | Paginated list, filterable by `customerId`/`productId` |
+| GET | `/api/v1/orders/{id}` | Order detail |
+| POST | `/api/v1/orders` | Create an order (`total` computed automatically) |
+| PUT | `/api/v1/orders/{id}` | Update an order |
+| DELETE | `/api/v1/orders/{id}` | Delete an order |
+| GET | `/api/v1/customers/{id}/orders` | Orders for a given customer |
 
 ### Tasks
 
@@ -382,9 +391,9 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 | Method | URL | Description | Access |
 |---|---|---|---|
-| POST | `/api/auth/register` | Sign up | Public |
-| POST | `/api/auth/login` | Sign in, returns a JWT | Public |
-| GET | `/api/auth/me` | Current user profile | Authenticated |
+| POST | `/api/v1/auth/register` | Sign up | Public |
+| POST | `/api/v1/auth/login` | Sign in, returns a JWT | Public |
+| GET | `/api/v1/auth/me` | Current user profile | Authenticated |
 
 ### Authorization rules
 
@@ -407,7 +416,7 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 ## Order of work
 
-1. `feature/config` → Pull Request to `develop`
+1. `feature/core-architecture` → Pull Request to `develop`
 2. `feature/products` (depends on `config`) → Pull Request to `develop`
 3. `feature/customers` → Pull Request to `develop`
 4. `feature/orders` (depends on `products` and `customers`) → Pull Request to `develop`
@@ -425,6 +434,7 @@ Includes `Category` and `Product`, given their direct link in the model.
 - List responses are always paginated (`Page<T>` → `PageResponse<T>` DTO)
 - Endpoint names are plural, `kebab-case` when composed
 - Every endpoint documented with `@Operation(summary = "...")`
+- All REST endpoints are versioned under the `/api/v1` prefix (e.g. `/api/v1/categories`), so the API can introduce a breaking `/api/v2` later without touching existing clients
 
 ## Concepts covered
 
@@ -451,7 +461,7 @@ Includes `Category` and `Product`, given their direct link in the model.
 ## How to follow this tutorial
 
 1. Clone the repository and check out `develop`
-2. Create/checkout the `feature/config` branch and follow its task checklist
+2. Create/checkout the `feature/core-architecture` branch and follow its task checklist
 3. Continue with `feature/products`, `feature/customers`, `feature/orders`, `feature/auth` in that order
 4. Open a Pull Request to `develop` at the end of each branch
 5. Run the project with `docker-compose up`, then open Swagger UI at `http://localhost:8080/swagger-ui.html`
