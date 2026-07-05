@@ -4,7 +4,7 @@ A complete, hands-on walkthrough of building a CRUD REST API with **Spring Boot 
 
 The data model follows this EER schema: `categories` → `products` → `orders` ← `customers`.
 
-This document is the **complete specification** of the project: it is meant to be followed step by step (with Claude Code or manually) to implement each branch.
+This document is the **complete specification** of the project: it is meant to be followed step by step to implement each branch.
 
 Repository: https://github.com/EdgarEldy/spring-boot-tutorial
 
