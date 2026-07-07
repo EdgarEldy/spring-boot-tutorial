@@ -347,13 +347,13 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 ### Tasks
 
-- [ ] `Customer` entity
-- [ ] `CustomerRepository` with search (`findByEmail`, derived query on first/last name)
-- [ ] DTOs `CustomerRequest`/`CustomerResponse` with validation (valid email, phone format)
-- [ ] `CustomerMapper`
-- [ ] `CustomerService` interface and `CustomerServiceImpl` implementation (in `service/impl`): email uniqueness check on create and update
-- [ ] `CustomerController`
-- [ ] Unit and integration tests
+- [x] `Customer` entity
+- [x] `CustomerRepository` with search (`findByEmail`, derived query on first/last name)
+- [x] DTOs `CustomerRequest`/`CustomerResponse` with validation (valid email, phone format)
+- [x] `CustomerMapper`
+- [x] `CustomerService` interface and `CustomerServiceImpl` implementation (in `service/impl`): email uniqueness check on create and update
+- [x] `CustomerController`
+- [x] Unit and integration tests
 
 ## feature/orders
 
