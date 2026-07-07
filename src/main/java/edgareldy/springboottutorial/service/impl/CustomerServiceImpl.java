@@ -48,7 +48,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional
     public CustomerResponse create(CustomerRequest request) {
-        if (customerRepository.existsByEmail(request.email())) {
+        if (customerRepository.existsByEmailIgnoreCase(request.email())) {
             throw new BusinessRuleException("Email " + request.email() + " is already in use");
         }
         Customer customer = customerMapper.toEntity(request);
@@ -60,7 +60,7 @@ public class CustomerServiceImpl implements CustomerService {
     public CustomerResponse update(Long id, CustomerRequest request) {
         Customer customer = getCustomerOrThrow(id);
         if (!customer.getEmail().equalsIgnoreCase(request.email())
-                && customerRepository.existsByEmail(request.email())) {
+                && customerRepository.existsByEmailIgnoreCase(request.email())) {
             throw new BusinessRuleException("Email " + request.email() + " is already in use");
         }
         customerMapper.updateEntityFromRequest(request, customer);
