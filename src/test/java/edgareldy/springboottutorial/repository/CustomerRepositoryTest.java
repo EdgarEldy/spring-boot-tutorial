@@ -48,9 +48,14 @@ class CustomerRepositoryTest {
     }
 
     @Test
-    void existsByEmailReflectsCurrentData() {
-        assertThat(customerRepository.existsByEmail("grace@example.com")).isTrue();
-        assertThat(customerRepository.existsByEmail("unknown@example.com")).isFalse();
+    void existsByEmailIgnoreCaseReflectsCurrentData() {
+        assertThat(customerRepository.existsByEmailIgnoreCase("grace@example.com")).isTrue();
+        assertThat(customerRepository.existsByEmailIgnoreCase("unknown@example.com")).isFalse();
+    }
+
+    @Test
+    void existsByEmailIgnoreCaseMatchesRegardlessOfCase() {
+        assertThat(customerRepository.existsByEmailIgnoreCase("GRACE@EXAMPLE.COM")).isTrue();
     }
 
     @Test
