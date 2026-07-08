@@ -15,4 +15,13 @@ public record AuthResponse(
         String tokenType,
         String username
 ) {
+
+    // Overrides the compiler-generated toString(): LoggingAspect logs every
+    // service method's return value via toString(), and login() returns
+    // this record, so the default record toString() would put the raw JWT,
+    // a live bearer credential, in the application logs.
+    @Override
+    public String toString() {
+        return "AuthResponse[token=***, tokenType=%s, username=%s]".formatted(tokenType, username);
+    }
 }
