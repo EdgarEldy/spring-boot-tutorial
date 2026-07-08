@@ -16,9 +16,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edgareldy.springboottutorial.dto.common.PageResponse;
 import edgareldy.springboottutorial.dto.customer.CustomerRequest;
 import edgareldy.springboottutorial.dto.customer.CustomerResponse;
+import edgareldy.springboottutorial.dto.order.OrderResponse;
 import edgareldy.springboottutorial.exception.BusinessRuleException;
 import edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import edgareldy.springboottutorial.service.CustomerService;
+import edgareldy.springboottutorial.service.OrderService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +52,9 @@ class CustomerControllerTest {
 
     @MockitoBean
     private CustomerService customerService;
+
+    @MockitoBean
+    private OrderService orderService;
 
     private static CustomerRequest validRequest() {
         return new CustomerRequest("Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way");
@@ -158,6 +163,32 @@ class CustomerControllerTest {
                 .when(customerService).delete(99L);
 
         mockMvc.perform(delete("/api/v1/customers/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void findOrdersReturns200WhenCustomerExists() throws Exception {
+        OrderResponse order = new OrderResponse(
+                1L,
+                new OrderResponse.CustomerSummary(1L, "Ada Lovelace"),
+                new OrderResponse.ProductSummary(1L, "Keyboard", 50.0f),
+                2,
+                100.0);
+        PageResponse<OrderResponse> page = new PageResponse<>(List.of(order), 0, 20, 1, 1);
+        when(customerService.findById(1L)).thenReturn(savedResponse());
+        when(orderService.findAll(eq(1L), isNull(), any())).thenReturn(page);
+
+        mockMvc.perform(get("/api/v1/customers/1/orders"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].product.productName").value("Keyboard"));
+    }
+
+    @Test
+    void findOrdersReturns404WhenCustomerMissing() throws Exception {
+        when(customerService.findById(99L)).thenThrow(new ResourceNotFoundException("Customer not found with id 99"));
+
+        mockMvc.perform(get("/api/v1/customers/99/orders"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false));
     }
