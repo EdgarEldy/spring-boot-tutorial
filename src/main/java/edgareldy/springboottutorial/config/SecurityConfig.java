@@ -3,7 +3,9 @@ package edgareldy.springboottutorial.config;
 import edgareldy.springboottutorial.security.JwtAccessDeniedHandler;
 import edgareldy.springboottutorial.security.JwtAuthFilter;
 import edgareldy.springboottutorial.security.JwtAuthenticationEntryPoint;
+import edgareldy.springboottutorial.security.JwtProperties;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -34,6 +36,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  */
 @Configuration
 @EnableWebSecurity
+@EnableConfigurationProperties(JwtProperties.class)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
