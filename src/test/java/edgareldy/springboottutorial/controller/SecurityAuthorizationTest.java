@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edgareldy.springboottutorial.dto.auth.LoginRequest;
 import edgareldy.springboottutorial.dto.auth.RegisterRequest;
 import edgareldy.springboottutorial.dto.category.CategoryRequest;
 import edgareldy.springboottutorial.dto.customer.CustomerRequest;
@@ -17,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 /**
  * End to end authorization checks against the real
@@ -124,5 +126,57 @@ class SecurityAuthorizationTest {
     @Test
     void meRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/api/v1/auth/me")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void listProductsIsPublic() throws Exception {
+        mockMvc.perform(get("/api/v1/products")).andExpect(status().isOk());
+    }
+
+    @Test
+    void listOrdersRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/api/v1/orders")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void listOrdersIsAllowedForAnyAuthenticatedUser() throws Exception {
+        mockMvc.perform(get("/api/v1/orders").with(user("ada").roles("USER")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void loginIssuesTokenThatAuthenticatesSubsequentRequests() throws Exception {
+        RegisterRequest register = new RegisterRequest("hopper", "hopper@example.com", "password123");
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(register)))
+                .andExpect(status().isCreated());
+
+        LoginRequest login = new LoginRequest("hopper", "password123");
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(login)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String token = objectMapper.readTree(loginResult.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+
+        mockMvc.perform(get("/api/v1/customers").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void loginWithWrongPasswordIsPublicButRejected() throws Exception {
+        RegisterRequest register = new RegisterRequest("babbage", "babbage@example.com", "password123");
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(register)))
+                .andExpect(status().isCreated());
+
+        LoginRequest wrongPassword = new LoginRequest("babbage", "not-the-password");
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(wrongPassword)))
+                .andExpect(status().isUnauthorized());
     }
 }
