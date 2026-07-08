@@ -370,14 +370,14 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 ### Tasks
 
-- [ ] `Order` entity with `@ManyToOne` to `Customer` and `Product`
-- [ ] `OrderRepository` with join queries (`@Query` with `JOIN`), DTO projection for lists
-- [ ] DTOs `OrderRequest` (customerId, productId, quantity) / `OrderResponse` (with summarized customer/product sub-objects)
-- [ ] `OrderMapper`
-- [ ] `OrderService` interface and `OrderServiceImpl` implementation (in `service/impl`): computes `total = quantity * product.unitPrice`, checks that the customer and product exist
-- [ ] `OrderCreatedEvent` application event published after creation, consumed by `OrderCreatedEventListener` (e.g. business logging, future email notification)
-- [ ] `OrderController`
-- [ ] Unit tests (total computation, business rules) and integration tests
+- [x] `Order` entity with `@ManyToOne` to `Customer` and `Product`
+- [x] `OrderRepository` with join queries (`@Query` with `JOIN`), DTO projection for lists
+- [x] DTOs `OrderRequest` (customerId, productId, quantity) / `OrderResponse` (with summarized customer/product sub-objects)
+- [x] `OrderMapper`
+- [x] `OrderService` interface and `OrderServiceImpl` implementation (in `service/impl`): computes `total = quantity * product.unitPrice`, checks that the customer and product exist
+- [x] `OrderCreatedEvent` application event published after creation, consumed by `OrderCreatedEventListener` (e.g. business logging, future email notification)
+- [x] `OrderController`
+- [x] Unit tests (total computation, business rules) and integration tests
 
 ## feature/auth
 
