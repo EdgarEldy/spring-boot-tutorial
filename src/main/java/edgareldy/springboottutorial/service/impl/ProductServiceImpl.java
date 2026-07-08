@@ -5,9 +5,11 @@ import edgareldy.springboottutorial.dto.product.ProductRequest;
 import edgareldy.springboottutorial.dto.product.ProductResponse;
 import edgareldy.springboottutorial.entity.Category;
 import edgareldy.springboottutorial.entity.Product;
+import edgareldy.springboottutorial.exception.BusinessRuleException;
 import edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import edgareldy.springboottutorial.mapper.ProductMapper;
 import edgareldy.springboottutorial.repository.CategoryRepository;
+import edgareldy.springboottutorial.repository.OrderRepository;
 import edgareldy.springboottutorial.repository.ProductRepository;
 import edgareldy.springboottutorial.service.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
+    private final OrderRepository orderRepository;
 
     @Override
     public PageResponse<ProductResponse> findAll(Long categoryId, Pageable pageable) {
@@ -73,6 +76,9 @@ public class ProductServiceImpl implements ProductService {
     public void delete(Long id) {
         if (!productRepository.existsById(id)) {
             throw new ResourceNotFoundException("Product not found with id " + id);
+        }
+        if (orderRepository.existsByProductId(id)) {
+            throw new BusinessRuleException("Product " + id + " has existing orders and cannot be deleted");
         }
         productRepository.deleteById(id);
     }

@@ -25,6 +25,7 @@ services:
       DB_URL: jdbc:postgresql://db:5432/spring_boot_tutorial
       DB_USERNAME: spring_boot_tutorial
       DB_PASSWORD: spring_boot_tutorial
+      JWT_SECRET: docker-compose-demo-jwt-secret-please-override-in-real-prod-987654321
     ports:
       - "8080:8080"
 

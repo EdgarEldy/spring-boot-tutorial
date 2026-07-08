@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -51,6 +52,18 @@ class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
         assertThat(response.getBody().data().status()).isEqualTo(422);
+    }
+
+    @Test
+    void authenticationExceptionMapsTo401() {
+        HttpServletRequest request = mockRequest("/api/v1/auth/login");
+
+        ResponseEntity<ApiResponse<ErrorResponse>> response =
+                handler.handleAuthentication(new BadCredentialsException("Bad credentials"), request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody().message()).isEqualTo("Invalid username or password");
+        assertThat(response.getBody().data().status()).isEqualTo(401);
     }
 
     @Test

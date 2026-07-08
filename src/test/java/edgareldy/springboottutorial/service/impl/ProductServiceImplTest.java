@@ -12,9 +12,11 @@ import edgareldy.springboottutorial.dto.product.ProductRequest;
 import edgareldy.springboottutorial.dto.product.ProductResponse;
 import edgareldy.springboottutorial.entity.Category;
 import edgareldy.springboottutorial.entity.Product;
+import edgareldy.springboottutorial.exception.BusinessRuleException;
 import edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import edgareldy.springboottutorial.mapper.ProductMapper;
 import edgareldy.springboottutorial.repository.CategoryRepository;
+import edgareldy.springboottutorial.repository.OrderRepository;
 import edgareldy.springboottutorial.repository.ProductRepository;
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +50,9 @@ class ProductServiceImplTest {
 
     @Mock
     private ProductMapper productMapper;
+
+    @Mock
+    private OrderRepository orderRepository;
 
     @InjectMocks
     private ProductServiceImpl productService;
@@ -165,6 +170,7 @@ class ProductServiceImplTest {
     @Test
     void deleteRemovesProductWhenExists() {
         when(productRepository.existsById(1L)).thenReturn(true);
+        when(orderRepository.existsByProductId(1L)).thenReturn(false);
 
         productService.delete(1L);
 
@@ -177,6 +183,17 @@ class ProductServiceImplTest {
 
         assertThatThrownBy(() -> productService.delete(99L))
                 .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(productRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteThrowsWhenProductHasExistingOrders() {
+        when(productRepository.existsById(1L)).thenReturn(true);
+        when(orderRepository.existsByProductId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> productService.delete(1L))
+                .isInstanceOf(BusinessRuleException.class);
 
         verify(productRepository, never()).deleteById(any());
     }

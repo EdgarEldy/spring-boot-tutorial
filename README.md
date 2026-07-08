@@ -285,7 +285,7 @@ Technical foundation shared by the whole project, to be merged first into `devel
 - [x] `OpenApiConfig`: title, description, version, JWT security scheme in Swagger UI
 - [x] Actuator: expose `health`, `info`, `metrics` in dev; `health` only in prod
 - [x] Structured logging (`logback-spring.xml` and Actuator ECS/JSON config, combined)
-- [x] `CorsConfig`: allow `localhost:3000`/`localhost:5173` in dev
+- [x] `CorsConfig`: allow `localhost:4200` in dev
 - [x] Multi-stage `Dockerfile` (Maven build + lightweight JRE image)
 - [x] `docker-compose.yml`: `app` service + `db` service (PostgreSQL 16) with volumes and environment variables
 - [x] `.github/workflows/ci.yml`: Maven build + tests on every push/PR
@@ -297,7 +297,7 @@ Technical foundation shared by the whole project, to be merged first into `devel
 - **`dependencyManagement` explicitly imports `spring-boot-dependencies`** as `${project.parent.version}`, in addition to inheriting it via `<parent>`. This is redundant (the parent POM already provides the same bill of materials) but was requested explicitly to make version management visible directly in `dependencyManagement`.
 - **`hibernate.ddl-auto` is `validate` in every profile**, never `update` or `create`. Flyway's `V1__init_schema.sql` is the single source of truth for the schema; Hibernate only checks that entity mappings agree with it. This avoids the classic drift where a forgotten entity annotation silently alters the schema in one environment but not another.
 - **Structured logging combines two mechanisms on purpose.** `logback-spring.xml` includes Spring Boot's own default appenders (`defaults.xml`, `console-appender.xml`) instead of redefining them, and adds a prod-only `file-appender.xml` include via `<springProfile name="prod">`. The actual JSON formatting comes from Spring Boot 3.4+'s native `logging.structured.format.console`/`.file` properties (set to `ecs` in `application-prod.yml`), so no extra dependency (e.g. `logstash-logback-encoder`) or hand-written JSON encoder was needed.
-- **`CorsConfig` is annotated `@Profile("dev")`.** Only local frontend dev servers (`localhost:3000`, `localhost:5173`) get a CORS exemption; prod is expected to declare its own, narrower policy once a real frontend origin exists.
+- **`CorsConfig` is annotated `@Profile("dev")`.** Only the local Angular dev server (`localhost:4200`) gets a CORS exemption; prod is expected to declare its own, narrower policy once a real frontend origin exists.
 - **Testcontainers only, no H2.** `application-test.yml` declares no datasource at all: `TestcontainersConfiguration`'s `@ServiceConnection` `PostgreSQLContainer` bean wires the datasource automatically. Using real PostgreSQL in tests (instead of an in-memory H2 database) avoids behavioral differences between the two engines (types, constraints, SQL dialect) that would otherwise only surface in production.
 
 ## feature/products
@@ -347,13 +347,13 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 ### Tasks
 
-- [ ] `Customer` entity
-- [ ] `CustomerRepository` with search (`findByEmail`, derived query on first/last name)
-- [ ] DTOs `CustomerRequest`/`CustomerResponse` with validation (valid email, phone format)
-- [ ] `CustomerMapper`
-- [ ] `CustomerService` interface and `CustomerServiceImpl` implementation (in `service/impl`): email uniqueness check on create and update
-- [ ] `CustomerController`
-- [ ] Unit and integration tests
+- [x] `Customer` entity
+- [x] `CustomerRepository` with search (`findByEmail`, derived query on first/last name)
+- [x] DTOs `CustomerRequest`/`CustomerResponse` with validation (valid email, phone format)
+- [x] `CustomerMapper`
+- [x] `CustomerService` interface and `CustomerServiceImpl` implementation (in `service/impl`): email uniqueness check on create and update
+- [x] `CustomerController`
+- [x] Unit and integration tests
 
 ## feature/orders
 
@@ -370,14 +370,14 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 ### Tasks
 
-- [ ] `Order` entity with `@ManyToOne` to `Customer` and `Product`
-- [ ] `OrderRepository` with join queries (`@Query` with `JOIN`), DTO projection for lists
-- [ ] DTOs `OrderRequest` (customerId, productId, quantity) / `OrderResponse` (with summarized customer/product sub-objects)
-- [ ] `OrderMapper`
-- [ ] `OrderService` interface and `OrderServiceImpl` implementation (in `service/impl`): computes `total = quantity * product.unitPrice`, checks that the customer and product exist
-- [ ] `OrderCreatedEvent` application event published after creation, consumed by `OrderCreatedEventListener` (e.g. business logging, future email notification)
-- [ ] `OrderController`
-- [ ] Unit tests (total computation, business rules) and integration tests
+- [x] `Order` entity with `@ManyToOne` to `Customer` and `Product`
+- [x] `OrderRepository` with join queries (`@Query` with `JOIN`), DTO projection for lists
+- [x] DTOs `OrderRequest` (customerId, productId, quantity) / `OrderResponse` (with summarized customer/product sub-objects)
+- [x] `OrderMapper`
+- [x] `OrderService` interface and `OrderServiceImpl` implementation (in `service/impl`): computes `total = quantity * product.unitPrice`, checks that the customer and product exist
+- [x] `OrderCreatedEvent` application event published after creation, consumed by `OrderCreatedEventListener` (e.g. business logging, future email notification)
+- [x] `OrderController`
+- [x] Unit tests (total computation, business rules) and integration tests
 
 ## feature/auth
 
@@ -404,15 +404,15 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 ### Tasks
 
-- [ ] `AppUser`, `Role`, `AppUserRepository`
-- [ ] `JwtService` (generation, validation, claims extraction)
-- [ ] `JwtAuthFilter` (`OncePerRequestFilter`)
-- [ ] `UserDetailsServiceImpl`
-- [ ] `SecurityConfig` (`SecurityFilterChain`, BCrypt `PasswordEncoder`, per-endpoint authorization rules, CSRF disabled for a stateless API, `STATELESS` session)
-- [ ] `AuthService` interface and `AuthServiceImpl` implementation (in `service/impl`), `AuthController` (register, login, me)
-- [ ] Custom 401/403 error handling (`AuthenticationEntryPoint`, `AccessDeniedHandler`)
-- [ ] Swagger updated to support the "Authorize" button (Bearer token)
-- [ ] Integration tests with `spring-security-test` (`@WithMockUser`, allowed/denied access tests)
+- [x] `AppUser`, `Role`, `AppUserRepository`
+- [x] `JwtService` (generation, validation, claims extraction)
+- [x] `JwtAuthFilter` (`OncePerRequestFilter`)
+- [x] `UserDetailsServiceImpl`
+- [x] `SecurityConfig` (`SecurityFilterChain`, BCrypt `PasswordEncoder`, per-endpoint authorization rules, CSRF disabled for a stateless API, `STATELESS` session)
+- [x] `AuthService` interface and `AuthServiceImpl` implementation (in `service/impl`), `AuthController` (register, login, me)
+- [x] Custom 401/403 error handling (`AuthenticationEntryPoint`, `AccessDeniedHandler`)
+- [x] Swagger updated to support the "Authorize" button (Bearer token)
+- [x] Integration tests with `spring-security-test` (`@WithMockUser`, allowed/denied access tests)
 
 ## Order of work
 

@@ -7,7 +7,7 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Allows local frontend dev servers to call the API from the browser
+ * Allows the local Angular dev server to call the API from the browser
  * during development, where the API and the frontend run on different
  * origins (different ports). Active only under the "dev" profile: prod
  * is expected to define its own, stricter CORS policy when a real
@@ -28,7 +28,7 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
-                        .allowedOrigins("http://localhost:3000", "http://localhost:5173")
+                        .allowedOrigins("http://localhost:4200")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*");
             }
