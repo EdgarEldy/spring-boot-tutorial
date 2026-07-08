@@ -260,7 +260,7 @@ The project uses **Spring AOP** to illustrate aspect-oriented programming, kept 
 - Dependency: `spring-boot-starter-aop`
 - `LoggingAspect` (`aspect/LoggingAspect.java`): `@Around` advice on all `@Service` beans (pointcut `execution(* edgareldy.springboottutorial.service..*(..))`), logs method entry/exit, arguments, and thrown exceptions
 - `ExecutionTimeAspect` (`aspect/ExecutionTimeAspect.java`): `@Around` advice on controller methods, measures and logs the execution time of each HTTP request
-- Also serves as a teaching base for the other advice types (`@Before`, `@After`, `@AfterReturning`, `@AfterThrowing`) alongside `@Around`
+- `RepositoryAuditAspect` (`aspect/RepositoryAuditAspect.java`): on the repository layer, the four advice types the other two aspects don't use: `@Before`/`@After` around every repository call, `@AfterReturning` on `save` specifically, `@AfterThrowing` on any repository exception
 - Can later be reused for auditing (e.g. tracing who created/modified an order) without polluting business code
 
 ## feature/core-architecture

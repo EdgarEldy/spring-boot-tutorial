@@ -11,6 +11,8 @@ import edgareldy.springboottutorial.repository.CategoryRepository;
 import edgareldy.springboottutorial.repository.ProductRepository;
 import edgareldy.springboottutorial.service.CategoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -18,7 +20,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Default {@link CategoryService} implementation backed by
- * {@link CategoryRepository}.
+ * {@link CategoryRepository}. {@code findById} is cached ("categories",
+ * keyed by id, see {@code CacheConfig}) since categories change rarely
+ * compared to how often they are read; {@code update}/{@code delete} evict
+ * the entry for that id so a write is never followed by a stale read.
+ * {@code findAll} is intentionally not cached: caching a paginated,
+ * sortable collection would need a cache entry per distinct
+ * page/size/sort combination, which defeats the point of a simple
+ * single-key cache.
  * <p>
  * Created edgar.muhamyangabo on 7/4/26
  * Author : edgar.muhamyangabo
@@ -41,6 +50,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Cacheable(value = "categories", key = "#id")
     public CategoryResponse findById(Long id) {
         return categoryMapper.toResponse(getCategoryOrThrow(id));
     }
@@ -54,6 +64,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "categories", key = "#id")
     public CategoryResponse update(Long id, CategoryRequest request) {
         Category category = getCategoryOrThrow(id);
         categoryMapper.updateEntityFromRequest(request, category);
@@ -62,6 +73,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "categories", key = "#id")
     public void delete(Long id) {
         Category category = getCategoryOrThrow(id);
         if (productRepository.existsByCategoryId(id)) {
