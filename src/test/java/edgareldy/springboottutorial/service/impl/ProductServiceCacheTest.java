@@ -11,6 +11,7 @@ import edgareldy.springboottutorial.entity.Category;
 import edgareldy.springboottutorial.entity.Product;
 import edgareldy.springboottutorial.mapper.ProductMapper;
 import edgareldy.springboottutorial.repository.CategoryRepository;
+import edgareldy.springboottutorial.repository.OrderRepository;
 import edgareldy.springboottutorial.repository.ProductRepository;
 import edgareldy.springboottutorial.service.ProductService;
 import java.util.Optional;
@@ -69,6 +70,13 @@ class ProductServiceCacheTest {
     @MockitoBean
     private ProductMapper productMapper;
 
+    // Not exercised by any test in this class directly: ProductServiceImpl
+    // gained this dependency once feature/orders merged (delete() checks
+    // for existing orders before deleting), and this narrow @SpringBootTest
+    // slice needs it satisfied to construct the bean at all.
+    @MockitoBean
+    private OrderRepository orderRepository;
+
     @BeforeEach
     void clearCache() {
         Cache products = cacheManager.getCache("products");
@@ -119,6 +127,7 @@ class ProductServiceCacheTest {
         when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(product));
         when(productMapper.toResponse(product)).thenReturn(response);
         when(productRepository.existsById(1L)).thenReturn(true);
+        when(orderRepository.existsByProductId(1L)).thenReturn(false);
 
         productService.findById(1L);
         productService.delete(1L);
