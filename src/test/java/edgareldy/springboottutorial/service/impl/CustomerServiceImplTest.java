@@ -15,6 +15,7 @@ import edgareldy.springboottutorial.exception.BusinessRuleException;
 import edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import edgareldy.springboottutorial.mapper.CustomerMapper;
 import edgareldy.springboottutorial.repository.CustomerRepository;
+import edgareldy.springboottutorial.repository.OrderRepository;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,6 +45,9 @@ class CustomerServiceImplTest {
 
     @Mock
     private CustomerMapper customerMapper;
+
+    @Mock
+    private OrderRepository orderRepository;
 
     @InjectMocks
     private CustomerServiceImpl customerService;
@@ -186,6 +190,7 @@ class CustomerServiceImplTest {
     @Test
     void deleteRemovesCustomerWhenExists() {
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
+        when(orderRepository.existsByCustomerId(1L)).thenReturn(false);
 
         customerService.delete(1L);
 
@@ -198,5 +203,16 @@ class CustomerServiceImplTest {
 
         assertThatThrownBy(() -> customerService.delete(99L))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void deleteThrowsWhenCustomerHasExistingOrders() {
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
+        when(orderRepository.existsByCustomerId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> customerService.delete(1L))
+                .isInstanceOf(BusinessRuleException.class);
+
+        verify(customerRepository, never()).delete(any());
     }
 }

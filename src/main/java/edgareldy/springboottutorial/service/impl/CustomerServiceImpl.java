@@ -8,6 +8,7 @@ import edgareldy.springboottutorial.exception.BusinessRuleException;
 import edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import edgareldy.springboottutorial.mapper.CustomerMapper;
 import edgareldy.springboottutorial.repository.CustomerRepository;
+import edgareldy.springboottutorial.repository.OrderRepository;
 import edgareldy.springboottutorial.service.CustomerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,6 +32,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
     private final CustomerMapper customerMapper;
+    private final OrderRepository orderRepository;
 
     @Override
     public PageResponse<CustomerResponse> findAll(String search, Pageable pageable) {
@@ -71,6 +73,9 @@ public class CustomerServiceImpl implements CustomerService {
     @Transactional
     public void delete(Long id) {
         Customer customer = getCustomerOrThrow(id);
+        if (orderRepository.existsByCustomerId(id)) {
+            throw new BusinessRuleException("Customer " + id + " has existing orders and cannot be deleted");
+        }
         customerRepository.delete(customer);
     }
 
