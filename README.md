@@ -404,15 +404,15 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 ### Tasks
 
-- [ ] `AppUser`, `Role`, `AppUserRepository`
-- [ ] `JwtService` (generation, validation, claims extraction)
-- [ ] `JwtAuthFilter` (`OncePerRequestFilter`)
-- [ ] `UserDetailsServiceImpl`
-- [ ] `SecurityConfig` (`SecurityFilterChain`, BCrypt `PasswordEncoder`, per-endpoint authorization rules, CSRF disabled for a stateless API, `STATELESS` session)
-- [ ] `AuthService` interface and `AuthServiceImpl` implementation (in `service/impl`), `AuthController` (register, login, me)
-- [ ] Custom 401/403 error handling (`AuthenticationEntryPoint`, `AccessDeniedHandler`)
-- [ ] Swagger updated to support the "Authorize" button (Bearer token)
-- [ ] Integration tests with `spring-security-test` (`@WithMockUser`, allowed/denied access tests)
+- [x] `AppUser`, `Role`, `AppUserRepository`
+- [x] `JwtService` (generation, validation, claims extraction)
+- [x] `JwtAuthFilter` (`OncePerRequestFilter`)
+- [x] `UserDetailsServiceImpl`
+- [x] `SecurityConfig` (`SecurityFilterChain`, BCrypt `PasswordEncoder`, per-endpoint authorization rules, CSRF disabled for a stateless API, `STATELESS` session)
+- [x] `AuthService` interface and `AuthServiceImpl` implementation (in `service/impl`), `AuthController` (register, login, me)
+- [x] Custom 401/403 error handling (`AuthenticationEntryPoint`, `AccessDeniedHandler`)
+- [x] Swagger updated to support the "Authorize" button (Bearer token)
+- [x] Integration tests with `spring-security-test` (`@WithMockUser`, allowed/denied access tests)
 
 ## Order of work
 
