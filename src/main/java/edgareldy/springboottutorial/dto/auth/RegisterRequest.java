@@ -26,4 +26,13 @@ public record RegisterRequest(
         @Size(min = 8, message = "password must be at least 8 characters")
         String password
 ) {
+
+    // Overrides the compiler-generated toString(): LoggingAspect logs every
+    // service method argument via toString(), and register() takes this
+    // record directly, so the default record toString() would put the raw
+    // password in the application logs.
+    @Override
+    public String toString() {
+        return "RegisterRequest[username=%s, email=%s, password=***]".formatted(username, email);
+    }
 }
