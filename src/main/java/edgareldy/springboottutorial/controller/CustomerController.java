@@ -4,7 +4,9 @@ import edgareldy.springboottutorial.dto.common.ApiResponse;
 import edgareldy.springboottutorial.dto.common.PageResponse;
 import edgareldy.springboottutorial.dto.customer.CustomerRequest;
 import edgareldy.springboottutorial.dto.customer.CustomerResponse;
+import edgareldy.springboottutorial.dto.order.OrderResponse;
 import edgareldy.springboottutorial.service.CustomerService;
+import edgareldy.springboottutorial.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
@@ -37,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class CustomerController {
 
     private final CustomerService customerService;
+    private final OrderService orderService;
 
     @GetMapping
     @Operation(summary = "List customers, paginated and optionally searched by name")
@@ -91,5 +94,16 @@ public class CustomerController {
     public ApiResponse<Void> delete(@PathVariable Long id) {
         customerService.delete(id);
         return ApiResponse.success(null, "Customer deleted successfully");
+    }
+
+    @GetMapping("/{id}/orders")
+    @Operation(summary = "List orders for a given customer")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Customer orders retrieved successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Customer not found")
+    })
+    public ApiResponse<PageResponse<OrderResponse>> findOrders(@PathVariable Long id, Pageable pageable) {
+        customerService.findById(id);
+        return ApiResponse.success(orderService.findAll(id, null, pageable), "Customer orders retrieved successfully");
     }
 }
