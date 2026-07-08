@@ -19,6 +19,7 @@ import edgareldy.springboottutorial.dto.customer.CustomerResponse;
 import edgareldy.springboottutorial.dto.order.OrderResponse;
 import edgareldy.springboottutorial.exception.BusinessRuleException;
 import edgareldy.springboottutorial.exception.ResourceNotFoundException;
+import edgareldy.springboottutorial.security.JwtService;
 import edgareldy.springboottutorial.service.CustomerService;
 import edgareldy.springboottutorial.service.OrderService;
 import java.util.List;
@@ -27,13 +28,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * MockMvc integration tests for {@link CustomerController}, with
- * {@link CustomerService} mocked. Security filters are disabled since
- * {@code feature/auth} has not defined a {@code SecurityConfig} yet.
+ * {@link CustomerService} mocked. Security filters are disabled: this
+ * endpoint's authorization rules (authenticated GET, ADMIN-only writes) are
+ * SecurityConfig's responsibility, not this controller's, and are covered
+ * separately.
  * <p>
  * Created edgar.muhamyangabo on 7/4/26
  * Author : edgar.muhamyangabo
@@ -55,6 +59,15 @@ class CustomerControllerTest {
 
     @MockitoBean
     private OrderService orderService;
+
+    // Unused directly: JwtAuthFilter (a Filter, auto-included by @WebMvcTest
+    // regardless of addFilters) needs these to construct, even though the
+    // filter chain never actually runs in this test.
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UserDetailsService userDetailsService;
 
     private static CustomerRequest validRequest() {
         return new CustomerRequest("Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way");
