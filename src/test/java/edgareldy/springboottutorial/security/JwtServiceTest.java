@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests for {@link JwtService}. No Spring context: the class only
- * depends on the two constructor values normally injected from
+ * depends on the {@link JwtProperties} instance normally bound from
  * {@code jwt.secret}/{@code jwt.expiration-ms}.
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
@@ -23,7 +23,7 @@ class JwtServiceTest {
 
     @BeforeEach
     void setUp() {
-        jwtService = new JwtService(SECRET, 3600000L);
+        jwtService = new JwtService(new JwtProperties(SECRET, 3600000L));
     }
 
     @Test
@@ -49,7 +49,7 @@ class JwtServiceTest {
 
     @Test
     void isTokenValidReturnsFalseForExpiredToken() throws InterruptedException {
-        JwtService shortLivedService = new JwtService(SECRET, 1L);
+        JwtService shortLivedService = new JwtService(new JwtProperties(SECRET, 1L));
         String token = shortLivedService.generateToken("ada");
         Thread.sleep(10);
 
