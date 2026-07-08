@@ -6,13 +6,12 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.util.Date;
 import javax.crypto.SecretKey;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
  * Generates and validates the JWTs used as bearer tokens by the API. The
- * signing key and expiration are read from {@code jwt.secret}/
- * {@code jwt.expiration-ms} so they can differ between profiles without
+ * signing key and expiration come from {@link JwtProperties} ({@code jwt.secret}/
+ * {@code jwt.expiration-ms}) so they can differ between profiles without
  * touching this class.
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
@@ -26,9 +25,9 @@ public class JwtService {
     private final SecretKey signingKey;
     private final long expirationMs;
 
-    public JwtService(@Value("${jwt.secret}") String secret, @Value("${jwt.expiration-ms}") long expirationMs) {
-        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes());
-        this.expirationMs = expirationMs;
+    public JwtService(JwtProperties jwtProperties) {
+        this.signingKey = Keys.hmacShaKeyFor(jwtProperties.secret().getBytes());
+        this.expirationMs = jwtProperties.expirationMs();
     }
 
     public String generateToken(String username) {
