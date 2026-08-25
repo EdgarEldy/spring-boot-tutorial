@@ -7,9 +7,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
  * Turns on Spring Data JPA's native auditing support ({@code @CreatedDate}/
  * {@code @LastModifiedDate}, populated via {@code AuditingEntityListener}),
  * so entities can track creation/modification timestamps without
- * duplicating that logic by hand. Not consumed by any entity yet on this
- * branch (prepared ahead of time the same way {@code CacheConfig} was for
- * {@code feature/products}, per the project's own convention).
+ * duplicating that logic by hand. Consumed by {@code Category} on
+ * {@code feature/products}, the first entity to use it.
  * <p>
  * Created edgar.muhamyangabo on 8/25/26
  * Author : edgar.muhamyangabo
