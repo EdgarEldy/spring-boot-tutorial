@@ -58,7 +58,7 @@ class CategoryServiceImplTest {
     @BeforeEach
     void setUp() {
         category = Category.builder().id(1L).categoryName("Electronics").build();
-        categoryResponse = new CategoryResponse(1L, "Electronics");
+        categoryResponse = new CategoryResponse(1L, "Electronics", null, null);
     }
 
     @Test
@@ -102,7 +102,7 @@ class CategoryServiceImplTest {
     @Test
     void updateAppliesRequestAndReturnsResponse() {
         CategoryRequest request = new CategoryRequest("Home Appliances");
-        CategoryResponse updatedResponse = new CategoryResponse(1L, "Home Appliances");
+        CategoryResponse updatedResponse = new CategoryResponse(1L, "Home Appliances", null, null);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(categoryRepository.save(category)).thenReturn(category);
         when(categoryMapper.toResponse(category)).thenReturn(updatedResponse);
