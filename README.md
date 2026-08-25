@@ -231,7 +231,7 @@ public record ApiResponse<T>(
 ```
 
 - On list endpoints, `data` holds a `PageResponse<T>` (paginated content: `content`, `page`, `size`, `totalElements`, `totalPages`) instead of a plain `List<T>`.
-- On error, `GlobalExceptionHandler` returns an `ApiResponse<Void>` with `success=false`, an explicit `message`, and structured details (`ErrorResponse`) placed in `data` when relevant (field validation, etc.).
+- On error, `GlobalExceptionHandler` returns an `ApiResponse<ProblemDetail>` with `success=false`: `data` holds a standard RFC 7807 `ProblemDetail` (Spring 6's built-in class, `org.springframework.http.ProblemDetail`), not a project-specific error DTO. Field validation errors are attached as a `fieldErrors` extension property.
 - Success response example:
 
 ```json
@@ -249,7 +249,13 @@ public record ApiResponse<T>(
 {
   "success": false,
   "message": "Product not found",
-  "data": null,
+  "data": {
+    "type": "about:blank",
+    "title": "Not Found",
+    "status": 404,
+    "detail": "Product not found",
+    "instance": "/api/v1/products/99"
+  },
   "timestamp": "2026-07-02T10:16:05Z"
 }
 ```
