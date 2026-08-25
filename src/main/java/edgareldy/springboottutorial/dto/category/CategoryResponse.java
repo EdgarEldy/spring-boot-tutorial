@@ -1,5 +1,7 @@
 package edgareldy.springboottutorial.dto.category;
 
+import java.time.Instant;
+
 /**
  * Representation of a {@link edgareldy.springboottutorial.entity.Category}
  * returned by the API, never the JPA entity itself.
@@ -11,6 +13,8 @@ package edgareldy.springboottutorial.dto.category;
  */
 public record CategoryResponse(
         Long id,
-        String categoryName
+        String categoryName,
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

@@ -6,18 +6,24 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 /**
- * Spring Data JPA repository for {@link Product}.
+ * Spring Data JPA repository for {@link Product}. Extends
+ * {@link JpaSpecificationExecutor} so {@code ProductServiceImpl} can build a
+ * dynamic filter (name, price range, category) via
+ * {@code repository.specification.ProductSpecifications} for
+ * {@code GET /api/v1/products} beyond the fixed {@code categoryId} filter
+ * the derived queries below already cover.
  * <p>
  * Created edgar.muhamyangabo on 7/4/26
  * Author : edgar.muhamyangabo
  * Date : 7/4/26
  * Project : spring-boot-tutorial
  */
-public interface ProductRepository extends JpaRepository<Product, Long> {
+public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 
     /**
      * Overrides the base paginated find to eagerly fetch each product's
