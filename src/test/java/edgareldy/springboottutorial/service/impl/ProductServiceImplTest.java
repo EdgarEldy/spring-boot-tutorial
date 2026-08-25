@@ -3,6 +3,7 @@ package edgareldy.springboottutorial.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 /**
  * Unit tests for {@link ProductServiceImpl}, with {@link ProductRepository},
@@ -69,7 +71,7 @@ class ProductServiceImplTest {
         when(productRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(product), pageable, 1));
         when(productMapper.toResponse(product)).thenReturn(productResponse);
 
-        PageResponse<ProductResponse> result = productService.findAll(null, pageable);
+        PageResponse<ProductResponse> result = productService.findAll(null, null, null, null, pageable);
 
         assertThat(result.content()).containsExactly(productResponse);
     }
@@ -81,10 +83,24 @@ class ProductServiceImplTest {
                 .thenReturn(new PageImpl<>(List.of(product), pageable, 1));
         when(productMapper.toResponse(product)).thenReturn(productResponse);
 
-        PageResponse<ProductResponse> result = productService.findAll(1L, pageable);
+        PageResponse<ProductResponse> result = productService.findAll(1L, null, null, null, pageable);
 
         assertThat(result.content()).containsExactly(productResponse);
         verify(productRepository, never()).findAll(pageable);
+    }
+
+    @Test
+    void findAllWithAnyAdvancedFilterUsesSpecification() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(productRepository.findAll(any(Specification.class), eq(pageable)))
+                .thenReturn(new PageImpl<>(List.of(product), pageable, 1));
+        when(productMapper.toResponse(product)).thenReturn(productResponse);
+
+        PageResponse<ProductResponse> result = productService.findAll(null, "key", 50f, 100f, pageable);
+
+        assertThat(result.content()).containsExactly(productResponse);
+        verify(productRepository, never()).findAll(pageable);
+        verify(productRepository, never()).findByCategoryId(any(), any());
     }
 
     @Test
