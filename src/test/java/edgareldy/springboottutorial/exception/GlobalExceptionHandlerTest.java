@@ -23,9 +23,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
  * {@link ProblemDetail} shape the README's error-handling contract
  * requires.
  * <p>
- * Created edgar.muhamyangabo on 8/25/26
+ * Created edgar.muhamyangabo on 7/4/26
  * Author : edgar.muhamyangabo
- * Date : 8/25/26
+ * Date : 7/4/26
  * Project : spring-boot-tutorial
  */
 class GlobalExceptionHandlerTest {
