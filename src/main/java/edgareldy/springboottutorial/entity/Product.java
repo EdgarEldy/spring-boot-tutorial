@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,6 +20,10 @@ import lombok.Setter;
  * JPA entity mapping the {@code products} table. Each product belongs to
  * exactly one {@link Category}, loaded lazily so fetching a product never
  * pulls its category unless the association is explicitly navigated.
+ * {@code version} enables optimistic locking: Hibernate checks it on every
+ * {@code UPDATE} and throws {@code ObjectOptimisticLockingFailureException}
+ * if the row was modified concurrently since it was read, instead of
+ * silently overwriting the other change.
  * <p>
  * Created edgar.muhamyangabo on 7/4/26
  * Author : edgar.muhamyangabo
@@ -47,4 +52,7 @@ public class Product {
 
     @Column(name = "unit_price", nullable = false)
     private float unitPrice;
+
+    @Version
+    private Long version;
 }

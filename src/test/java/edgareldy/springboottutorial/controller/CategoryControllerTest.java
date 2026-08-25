@@ -52,7 +52,7 @@ class CategoryControllerTest {
 
     @Test
     void findAllReturnsPagedCategories() throws Exception {
-        CategoryResponse category = new CategoryResponse(1L, "Electronics");
+        CategoryResponse category = new CategoryResponse(1L, "Electronics", null, null);
         PageResponse<CategoryResponse> page = new PageResponse<>(List.of(category), 0, 20, 1, 1);
         when(categoryService.findAll(any())).thenReturn(page);
 
@@ -64,7 +64,7 @@ class CategoryControllerTest {
 
     @Test
     void findByIdReturnsCategoryWhenFound() throws Exception {
-        when(categoryService.findById(1L)).thenReturn(new CategoryResponse(1L, "Electronics"));
+        when(categoryService.findById(1L)).thenReturn(new CategoryResponse(1L, "Electronics", null, null));
 
         mockMvc.perform(get("/api/v1/categories/1"))
                 .andExpect(status().isOk())
@@ -83,7 +83,7 @@ class CategoryControllerTest {
 
     @Test
     void createReturns201WhenValid() throws Exception {
-        when(categoryService.create(any())).thenReturn(new CategoryResponse(2L, "Books"));
+        when(categoryService.create(any())).thenReturn(new CategoryResponse(2L, "Books", null, null));
 
         mockMvc.perform(post("/api/v1/categories")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -103,7 +103,7 @@ class CategoryControllerTest {
 
     @Test
     void updateReturns200WhenValid() throws Exception {
-        when(categoryService.update(eq(1L), any())).thenReturn(new CategoryResponse(1L, "Home Appliances"));
+        when(categoryService.update(eq(1L), any())).thenReturn(new CategoryResponse(1L, "Home Appliances", null, null));
 
         mockMvc.perform(put("/api/v1/categories/1")
                         .contentType(MediaType.APPLICATION_JSON)

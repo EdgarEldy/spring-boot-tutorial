@@ -39,13 +39,20 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    @Operation(summary = "List products, paginated and optionally filtered by categoryId")
+    @Operation(summary = "List products, paginated and optionally filtered by categoryId, "
+            + "productName (contains, case-insensitive), and/or a minPrice/maxPrice range")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Products retrieved successfully")
     })
     public ApiResponse<PageResponse<ProductResponse>> findAll(
-            @RequestParam(required = false) Long categoryId, Pageable pageable) {
-        return ApiResponse.success(productService.findAll(categoryId, pageable), "Products retrieved successfully");
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String productName,
+            @RequestParam(required = false) Float minPrice,
+            @RequestParam(required = false) Float maxPrice,
+            Pageable pageable) {
+        return ApiResponse.success(
+                productService.findAll(categoryId, productName, minPrice, maxPrice, pageable),
+                "Products retrieved successfully");
     }
 
     @GetMapping("/{id}")
@@ -75,7 +82,9 @@ public class ProductController {
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Product updated successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation failed"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Product or category not found")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Product or category not found"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409",
+                    description = "Product was modified by another request since it was last read")
     })
     public ApiResponse<ProductResponse> update(@PathVariable Long id, @Valid @RequestBody ProductRequest request) {
         return ApiResponse.success(productService.update(id, request), "Product updated successfully");

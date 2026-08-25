@@ -1,6 +1,7 @@
 package edgareldy.springboottutorial.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import edgareldy.springboottutorial.entity.Category;
 import edgareldy.springboottutorial.entity.Product;
@@ -12,6 +13,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 /**
  * {@code @DataJpaTest} for {@link ProductRepository}, backed by a real
@@ -78,6 +80,23 @@ class ProductRepositoryTest {
 
         assertThat(found).isPresent();
         assertThat(found.get().getCategory().getCategoryName()).isEqualTo("Furniture");
+    }
+
+    @Test
+    void savingStaleProductThrowsOptimisticLockingFailure() {
+        Product saved = productRepository.saveAndFlush(
+                Product.builder().category(electronics).productName("Mouse").unitPrice(29.99f).build());
+
+        // Simulates a concurrent update from another transaction: bumps the row's
+        // version directly in the database, bypassing this test's persistence
+        // context so `saved` keeps its now-stale in-memory version.
+        entityManager.createNativeQuery("UPDATE products SET version = version + 1 WHERE id = :id")
+                .setParameter("id", saved.getId())
+                .executeUpdate();
+
+        saved.setUnitPrice(19.99f);
+        assertThatThrownBy(() -> productRepository.saveAndFlush(saved))
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
     }
 
     @Test

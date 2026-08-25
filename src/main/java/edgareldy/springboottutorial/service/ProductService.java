@@ -17,7 +17,8 @@ import org.springframework.data.domain.Pageable;
  */
 public interface ProductService {
 
-    PageResponse<ProductResponse> findAll(Long categoryId, Pageable pageable);
+    PageResponse<ProductResponse> findAll(
+            Long categoryId, String productName, Float minPrice, Float maxPrice, Pageable pageable);
 
     ProductResponse findById(Long id);
 
