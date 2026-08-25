@@ -9,12 +9,14 @@ import edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import edgareldy.springboottutorial.mapper.ProductMapper;
 import edgareldy.springboottutorial.repository.CategoryRepository;
 import edgareldy.springboottutorial.repository.ProductRepository;
+import edgareldy.springboottutorial.repository.specification.ProductSpecifications;
 import edgareldy.springboottutorial.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +28,11 @@ import org.springframework.transaction.annotation.Transactional;
  * cached product when its category is renamed elsewhere: the denormalized
  * category name in a cached {@code ProductResponse} can lag behind for up
  * to the cache's TTL, an accepted simplification for this tutorial rather
- * than a cross-cache invalidation mechanism.
+ * than a cross-cache invalidation mechanism. {@code findAll} falls back to
+ * a dynamic {@link Specification} (see {@link ProductSpecifications}) when
+ * a caller supplies {@code productName}/{@code minPrice}/{@code maxPrice},
+ * keeping the plain and {@code categoryId}-only paths on their existing,
+ * {@code @EntityGraph}-optimized repository methods.
  * <p>
  * Created edgar.muhamyangabo on 7/4/26
  * Author : edgar.muhamyangabo
@@ -42,10 +48,24 @@ public class ProductServiceImpl implements ProductService {
     private final ProductMapper productMapper;
 
     @Override
-    public PageResponse<ProductResponse> findAll(Long categoryId, Pageable pageable) {
-        Page<Product> page = categoryId != null
-                ? productRepository.findByCategoryId(categoryId, pageable)
-                : productRepository.findAll(pageable);
+    public PageResponse<ProductResponse> findAll(
+            Long categoryId, String productName, Float minPrice, Float maxPrice, Pageable pageable) {
+        Page<Product> page;
+        if (productName != null || minPrice != null || maxPrice != null) {
+            // Falls through to the Specification-based query, which does not
+            // benefit from the @EntityGraph on findAll/findByCategoryId below:
+            // an accepted N+1 risk on this path, kept simple rather than
+            // complicating ProductSpecifications with a fetch join.
+            Specification<Product> specification = Specification.allOf(
+                    ProductSpecifications.hasCategoryId(categoryId),
+                    ProductSpecifications.nameContains(productName),
+                    ProductSpecifications.priceBetween(minPrice, maxPrice));
+            page = productRepository.findAll(specification, pageable);
+        } else if (categoryId != null) {
+            page = productRepository.findByCategoryId(categoryId, pageable);
+        } else {
+            page = productRepository.findAll(pageable);
+        }
         return PageResponse.from(page.map(productMapper::toResponse));
     }
 
