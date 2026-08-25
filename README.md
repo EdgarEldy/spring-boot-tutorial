@@ -42,6 +42,7 @@ Repository: https://github.com/EdgarEldy/spring-boot-tutorial
 | Monitoring | Spring Boot Actuator |
 | Security | Spring Security 6 + JWT (jjwt) |
 | Aspect-oriented programming | Spring AOP |
+| Cache | Spring Cache abstraction + Caffeine |
 | Tests | JUnit 5, Mockito, Testcontainers, AssertJ |
 | CI/CD | GitHub Actions |
 | Containerization | Docker, docker-compose |
@@ -111,7 +112,7 @@ customers (id, first_name, last_name, telephone, email, address)
 | `feature/orders` | `Order` CRUD, business logic linking products and customers. |
 | `feature/auth` | Authentication and authorization (Spring Security + JWT). |
 
-Each feature is developed on its own branch, then merged into `develop` via a documented **Pull Request** (even solo), to keep a clear, educational trace of each step.
+Each feature is developed on its own branch, then merged into `develop` via a documented **Pull Request** (even solo), to keep a clear, educational trace of each step. In practice, on this particular repository, merges have been done locally (`git merge`) rather than through an actual GitHub Pull Request: this section describes the intended workflow for anyone forking or following along, not necessarily every merge already present in this history.
 
 ## Project structure
 
