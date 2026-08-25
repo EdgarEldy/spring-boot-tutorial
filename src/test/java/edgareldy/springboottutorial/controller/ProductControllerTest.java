@@ -54,7 +54,7 @@ class ProductControllerTest {
     void findAllWithoutCategoryIdPassesNullThrough() throws Exception {
         ProductResponse product = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
         PageResponse<ProductResponse> page = new PageResponse<>(List.of(product), 0, 20, 1, 1);
-        when(productService.findAll(isNull(), any())).thenReturn(page);
+        when(productService.findAll(isNull(), isNull(), isNull(), isNull(), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/products"))
                 .andExpect(status().isOk())
@@ -65,11 +65,25 @@ class ProductControllerTest {
     void findAllWithCategoryIdForwardsFilter() throws Exception {
         ProductResponse product = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
         PageResponse<ProductResponse> page = new PageResponse<>(List.of(product), 0, 20, 1, 1);
-        when(productService.findAll(eq(1L), any())).thenReturn(page);
+        when(productService.findAll(eq(1L), isNull(), isNull(), isNull(), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/products").param("categoryId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content[0].categoryId").value(1));
+    }
+
+    @Test
+    void findAllForwardsProductNameAndPriceRangeFilters() throws Exception {
+        ProductResponse product = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
+        PageResponse<ProductResponse> page = new PageResponse<>(List.of(product), 0, 20, 1, 1);
+        when(productService.findAll(isNull(), eq("key"), eq(50f), eq(100f), any())).thenReturn(page);
+
+        mockMvc.perform(get("/api/v1/products")
+                        .param("productName", "key")
+                        .param("minPrice", "50")
+                        .param("maxPrice", "100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].productName").value("Keyboard"));
     }
 
     @Test
