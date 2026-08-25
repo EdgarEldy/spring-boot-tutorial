@@ -42,6 +42,7 @@ Repository: https://github.com/EdgarEldy/spring-boot-tutorial
 | Monitoring | Spring Boot Actuator |
 | Security | Spring Security 6 + JWT (jjwt) |
 | Aspect-oriented programming | Spring AOP |
+| Cache | Spring Cache abstraction + Caffeine |
 | Tests | JUnit 5, Mockito, Testcontainers, AssertJ |
 | CI/CD | GitHub Actions |
 | Containerization | Docker, docker-compose |
@@ -111,7 +112,7 @@ customers (id, first_name, last_name, telephone, email, address)
 | `feature/orders` | `Order` CRUD, business logic linking products and customers. |
 | `feature/auth` | Authentication and authorization (Spring Security + JWT). |
 
-Each feature is developed on its own branch, then merged into `develop` via a documented **Pull Request** (even solo), to keep a clear, educational trace of each step.
+Each feature is developed on its own branch, then merged into `develop` via a documented **Pull Request** (even solo), to keep a clear, educational trace of each step. In practice, on this particular repository, merges have been done locally (`git merge`) rather than through an actual GitHub Pull Request: this section describes the intended workflow for anyone forking or following along, not necessarily every merge already present in this history.
 
 ## Project structure
 
@@ -126,7 +127,8 @@ spring-boot-tutorial/
 │   │   │   │   ├── SecurityConfig.java
 │   │   │   │   ├── JacksonConfig.java
 │   │   │   │   ├── CorsConfig.java
-│   │   │   │   └── CacheConfig.java
+│   │   │   │   ├── CacheConfig.java
+│   │   │   │   └── JpaAuditingConfig.java
 │   │   │   ├── entity/
 │   │   │   │   ├── Category.java
 │   │   │   │   ├── Product.java
@@ -176,7 +178,6 @@ spring-boot-tutorial/
 │   │   │   ├── exception/
 │   │   │   │   ├── ResourceNotFoundException.java
 │   │   │   │   ├── BusinessRuleException.java
-│   │   │   │   ├── ErrorResponse.java
 │   │   │   │   └── GlobalExceptionHandler.java
 │   │   │   ├── security/
 │   │   │   │   ├── JwtService.java
@@ -185,9 +186,11 @@ spring-boot-tutorial/
 │   │   │   ├── event/
 │   │   │   │   ├── OrderCreatedEvent.java
 │   │   │   │   └── OrderCreatedEventListener.java
-│   │   │   └── aspect/
-│   │   │       ├── LoggingAspect.java
-│   │   │       └── ExecutionTimeAspect.java
+│   │   │   ├── aspect/
+│   │   │   │   ├── LoggingAspect.java
+│   │   │   │   └── ExecutionTimeAspect.java
+│   │   │   └── actuator/
+│   │   │       └── AppInfoEndpoint.java
 │   │   └── resources/
 │   │       ├── application.yml
 │   │       ├── application-dev.yml
@@ -230,7 +233,7 @@ public record ApiResponse<T>(
 ```
 
 - On list endpoints, `data` holds a `PageResponse<T>` (paginated content: `content`, `page`, `size`, `totalElements`, `totalPages`) instead of a plain `List<T>`.
-- On error, `GlobalExceptionHandler` returns an `ApiResponse<Void>` with `success=false`, an explicit `message`, and structured details (`ErrorResponse`) placed in `data` when relevant (field validation, etc.).
+- On error, `GlobalExceptionHandler` returns an `ApiResponse<ProblemDetail>` with `success=false`: `data` holds a standard RFC 7807 `ProblemDetail` (Spring 6's built-in class, `org.springframework.http.ProblemDetail`), not a project-specific error DTO. Field validation errors are attached as a `fieldErrors` extension property.
 - Success response example:
 
 ```json
@@ -248,7 +251,13 @@ public record ApiResponse<T>(
 {
   "success": false,
   "message": "Product not found",
-  "data": null,
+  "data": {
+    "type": "about:blank",
+    "title": "Not Found",
+    "status": 404,
+    "detail": "Product not found",
+    "instance": "/api/v1/products/99"
+  },
   "timestamp": "2026-07-02T10:16:05Z"
 }
 ```
@@ -270,7 +279,7 @@ Technical foundation shared by the whole project, to be merged first into `devel
 ### Tasks
 
 - [x] Initialize the project via Spring Initializr (Maven, Java 17, Spring Boot 3.5.16)
-- [x] Dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-starter-actuator`, `spring-boot-starter-security`, `spring-boot-starter-aop`, `flyway-core`, `flyway-database-postgresql`, `postgresql` driver, `lombok`, `mapstruct` + `mapstruct-processor`, `springdoc-openapi-starter-webmvc-ui`, `jjwt-api`/`jjwt-impl`/`jjwt-jackson`
+- [x] Dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-starter-actuator`, `spring-boot-starter-security`, `spring-boot-starter-aop`, `spring-boot-devtools`, `flyway-core`, `flyway-database-postgresql`, `postgresql` driver, `lombok`, `mapstruct` + `mapstruct-processor`, `springdoc-openapi-starter-webmvc-ui`, `jjwt-api`/`jjwt-impl`/`jjwt-jackson`
 - [x] Test dependencies: `spring-boot-starter-test`, `spring-security-test`, `testcontainers` (junit-jupiter, postgresql)
 - [x] Create the package tree shown above
 - [x] `application.yml`: shared configuration (app name, port, JSON date format)
@@ -279,13 +288,15 @@ Technical foundation shared by the whole project, to be merged first into `devel
 - [x] `application-prod.yml`: datasource via environment variables, JSON logs
 - [x] Flyway script `V1__init_schema.sql` (categories, products, customers, orders tables with FKs)
 - [x] `GlobalExceptionHandler` (`@RestControllerAdvice`): handles `ResourceNotFoundException` (404), `MethodArgumentNotValidException` (400, field details), `BusinessRuleException` (422), generic `Exception` (500)
-- [x] Standard `ErrorResponse` DTO: `timestamp`, `status`, `error`, `message`, `path`, optional `fieldErrors` list
+- [x] Error payload as a standard RFC 7807 `ProblemDetail` (`org.springframework.http.ProblemDetail`): `type`, `title`, `status`, `detail`, `instance`, plus a `fieldErrors` extension property on validation failures
 - [x] Generic `ApiResponse<T>` (`dto/common/ApiResponse.java`) and `PageResponse<T>` (`dto/common/PageResponse.java`) DTOs, used to wrap every controller response
 - [x] `LoggingAspect` and `ExecutionTimeAspect` (`aspect/`): logging and execution-time measurement via Spring AOP (see [Spring AOP](#spring-aop))
 - [x] `OpenApiConfig`: title, description, version, JWT security scheme in Swagger UI
-- [x] Actuator: expose `health`, `info`, `metrics` in dev; `health` only in prod
+- [x] Actuator: expose `health`, `info`, `metrics` in dev (plus a custom `appinfo` endpoint, see `AppInfoEndpoint`); `health` only in prod
 - [x] Structured logging (`logback-spring.xml` and Actuator ECS/JSON config, combined)
 - [x] `CorsConfig`: allow `localhost:4200` in dev
+- [x] `JpaAuditingConfig` (`@EnableJpaAuditing`): native Spring Data JPA auditing support, consumed by `Category` on `feature/products`
+- [x] `spring-boot-devtools`: automatic restart and other dev-only conveniences, disabled outside local runs
 - [x] Multi-stage `Dockerfile` (Maven build + lightweight JRE image)
 - [x] `docker-compose.yml`: `app` service + `db` service (PostgreSQL 16) with volumes and environment variables
 - [x] `.github/workflows/ci.yml`: Maven build + tests on every push/PR
@@ -299,6 +310,7 @@ Technical foundation shared by the whole project, to be merged first into `devel
 - **Structured logging combines two mechanisms on purpose.** `logback-spring.xml` includes Spring Boot's own default appenders (`defaults.xml`, `console-appender.xml`) instead of redefining them, and adds a prod-only `file-appender.xml` include via `<springProfile name="prod">`. The actual JSON formatting comes from Spring Boot 3.4+'s native `logging.structured.format.console`/`.file` properties (set to `ecs` in `application-prod.yml`), so no extra dependency (e.g. `logstash-logback-encoder`) or hand-written JSON encoder was needed.
 - **`CorsConfig` is annotated `@Profile("dev")`.** Only the local Angular dev server (`localhost:4200`) gets a CORS exemption; prod is expected to declare its own, narrower policy once a real frontend origin exists.
 - **Testcontainers only, no H2.** `application-test.yml` declares no datasource at all: `TestcontainersConfiguration`'s `@ServiceConnection` `PostgreSQLContainer` bean wires the datasource automatically. Using real PostgreSQL in tests (instead of an in-memory H2 database) avoids behavioral differences between the two engines (types, constraints, SQL dialect) that would otherwise only surface in production.
+- **`GlobalExceptionHandler` returns `ApiResponse<ProblemDetail>`, not a project-specific error DTO.** `ProblemDetail` is Spring 6's built-in RFC 7807 type; using it directly as `ApiResponse<T>`'s type parameter demonstrates the standard without abandoning the project's own envelope, since `ApiResponse<T>` still wraps every response (success and error alike). Only the shape of `data` on errors changed; every success response (`ApiResponse<CategoryResponse>`, `ApiResponse<PageResponse<ProductResponse>>`, etc.) is untouched.
 
 ## feature/products
 
@@ -313,7 +325,7 @@ Includes `Category` and `Product`, given their direct link in the model.
 | POST | `/api/v1/categories` | Create a category |
 | PUT | `/api/v1/categories/{id}` | Update a category |
 | DELETE | `/api/v1/categories/{id}` | Delete a category |
-| GET | `/api/v1/products` | Paginated list, filterable by `categoryId`, sortable by `productName`/`unitPrice` |
+| GET | `/api/v1/products` | Paginated list, filterable by `categoryId`, `productName` (contains), `minPrice`/`maxPrice`, sortable by `productName`/`unitPrice` |
 | GET | `/api/v1/products/{id}` | Product detail |
 | POST | `/api/v1/products` | Create a product |
 | PUT | `/api/v1/products/{id}` | Update a product |
@@ -321,17 +333,25 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 ### Tasks
 
-- [ ] `Category`, `Product` entities with `@OneToMany`/`@ManyToOne` relation (`LAZY` loading)
-- [ ] `CategoryRepository`, `ProductRepository` (Spring Data JPA) with derived queries (`findByCategoryId`) and one `@Query` using `JOIN FETCH`
-- [ ] DTOs `CategoryRequest`/`CategoryResponse`, `ProductRequest`/`ProductResponse`
-- [ ] Corresponding MapStruct mappers
-- [ ] `CategoryService`, `ProductService` interfaces (contracts) and their `CategoryServiceImpl`, `ProductServiceImpl` implementations in `service/impl`, annotated `@Service`, with `@Transactional` on writes
-- [ ] Business rule: a category containing products cannot be deleted (`BusinessRuleException`)
-- [ ] `CategoryController`, `ProductController`: REST CRUD + pagination (`Pageable`) + sorting
-- [ ] OpenAPI documentation (`@Operation`, `@ApiResponse`) on every endpoint
-- [ ] Service unit tests (Mockito)
-- [ ] `@DataJpaTest` repository tests
-- [ ] MockMvc controller integration tests
+- [x] `Category`, `Product` entities with `@OneToMany`/`@ManyToOne` relation (`LAZY` loading)
+- [x] `CategoryRepository`, `ProductRepository` (Spring Data JPA) with derived queries (`findByCategoryId`) and one `@Query` using `JOIN FETCH`
+- [x] DTOs `CategoryRequest`/`CategoryResponse`, `ProductRequest`/`ProductResponse`
+- [x] Corresponding MapStruct mappers
+- [x] `CategoryService`, `ProductService` interfaces (contracts) and their `CategoryServiceImpl`, `ProductServiceImpl` implementations in `service/impl`, annotated `@Service`, with `@Transactional` on writes
+- [x] Business rule: a category containing products cannot be deleted (`BusinessRuleException`)
+- [x] `CategoryController`, `ProductController`: REST CRUD + pagination (`Pageable`) + sorting
+- [x] OpenAPI documentation (`@Operation`, `@ApiResponse`) on every endpoint
+- [x] Service unit tests (Mockito)
+- [x] `@DataJpaTest` repository tests
+- [x] MockMvc controller integration tests
+- [x] Optimistic locking (`@Version`) on `Product`, with `OptimisticLockingFailureException` mapped to 409
+- [x] Dynamic filtering (`Specification`/`JpaSpecificationExecutor`) on `Product`: `productName`/`minPrice`/`maxPrice`, in addition to `categoryId`
+- [x] Native JPA auditing (`@CreatedDate`/`@LastModifiedDate`) on `Category`, via `feature/core-architecture`'s `JpaAuditingConfig`
+
+### Configuration notes
+
+- **Flyway migrations on this branch are numbered `V3`/`V4`, skipping `V2`.** `V2` is reserved for `feature/auth`'s `V2__init_users_and_roles.sql`, not present on this branch yet; Flyway version numbers must stay unique and ordered across the whole project regardless of merge order.
+- **`ProductServiceImpl.findAll` only falls back to a `Specification`-based query when `productName`/`minPrice`/`maxPrice` is supplied.** The plain and `categoryId`-only cases keep using the existing `@EntityGraph`-backed repository methods; the `Specification` path has no fetch join for `category`, an accepted N+1 risk kept simple rather than complicating `ProductSpecifications` with one, and scoped only to requests that actually use the new filters.
 
 ## feature/customers
 
@@ -442,11 +462,14 @@ Includes `Category` and `Product`, given their direct link in the model.
 - Spring Data JPA: relations, derived queries, `@Query`, pagination, sorting, projections
 - DTOs and mapping (MapStruct)
 - Validation (Bean Validation)
-- Centralized exception handling
+- Centralized exception handling (`ProblemDetail`, RFC 7807)
 - Transactions (`@Transactional`)
+- Optimistic locking (`@Version`)
+- Dynamic queries (`Specification`/`JpaSpecificationExecutor`)
+- Native JPA auditing (`@CreatedDate`/`@LastModifiedDate`)
 - Schema migrations (Flyway)
 - API documentation (OpenAPI / Swagger UI)
-- Observability (Actuator, structured logging)
+- Observability (Actuator, including a custom endpoint; structured logging)
 - Security (Spring Security, JWT, role-based authorization)
 - Testing (unit, integration, Testcontainers)
 - Multi-environment configuration (Spring profiles)
@@ -455,6 +478,7 @@ Includes `Category` and `Product`, given their direct link in the model.
 - Data seeding (`CommandLineRunner`)
 - Application events (`ApplicationEventPublisher`)
 - Aspect-oriented programming (Spring AOP: `@Around`, `@Before`, `@After`, `@AfterReturning`, `@AfterThrowing`)
+- Local development tooling (Spring Boot DevTools)
 - Containerization (Docker, docker-compose)
 - Continuous integration (GitHub Actions)
 
