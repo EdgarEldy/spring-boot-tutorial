@@ -11,6 +11,7 @@ import edgareldy.springboottutorial.entity.Category;
 import edgareldy.springboottutorial.entity.Product;
 import edgareldy.springboottutorial.mapper.ProductMapper;
 import edgareldy.springboottutorial.repository.CategoryRepository;
+import edgareldy.springboottutorial.repository.OrderRepository;
 import edgareldy.springboottutorial.repository.ProductRepository;
 import edgareldy.springboottutorial.service.ProductService;
 import java.util.Optional;
@@ -68,6 +69,9 @@ class ProductServiceCacheTest {
 
     @MockitoBean
     private ProductMapper productMapper;
+
+    @MockitoBean
+    private OrderRepository orderRepository;
 
     @BeforeEach
     void clearCache() {
