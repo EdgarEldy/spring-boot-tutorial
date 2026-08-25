@@ -39,13 +39,20 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    @Operation(summary = "List products, paginated and optionally filtered by categoryId")
+    @Operation(summary = "List products, paginated and optionally filtered by categoryId, "
+            + "productName (contains, case-insensitive), and/or a minPrice/maxPrice range")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Products retrieved successfully")
     })
     public ApiResponse<PageResponse<ProductResponse>> findAll(
-            @RequestParam(required = false) Long categoryId, Pageable pageable) {
-        return ApiResponse.success(productService.findAll(categoryId, pageable), "Products retrieved successfully");
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String productName,
+            @RequestParam(required = false) Float minPrice,
+            @RequestParam(required = false) Float maxPrice,
+            Pageable pageable) {
+        return ApiResponse.success(
+                productService.findAll(categoryId, productName, minPrice, maxPrice, pageable),
+                "Products retrieved successfully");
     }
 
     @GetMapping("/{id}")
