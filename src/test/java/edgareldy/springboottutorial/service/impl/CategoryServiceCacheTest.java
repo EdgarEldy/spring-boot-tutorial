@@ -81,7 +81,7 @@ class CategoryServiceCacheTest {
     @Test
     void findByIdIsCachedAcrossCalls() {
         Category category = Category.builder().id(1L).categoryName("Electronics").build();
-        CategoryResponse response = new CategoryResponse(1L, "Electronics");
+        CategoryResponse response = new CategoryResponse(1L, "Electronics", null, null);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(categoryMapper.toResponse(category)).thenReturn(response);
 
@@ -94,7 +94,7 @@ class CategoryServiceCacheTest {
     @Test
     void updateEvictsCacheForThatId() {
         Category category = Category.builder().id(1L).categoryName("Electronics").build();
-        CategoryResponse response = new CategoryResponse(1L, "Electronics");
+        CategoryResponse response = new CategoryResponse(1L, "Electronics", null, null);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(categoryMapper.toResponse(category)).thenReturn(response);
         when(categoryRepository.save(any(Category.class))).thenReturn(category);
@@ -115,7 +115,7 @@ class CategoryServiceCacheTest {
     @Test
     void deleteEvictsCacheForThatId() {
         Category category = Category.builder().id(1L).categoryName("Electronics").build();
-        CategoryResponse response = new CategoryResponse(1L, "Electronics");
+        CategoryResponse response = new CategoryResponse(1L, "Electronics", null, null);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(categoryMapper.toResponse(category)).thenReturn(response);
         when(productRepository.existsByCategoryId(1L)).thenReturn(false);
