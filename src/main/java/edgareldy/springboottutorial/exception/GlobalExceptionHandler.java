@@ -6,6 +6,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -42,6 +43,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<ProblemDetail>> handleBusinessRule(
             BusinessRuleException ex, HttpServletRequest request) {
         return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponse<ProblemDetail>> handleOptimisticLocking(
+            OptimisticLockingFailureException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT,
+                "The resource was modified by another request; reload it and try again", request, null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

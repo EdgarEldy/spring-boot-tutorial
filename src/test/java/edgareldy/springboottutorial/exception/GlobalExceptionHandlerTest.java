@@ -10,6 +10,7 @@ import java.net.URI;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -56,6 +57,17 @@ class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
         assertThat(response.getBody().data().getStatus()).isEqualTo(422);
+    }
+
+    @Test
+    void optimisticLockingFailureMapsTo409() {
+        HttpServletRequest request = mockRequest("/api/v1/products/7");
+
+        ResponseEntity<ApiResponse<ProblemDetail>> response = handler.handleOptimisticLocking(
+                new OptimisticLockingFailureException("Row was updated concurrently"), request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().data().getStatus()).isEqualTo(409);
     }
 
     @Test
