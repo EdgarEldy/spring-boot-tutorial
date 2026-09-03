@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edgareldy.springboottutorial.dto.category.CategoryRequest;
 import edgareldy.springboottutorial.dto.category.CategoryResponse;
 import edgareldy.springboottutorial.dto.common.PageResponse;
+import edgareldy.springboottutorial.dto.product.ProductResponse;
 import edgareldy.springboottutorial.exception.BusinessRuleException;
 import edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import edgareldy.springboottutorial.service.CategoryService;
@@ -52,23 +53,44 @@ class CategoryControllerTest {
 
     @Test
     void findAllReturnsPagedCategories() throws Exception {
-        CategoryResponse category = new CategoryResponse(1L, "Electronics", null, null);
+        CategoryResponse category = new CategoryResponse(1L, "Electronics", null, null, List.of());
         PageResponse<CategoryResponse> page = new PageResponse<>(List.of(category), 0, 20, 1, 1);
         when(categoryService.findAll(any())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/categories"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.content[0].categoryName").value("Electronics"));
+                .andExpect(jsonPath("$.data.content[0].category_name").value("Electronics"));
     }
 
     @Test
     void findByIdReturnsCategoryWhenFound() throws Exception {
-        when(categoryService.findById(1L)).thenReturn(new CategoryResponse(1L, "Electronics", null, null));
+        when(categoryService.findById(1L)).thenReturn(new CategoryResponse(1L, "Electronics", null, null, List.of()));
 
         mockMvc.perform(get("/api/v1/categories/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.categoryName").value("Electronics"));
+                .andExpect(jsonPath("$.data.category_name").value("Electronics"));
+    }
+
+    @Test
+    void findByIdIncludesAssociatedProducts() throws Exception {
+        ProductResponse keyboard = new ProductResponse(10L, "Keyboard", 79.99f, 1L, "Electronics");
+        when(categoryService.findById(1L))
+                .thenReturn(new CategoryResponse(1L, "Electronics", null, null, List.of(keyboard)));
+
+        mockMvc.perform(get("/api/v1/categories/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.products[0].product_name").value("Keyboard"));
+    }
+
+    @Test
+    void findAllLeavesProductsEmpty() throws Exception {
+        CategoryResponse category = new CategoryResponse(1L, "Electronics", null, null, List.of());
+        when(categoryService.findAll(any())).thenReturn(new PageResponse<>(List.of(category), 0, 20, 1, 1));
+
+        mockMvc.perform(get("/api/v1/categories"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].products").isEmpty());
     }
 
     @Test
@@ -83,13 +105,13 @@ class CategoryControllerTest {
 
     @Test
     void createReturns201WhenValid() throws Exception {
-        when(categoryService.create(any())).thenReturn(new CategoryResponse(2L, "Books", null, null));
+        when(categoryService.create(any())).thenReturn(new CategoryResponse(2L, "Books", null, null, List.of()));
 
         mockMvc.perform(post("/api/v1/categories")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CategoryRequest("Books"))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.categoryName").value("Books"));
+                .andExpect(jsonPath("$.data.category_name").value("Books"));
     }
 
     @Test
@@ -103,13 +125,13 @@ class CategoryControllerTest {
 
     @Test
     void updateReturns200WhenValid() throws Exception {
-        when(categoryService.update(eq(1L), any())).thenReturn(new CategoryResponse(1L, "Home Appliances", null, null));
+        when(categoryService.update(eq(1L), any())).thenReturn(new CategoryResponse(1L, "Home Appliances", null, null, List.of()));
 
         mockMvc.perform(put("/api/v1/categories/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CategoryRequest("Home Appliances"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.categoryName").value("Home Appliances"));
+                .andExpect(jsonPath("$.data.category_name").value("Home Appliances"));
     }
 
     @Test
