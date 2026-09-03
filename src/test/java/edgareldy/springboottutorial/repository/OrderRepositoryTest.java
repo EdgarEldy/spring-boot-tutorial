@@ -2,6 +2,7 @@ package edgareldy.springboottutorial.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import edgareldy.springboottutorial.config.JpaAuditingConfig;
 import edgareldy.springboottutorial.entity.Category;
 import edgareldy.springboottutorial.entity.Customer;
 import edgareldy.springboottutorial.entity.Order;
@@ -25,7 +26,7 @@ import org.springframework.data.domain.PageRequest;
  */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(RepositoryTestcontainersConfiguration.class)
+@Import({RepositoryTestcontainersConfiguration.class, JpaAuditingConfig.class})
 class OrderRepositoryTest {
 
     @Autowired
@@ -76,7 +77,8 @@ class OrderRepositoryTest {
 
         assertThat(page.getContent()).hasSize(1);
         OrderProjection projection = page.getContent().get(0);
-        assertThat(projection.customerFullName()).isEqualTo("Ada Lovelace");
+        assertThat(projection.customerFirstName()).isEqualTo("Ada");
+        assertThat(projection.customerLastName()).isEqualTo("Lovelace");
         assertThat(projection.productName()).isEqualTo("Keyboard");
         assertThat(projection.total()).isEqualTo(100.0);
     }
@@ -86,7 +88,8 @@ class OrderRepositoryTest {
         var page = orderRepository.findAllProjected(null, desk.getId(), PageRequest.of(0, 10));
 
         assertThat(page.getContent()).hasSize(1);
-        assertThat(page.getContent().get(0).customerFullName()).isEqualTo("Grace Hopper");
+        assertThat(page.getContent().get(0).customerFirstName()).isEqualTo("Grace");
+        assertThat(page.getContent().get(0).customerLastName()).isEqualTo("Hopper");
     }
 
     @Test
@@ -99,5 +102,32 @@ class OrderRepositoryTest {
         assertThat(found).isPresent();
         assertThat(found.get().getCustomer().getEmail()).isEqualTo("ada@example.com");
         assertThat(found.get().getProduct().getProductName()).isEqualTo("Keyboard");
+    }
+
+    @Test
+    void findDistinctProductsByCustomerIdReturnsOnlyThatCustomerProducts() {
+        var products = orderRepository.findDistinctProductsByCustomerId(ada.getId());
+
+        assertThat(products).extracting(Product::getProductName).containsExactly("Keyboard");
+    }
+
+    @Test
+    void findDistinctProductsByCustomerIdDeduplicatesRepeatedProducts() {
+        orderRepository.save(Order.builder().customer(ada).product(keyboard).quantity(1).total(50.0).build());
+
+        var products = orderRepository.findDistinctProductsByCustomerId(ada.getId());
+
+        assertThat(products).extracting(Product::getProductName).containsExactly("Keyboard");
+    }
+
+    @Test
+    void findDistinctProductsByCustomerIdReturnsEmptyWhenCustomerHasNoOrders() {
+        Customer noOrders = customerRepository.save(Customer.builder()
+                .firstName("Alan").lastName("Turing").telephone("+1 202-555-0102")
+                .email("alan@example.com").address("3 Enigma Way").build());
+
+        var products = orderRepository.findDistinctProductsByCustomerId(noOrders.getId());
+
+        assertThat(products).isEmpty();
     }
 }

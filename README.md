@@ -125,7 +125,6 @@ spring-boot-tutorial/
 │   │   │   ├── config/
 │   │   │   │   ├── OpenApiConfig.java
 │   │   │   │   ├── SecurityConfig.java
-│   │   │   │   ├── JacksonConfig.java
 │   │   │   │   ├── CorsConfig.java
 │   │   │   │   ├── CacheConfig.java
 │   │   │   │   └── JpaAuditingConfig.java
@@ -234,13 +233,14 @@ public record ApiResponse<T>(
 
 - On list endpoints, `data` holds a `PageResponse<T>` (paginated content: `content`, `page`, `size`, `totalElements`, `totalPages`) instead of a plain `List<T>`.
 - On error, `GlobalExceptionHandler` returns an `ApiResponse<ProblemDetail>` with `success=false`: `data` holds a standard RFC 7807 `ProblemDetail` (Spring 6's built-in class, `org.springframework.http.ProblemDetail`), not a project-specific error DTO. Field validation errors are attached as a `fieldErrors` extension property.
+- Every DTO field is exposed in the JSON contract as snake_case (e.g. `product_name`, `unit_price`, `category_id`), decoupled from the Java field's own camelCase name via an explicit `@JsonProperty` on each record component. Controllers return `ResponseEntity<ApiResponse<T>>`, not `ApiResponse<T>` directly: `ApiResponse<T>` still wraps every response body, `ResponseEntity` only adds control over the HTTP status code alongside it.
 - Success response example:
 
 ```json
 {
   "success": true,
   "message": "Product created successfully",
-  "data": { "id": 12, "productName": "Mechanical keyboard", "unitPrice": 79.99, "categoryId": 3 },
+  "data": { "id": 12, "product_name": "Mechanical keyboard", "unit_price": 79.99, "category_id": 3 },
   "timestamp": "2026-07-02T10:15:30Z"
 }
 ```
@@ -321,7 +321,7 @@ Includes `Category` and `Product`, given their direct link in the model.
 | Method | URL | Description |
 |---|---|---|
 | GET | `/api/v1/categories` | Paginated list of categories |
-| GET | `/api/v1/categories/{id}` | Category detail |
+| GET | `/api/v1/categories/{id}` | Category detail, including its associated `products` |
 | POST | `/api/v1/categories` | Create a category |
 | PUT | `/api/v1/categories/{id}` | Update a category |
 | DELETE | `/api/v1/categories/{id}` | Delete a category |
@@ -347,9 +347,13 @@ Includes `Category` and `Product`, given their direct link in the model.
 - [x] Optimistic locking (`@Version`) on `Product`, with `OptimisticLockingFailureException` mapped to 409
 - [x] Dynamic filtering (`Specification`/`JpaSpecificationExecutor`) on `Product`: `productName`/`minPrice`/`maxPrice`, in addition to `categoryId`
 - [x] Native JPA auditing (`@CreatedDate`/`@LastModifiedDate`) on `Category`, via `feature/core-architecture`'s `JpaAuditingConfig`
+- [x] Controllers return `ResponseEntity<ApiResponse<T>>`; every DTO field is exposed in JSON as snake_case via `@JsonProperty`
+- [x] `CategoryResponse.products` (the category's associated `Product`s) on the detail endpoint only
 
 ### Configuration notes
 
+- **`CategoryResponse.products` is only populated by `GET /api/v1/categories/{id}`, never by the paginated list.** `CategoryRepository.findByIdWithProducts` (`LEFT JOIN FETCH`) backs the detail endpoint; the list endpoint's `CategoryMapper.toResponse` explicitly sets `products` to an empty list rather than touching the entity's lazy, unfetched collection, avoiding an N+1 across a full page of categories.
+- **Snake_case JSON via `@JsonProperty` per field, not a global Jackson naming strategy.** Keeps every Java field/record component camelCase (idiomatic, and MapStruct keeps matching DTO fields to entity fields by name automatically) while the public JSON contract is snake_case.
 - **Flyway migrations on this branch are numbered `V3`/`V4`, skipping `V2`.** `V2` is reserved for `feature/auth`'s `V2__init_users_and_roles.sql`, not present on this branch yet; Flyway version numbers must stay unique and ordered across the whole project regardless of merge order.
 - **`ProductServiceImpl.findAll` only falls back to a `Specification`-based query when `productName`/`minPrice`/`maxPrice` is supplied.** The plain and `categoryId`-only cases keep using the existing `@EntityGraph`-backed repository methods; the `Specification` path has no fetch join for `category`, an accepted N+1 risk kept simple rather than complicating `ProductSpecifications` with one, and scoped only to requests that actually use the new filters.
 
@@ -374,8 +378,19 @@ Includes `Category` and `Product`, given their direct link in the model.
 - [x] `CustomerService` interface and `CustomerServiceImpl` implementation (in `service/impl`): email uniqueness check on create and update
 - [x] `CustomerController`
 - [x] Unit and integration tests
+- [x] `CustomerController` returns `ResponseEntity<ApiResponse<T>>`; `CustomerRequest`/`CustomerResponse` fields exposed in JSON as snake_case via `@JsonProperty`
+
+### Configuration notes
+
+- **`CustomerResponse` does not carry the customer's ordered products on this branch.** `Order` (and therefore any customer-to-product link) does not exist yet here; it is introduced by `feature/orders`, which is where that association becomes queryable and where this is implemented instead.
 
 ## feature/orders
+
+### Response shapes
+
+- `OrderResponse` embeds the full `CustomerResponse`/`ProductResponse` DTOs (`customer`, `product`) instead of summarized sub-objects, on both the detail endpoint (`OrderRepository.findByIdWithDetails`, entity fetch join) and the paginated list (`OrderRepository.findAllProjected`, a flat JPQL constructor-expression projection extended with every column both DTOs need, still avoiding N+1 on a page of results).
+- `CustomerResponse.findById` (`GET /api/v1/customers/{id}`) now also returns the `products` that customer has ordered, resolved via a dedicated `OrderRepository.findDistinctProductsByCustomerId` query rather than a new JPA relationship on `Customer`/`Product`; `findAll` keeps returning an empty `products` list per customer to avoid the same N+1 cost on a page.
+- `OrderController` returns `ResponseEntity<ApiResponse<T>>`; `OrderRequest`/`OrderResponse` fields exposed in JSON as snake_case via `@JsonProperty` (`customer_id`, `product_id`).
 
 ### Endpoints
 
@@ -392,11 +407,12 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 - [x] `Order` entity with `@ManyToOne` to `Customer` and `Product`
 - [x] `OrderRepository` with join queries (`@Query` with `JOIN`), DTO projection for lists
-- [x] DTOs `OrderRequest` (customerId, productId, quantity) / `OrderResponse` (with summarized customer/product sub-objects)
+- [x] DTOs `OrderRequest` (customerId, productId, quantity) / `OrderResponse` (full `CustomerResponse`/`ProductResponse`, not summarized sub-objects)
 - [x] `OrderMapper`
 - [x] `OrderService` interface and `OrderServiceImpl` implementation (in `service/impl`): computes `total = quantity * product.unitPrice`, checks that the customer and product exist
 - [x] `OrderCreatedEvent` application event published after creation, consumed by `OrderCreatedEventListener` (e.g. business logging, future email notification)
-- [x] `OrderController`
+- [x] `OrderController` returns `ResponseEntity<ApiResponse<T>>`
+- [x] `CustomerResponse.findById` returns the customer's ordered products (see Response shapes above)
 - [x] Unit tests (total computation, business rules) and integration tests
 
 ## feature/auth
@@ -450,7 +466,8 @@ Includes `Category` and `Product`, given their direct link in the model.
 - No business logic in controllers: delegate to the service layer only
 - **Contract/implementation services**: the interface (`XxxService`) lives at the root of `service/`, its implementation (`XxxServiceImpl`) lives in `service/impl/`. Controllers and tests only depend on the interface (injected by interface type), never directly on the implementation.
 - Any service method that writes to the database is annotated `@Transactional` (on the implementation)
-- Every controller returns an `ApiResponse<T>` (see [Standard response format](#standard-response-format)), including `GlobalExceptionHandler` for errors
+- Every controller returns a `ResponseEntity<ApiResponse<T>>` (see [Standard response format](#standard-response-format)), including `GlobalExceptionHandler` for errors
+- DTO fields are exposed in JSON as snake_case via `@JsonProperty` on each record component, kept camelCase in Java so mappers and services stay idiomatic
 - List responses are always paginated (`Page<T>` → `PageResponse<T>` DTO)
 - Endpoint names are plural, `kebab-case` when composed
 - Every endpoint documented with `@Operation(summary = "...")`

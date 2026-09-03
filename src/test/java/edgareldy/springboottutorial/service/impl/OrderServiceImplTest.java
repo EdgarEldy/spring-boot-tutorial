@@ -8,8 +8,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import edgareldy.springboottutorial.dto.common.PageResponse;
+import edgareldy.springboottutorial.dto.customer.CustomerResponse;
 import edgareldy.springboottutorial.dto.order.OrderRequest;
 import edgareldy.springboottutorial.dto.order.OrderResponse;
+import edgareldy.springboottutorial.dto.product.ProductResponse;
 import edgareldy.springboottutorial.entity.Category;
 import edgareldy.springboottutorial.entity.Customer;
 import edgareldy.springboottutorial.entity.Order;
@@ -78,18 +80,18 @@ class OrderServiceImplTest {
         Category category = Category.builder().id(1L).categoryName("Electronics").build();
         product = Product.builder().id(1L).category(category).productName("Keyboard").unitPrice(50.0f).build();
         order = Order.builder().id(1L).customer(customer).product(product).quantity(2).total(100.0).build();
-        orderResponse = new OrderResponse(
-                1L,
-                new OrderResponse.CustomerSummary(1L, "Ada Lovelace"),
-                new OrderResponse.ProductSummary(1L, "Keyboard", 50.0f),
-                2,
-                100.0);
+        CustomerResponse customerResponse = new CustomerResponse(
+                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way", List.of());
+        ProductResponse productResponse = new ProductResponse(1L, "Keyboard", 50.0f, 1L, "Electronics");
+        orderResponse = new OrderResponse(1L, customerResponse, productResponse, 2, 100.0);
     }
 
     @Test
     void findAllDelegatesToProjectedQuery() {
         Pageable pageable = PageRequest.of(0, 10);
-        OrderProjection projection = new OrderProjection(1L, 1L, "Ada Lovelace", 1L, "Keyboard", 50.0f, 2, 100.0);
+        OrderProjection projection = new OrderProjection(
+                1L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
+                1L, "Keyboard", 50.0f, 1L, "Electronics", 2, 100.0);
         when(orderRepository.findAllProjected(null, null, pageable))
                 .thenReturn(new PageImpl<>(List.of(projection), pageable, 1));
         when(orderMapper.toResponse(projection)).thenReturn(orderResponse);
@@ -119,7 +121,7 @@ class OrderServiceImplTest {
     void createComputesTotalAndPublishesEvent() {
         OrderRequest request = new OrderRequest(1L, 1L, 2);
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(product));
         when(orderMapper.toEntity(request)).thenReturn(Order.builder().quantity(2).build());
         when(orderRepository.save(any(Order.class))).thenReturn(order);
         when(orderMapper.toResponse(order)).thenReturn(orderResponse);
@@ -153,7 +155,7 @@ class OrderServiceImplTest {
     void createThrowsWhenProductMissing() {
         OrderRequest request = new OrderRequest(1L, 99L, 2);
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
-        when(productRepository.findById(99L)).thenReturn(Optional.empty());
+        when(productRepository.findByIdWithCategory(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderService.create(request))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -168,7 +170,7 @@ class OrderServiceImplTest {
         Order existing = Order.builder().id(1L).customer(customer).product(product).quantity(2).total(100.0).build();
         when(orderRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(product));
         when(orderRepository.save(existing)).thenReturn(existing);
         when(orderMapper.toResponse(existing)).thenReturn(orderResponse);
 
