@@ -120,7 +120,7 @@ Each feature is developed on its own branch, then merged into `develop` via a do
 spring-boot-tutorial/
 ├── src/
 │   ├── main/
-│   │   ├── java/edgareldy/springboottutorial/
+│   │   ├── java/com/edgareldy/springboottutorial/
 │   │   │   ├── SpringBootTutorialApplication.java
 │   │   │   ├── config/
 │   │   │   │   ├── OpenApiConfig.java
@@ -199,7 +199,7 @@ spring-boot-tutorial/
 │   │           ├── V1__init_schema.sql
 │   │           └── V2__init_users_and_roles.sql
 │   └── test/
-│       └── java/edgareldy/springboottutorial/
+│       └── java/com/edgareldy/springboottutorial/
 │           ├── controller/ (MockMvc tests)
 │           ├── service/ (Mockito unit tests)
 │           └── repository/ (@DataJpaTest / Testcontainers)
@@ -267,7 +267,7 @@ public record ApiResponse<T>(
 The project uses **Spring AOP** to illustrate aspect-oriented programming, kept out of any business logic in services/controllers.
 
 - Dependency: `spring-boot-starter-aop`
-- `LoggingAspect` (`aspect/LoggingAspect.java`): `@Around` advice on all `@Service` beans (pointcut `execution(* edgareldy.springboottutorial.service..*(..))`), logs method entry/exit, arguments, and thrown exceptions
+- `LoggingAspect` (`aspect/LoggingAspect.java`): `@Around` advice on all `@Service` beans (pointcut `execution(* com.edgareldy.springboottutorial.service..*(..))`), logs method entry/exit, arguments, and thrown exceptions
 - `ExecutionTimeAspect` (`aspect/ExecutionTimeAspect.java`): `@Around` advice on controller methods, measures and logs the execution time of each HTTP request
 - `RepositoryAuditAspect` (`aspect/RepositoryAuditAspect.java`): on the repository layer, the four advice types the other two aspects don't use: `@Before`/`@After` around every repository call, `@AfterReturning` on `save` specifically, `@AfterThrowing` on any repository exception
 - Can later be reused for auditing (e.g. tracing who created/modified an order) without polluting business code
@@ -462,7 +462,7 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 ## Code conventions
 
-- Root package: `edgareldy.springboottutorial`
+- Root package: `com.edgareldy.springboottutorial`
 - DTOs: Java `record` rather than classes (immutability, less boilerplate)
 - No business logic in controllers: delegate to the service layer only
 - **Contract/implementation services**: the interface (`XxxService`) lives at the root of `service/`, its implementation (`XxxServiceImpl`) lives in `service/impl/`. Controllers and tests only depend on the interface (injected by interface type), never directly on the implementation.
