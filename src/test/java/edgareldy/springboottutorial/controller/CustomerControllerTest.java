@@ -72,7 +72,7 @@ class CustomerControllerTest {
 
         mockMvc.perform(get("/api/v1/customers"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].lastName").value("Lovelace"));
+                .andExpect(jsonPath("$.data.content[0].last_name").value("Lovelace"));
     }
 
     @Test
@@ -82,7 +82,7 @@ class CustomerControllerTest {
 
         mockMvc.perform(get("/api/v1/customers").param("search", "lovelace"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].firstName").value("Ada"));
+                .andExpect(jsonPath("$.data.content[0].first_name").value("Ada"));
     }
 
     @Test
