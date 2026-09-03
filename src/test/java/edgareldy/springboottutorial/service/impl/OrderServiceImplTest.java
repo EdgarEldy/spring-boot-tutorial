@@ -121,7 +121,7 @@ class OrderServiceImplTest {
     void createComputesTotalAndPublishesEvent() {
         OrderRequest request = new OrderRequest(1L, 1L, 2);
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(product));
         when(orderMapper.toEntity(request)).thenReturn(Order.builder().quantity(2).build());
         when(orderRepository.save(any(Order.class))).thenReturn(order);
         when(orderMapper.toResponse(order)).thenReturn(orderResponse);
@@ -155,7 +155,7 @@ class OrderServiceImplTest {
     void createThrowsWhenProductMissing() {
         OrderRequest request = new OrderRequest(1L, 99L, 2);
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
-        when(productRepository.findById(99L)).thenReturn(Optional.empty());
+        when(productRepository.findByIdWithCategory(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderService.create(request))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -170,7 +170,7 @@ class OrderServiceImplTest {
         Order existing = Order.builder().id(1L).customer(customer).product(product).quantity(2).total(100.0).build();
         when(orderRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(product));
         when(orderRepository.save(existing)).thenReturn(existing);
         when(orderMapper.toResponse(existing)).thenReturn(orderResponse);
 
