@@ -1,12 +1,19 @@
 package edgareldy.springboottutorial.dto.customer;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import edgareldy.springboottutorial.dto.product.ProductResponse;
+import java.util.List;
 
 /**
  * Representation of a {@link edgareldy.springboottutorial.entity.Customer}
  * returned by the API, never the JPA entity itself. The JSON contract is
  * snake_case, decoupled from the Java fields' own camelCase names via
- * explicit {@link JsonProperty} annotations.
+ * explicit {@link JsonProperty} annotations. {@code products} (the
+ * products this customer has ordered at least once) is only populated on
+ * the single-customer detail endpoint ({@code GET /api/v1/customers/{id}}):
+ * the paginated list endpoint, and the {@code customer} nested inside an
+ * {@code OrderResponse}, both leave it as an empty list rather than
+ * running an extra query per customer.
  * <p>
  * Created edgar.muhamyangabo on 7/4/26
  * Author : edgar.muhamyangabo
@@ -24,6 +31,7 @@ public record CustomerResponse(
 
         String telephone,
         String email,
-        String address
+        String address,
+        List<ProductResponse> products
 ) {
 }
