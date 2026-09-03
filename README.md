@@ -378,6 +378,11 @@ Includes `Category` and `Product`, given their direct link in the model.
 - [x] `CustomerService` interface and `CustomerServiceImpl` implementation (in `service/impl`): email uniqueness check on create and update
 - [x] `CustomerController`
 - [x] Unit and integration tests
+- [x] `CustomerController` returns `ResponseEntity<ApiResponse<T>>`; `CustomerRequest`/`CustomerResponse` fields exposed in JSON as snake_case via `@JsonProperty`
+
+### Configuration notes
+
+- **`CustomerResponse` does not carry the customer's ordered products on this branch.** `Order` (and therefore any customer-to-product link) does not exist yet here; it is introduced by `feature/orders`, which is where that association becomes queryable and where this is implemented instead.
 
 ## feature/orders
 
