@@ -1,0 +1,71 @@
+package com.edgareldy.springboottutorial.controller;
+
+import com.edgareldy.springboottutorial.dto.auth.AuthResponse;
+import com.edgareldy.springboottutorial.dto.auth.LoginRequest;
+import com.edgareldy.springboottutorial.dto.auth.RegisterRequest;
+import com.edgareldy.springboottutorial.dto.auth.UserResponse;
+import com.edgareldy.springboottutorial.dto.common.ApiResponse;
+import com.edgareldy.springboottutorial.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * REST controller exposing registration, login, and the current user's
+ * profile. Delegates every operation to {@link AuthService}; no business
+ * logic (password hashing, token generation) lives here.
+ * <p>
+ * Created edgar.muhamyangabo on 7/8/26
+ * Author : edgar.muhamyangabo
+ * Date : 7/8/26
+ * Project : spring-boot-tutorial
+ */
+@RestController
+@RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final AuthService authService;
+
+    @PostMapping("/register")
+    @Operation(summary = "Register a new user account")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Account created successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation failed"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "Username or email already in use")
+    })
+    public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(authService.register(request), "Account created successfully"));
+    }
+
+    @PostMapping("/login")
+    @Operation(summary = "Sign in and obtain a JWT")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Login successful"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Invalid username or password")
+    })
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(authService.login(request), "Login successful"));
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "Get the currently authenticated user's profile")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Profile retrieved successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Authentication required")
+    })
+    public ResponseEntity<ApiResponse<UserResponse>> me(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(authService.me(userDetails.getUsername()), "Profile retrieved successfully"));
+    }
+}
