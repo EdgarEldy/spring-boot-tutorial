@@ -18,4 +18,4 @@ management:
 
 logging:
   level:
-    edgareldy.springboottutorial: DEBUG
+    com.edgareldy.springboottutorial: DEBUG
