@@ -59,7 +59,7 @@ class ProductControllerTest {
 
         mockMvc.perform(get("/api/v1/products"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].productName").value("Keyboard"));
+                .andExpect(jsonPath("$.data.content[0].product_name").value("Keyboard"));
     }
 
     @Test
@@ -70,7 +70,7 @@ class ProductControllerTest {
 
         mockMvc.perform(get("/api/v1/products").param("categoryId", "1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].categoryId").value(1));
+                .andExpect(jsonPath("$.data.content[0].category_id").value(1));
     }
 
     @Test
@@ -84,7 +84,7 @@ class ProductControllerTest {
                         .param("minPrice", "50")
                         .param("maxPrice", "100"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].productName").value("Keyboard"));
+                .andExpect(jsonPath("$.data.content[0].product_name").value("Keyboard"));
     }
 
     @Test
@@ -105,7 +105,7 @@ class ProductControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.productName").value("Keyboard"));
+                .andExpect(jsonPath("$.data.product_name").value("Keyboard"));
     }
 
     @Test
@@ -140,7 +140,7 @@ class ProductControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.productName").value("Mechanical Keyboard"));
+                .andExpect(jsonPath("$.data.product_name").value("Mechanical Keyboard"));
     }
 
     @Test
