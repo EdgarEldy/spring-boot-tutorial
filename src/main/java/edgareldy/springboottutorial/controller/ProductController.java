@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -44,15 +44,15 @@ public class ProductController {
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Products retrieved successfully")
     })
-    public ApiResponse<PageResponse<ProductResponse>> findAll(
+    public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> findAll(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String productName,
             @RequestParam(required = false) Float minPrice,
             @RequestParam(required = false) Float maxPrice,
             Pageable pageable) {
-        return ApiResponse.success(
+        return ResponseEntity.ok(ApiResponse.success(
                 productService.findAll(categoryId, productName, minPrice, maxPrice, pageable),
-                "Products retrieved successfully");
+                "Products retrieved successfully"));
     }
 
     @GetMapping("/{id}")
@@ -61,20 +61,20 @@ public class ProductController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Product retrieved successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Product not found")
     })
-    public ApiResponse<ProductResponse> findById(@PathVariable Long id) {
-        return ApiResponse.success(productService.findById(id), "Product retrieved successfully");
+    public ResponseEntity<ApiResponse<ProductResponse>> findById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(productService.findById(id), "Product retrieved successfully"));
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create a product")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Product created successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation failed"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Category not found")
     })
-    public ApiResponse<ProductResponse> create(@Valid @RequestBody ProductRequest request) {
-        return ApiResponse.success(productService.create(request), "Product created successfully");
+    public ResponseEntity<ApiResponse<ProductResponse>> create(@Valid @RequestBody ProductRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(productService.create(request), "Product created successfully"));
     }
 
     @PutMapping("/{id}")
@@ -86,8 +86,10 @@ public class ProductController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409",
                     description = "Product was modified by another request since it was last read")
     })
-    public ApiResponse<ProductResponse> update(@PathVariable Long id, @Valid @RequestBody ProductRequest request) {
-        return ApiResponse.success(productService.update(id, request), "Product updated successfully");
+    public ResponseEntity<ApiResponse<ProductResponse>> update(
+            @PathVariable Long id, @Valid @RequestBody ProductRequest request) {
+        return ResponseEntity.ok(
+                ApiResponse.success(productService.update(id, request), "Product updated successfully"));
     }
 
     @DeleteMapping("/{id}")
@@ -96,8 +98,8 @@ public class ProductController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Product deleted successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Product not found")
     })
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         productService.delete(id);
-        return ApiResponse.success(null, "Product deleted successfully");
+        return ResponseEntity.ok(ApiResponse.success(null, "Product deleted successfully"));
     }
 }

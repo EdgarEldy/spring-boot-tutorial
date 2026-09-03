@@ -52,7 +52,9 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Cacheable(value = "categories", key = "#id")
     public CategoryResponse findById(Long id) {
-        return categoryMapper.toResponse(getCategoryOrThrow(id));
+        Category category = categoryRepository.findByIdWithProducts(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id " + id));
+        return categoryMapper.toDetailResponse(category);
     }
 
     @Override

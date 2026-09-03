@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.within;
 
 import edgareldy.springboottutorial.config.JpaAuditingConfig;
 import edgareldy.springboottutorial.entity.Category;
+import edgareldy.springboottutorial.entity.Product;
 import jakarta.persistence.EntityManager;
 import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,9 @@ class CategoryRepositoryTest {
 
     @Autowired
     private CategoryRepository categoryRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
 
     @Autowired
     private EntityManager entityManager;
@@ -71,6 +75,31 @@ class CategoryRepositoryTest {
         // hundred picoseconds' worth of rounding; compare with tolerance.
         assertThat(updated.getCreatedAt()).isCloseTo(originalCreatedAt, within(1, ChronoUnit.MILLIS));
         assertThat(updated.getUpdatedAt()).isAfter(originalUpdatedAt);
+    }
+
+    @Test
+    void findByIdWithProductsLoadsAssociatedProducts() {
+        Category saved = categoryRepository.saveAndFlush(Category.builder().categoryName("Electronics").build());
+        productRepository.saveAndFlush(
+                Product.builder().category(saved).productName("Keyboard").unitPrice(79.99f).build());
+        productRepository.saveAndFlush(
+                Product.builder().category(saved).productName("Mouse").unitPrice(29.99f).build());
+        entityManager.clear();
+
+        Category found = categoryRepository.findByIdWithProducts(saved.getId()).orElseThrow();
+
+        assertThat(found.getProducts()).extracting(Product::getProductName)
+                .containsExactlyInAnyOrder("Keyboard", "Mouse");
+    }
+
+    @Test
+    void findByIdWithProductsReturnsEmptyCollectionWhenCategoryHasNone() {
+        Category saved = categoryRepository.saveAndFlush(Category.builder().categoryName("Empty").build());
+        entityManager.clear();
+
+        Category found = categoryRepository.findByIdWithProducts(saved.getId()).orElseThrow();
+
+        assertThat(found.getProducts()).isEmpty();
     }
 
     @Test
