@@ -17,7 +17,7 @@ import jakarta.validation.constraints.NotBlank;
 public record CategoryRequest(
 
         @JsonProperty("category_name")
-        @NotBlank(message = "category_name must not be blank")
+        @NotBlank(message = "Category name must not be blank")
         String categoryName
 ) {
 }
