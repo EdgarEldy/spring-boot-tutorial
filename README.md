@@ -449,6 +449,7 @@ Includes `Category` and `Product`, given their direct link in the model.
 - [x] Custom 401/403 error handling (`AuthenticationEntryPoint`, `AccessDeniedHandler`)
 - [x] Swagger updated to support the "Authorize" button (Bearer token)
 - [x] Integration tests with `spring-security-test` (`@WithMockUser`, allowed/denied access tests)
+- [x] `AuthController` returns `ResponseEntity<ApiResponse<T>>`; `AuthResponse.tokenType` exposed in JSON as `token_type` via `@JsonProperty` (the other auth DTO fields, `username`/`email`/`password`/`token`, are single words already identical in both conventions)
 
 ## Order of work
 
