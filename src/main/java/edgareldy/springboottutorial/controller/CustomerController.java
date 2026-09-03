@@ -106,8 +106,10 @@ public class CustomerController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Customer orders retrieved successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Customer not found")
     })
-    public ApiResponse<PageResponse<OrderResponse>> findOrders(@PathVariable Long id, Pageable pageable) {
+    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> findOrders(
+            @PathVariable Long id, Pageable pageable) {
         customerService.findById(id);
-        return ApiResponse.success(orderService.findAll(id, null, pageable), "Customer orders retrieved successfully");
+        return ResponseEntity.ok(ApiResponse.success(
+                orderService.findAll(id, null, pageable), "Customer orders retrieved successfully"));
     }
 }

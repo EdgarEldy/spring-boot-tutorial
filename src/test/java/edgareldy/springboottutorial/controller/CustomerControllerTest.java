@@ -17,6 +17,7 @@ import edgareldy.springboottutorial.dto.common.PageResponse;
 import edgareldy.springboottutorial.dto.customer.CustomerRequest;
 import edgareldy.springboottutorial.dto.customer.CustomerResponse;
 import edgareldy.springboottutorial.dto.order.OrderResponse;
+import edgareldy.springboottutorial.dto.product.ProductResponse;
 import edgareldy.springboottutorial.exception.BusinessRuleException;
 import edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import edgareldy.springboottutorial.service.CustomerService;
@@ -62,7 +63,7 @@ class CustomerControllerTest {
 
     private static CustomerResponse savedResponse() {
         return new CustomerResponse(
-                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way");
+                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way", List.of());
     }
 
     @Test
@@ -169,19 +170,15 @@ class CustomerControllerTest {
 
     @Test
     void findOrdersReturns200WhenCustomerExists() throws Exception {
-        OrderResponse order = new OrderResponse(
-                1L,
-                new OrderResponse.CustomerSummary(1L, "Ada Lovelace"),
-                new OrderResponse.ProductSummary(1L, "Keyboard", 50.0f),
-                2,
-                100.0);
+        ProductResponse product = new ProductResponse(1L, "Keyboard", 50.0f, 1L, "Electronics");
+        OrderResponse order = new OrderResponse(1L, savedResponse(), product, 2, 100.0);
         PageResponse<OrderResponse> page = new PageResponse<>(List.of(order), 0, 20, 1, 1);
         when(customerService.findById(1L)).thenReturn(savedResponse());
         when(orderService.findAll(eq(1L), isNull(), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/customers/1/orders"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].product.productName").value("Keyboard"));
+                .andExpect(jsonPath("$.data.content[0].product.product_name").value("Keyboard"));
     }
 
     @Test
