@@ -58,7 +58,7 @@ class CategoryServiceImplTest {
     @BeforeEach
     void setUp() {
         category = Category.builder().id(1L).categoryName("Electronics").build();
-        categoryResponse = new CategoryResponse(1L, "Electronics", null, null);
+        categoryResponse = new CategoryResponse(1L, "Electronics", null, null, List.of());
     }
 
     @Test
@@ -75,15 +75,15 @@ class CategoryServiceImplTest {
 
     @Test
     void findByIdReturnsResponseWhenFound() {
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(categoryMapper.toResponse(category)).thenReturn(categoryResponse);
+        when(categoryRepository.findByIdWithProducts(1L)).thenReturn(Optional.of(category));
+        when(categoryMapper.toDetailResponse(category)).thenReturn(categoryResponse);
 
         assertThat(categoryService.findById(1L)).isEqualTo(categoryResponse);
     }
 
     @Test
     void findByIdThrowsWhenMissing() {
-        when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
+        when(categoryRepository.findByIdWithProducts(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> categoryService.findById(99L))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -102,7 +102,7 @@ class CategoryServiceImplTest {
     @Test
     void updateAppliesRequestAndReturnsResponse() {
         CategoryRequest request = new CategoryRequest("Home Appliances");
-        CategoryResponse updatedResponse = new CategoryResponse(1L, "Home Appliances", null, null);
+        CategoryResponse updatedResponse = new CategoryResponse(1L, "Home Appliances", null, null, List.of());
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(categoryRepository.save(category)).thenReturn(category);
         when(categoryMapper.toResponse(category)).thenReturn(updatedResponse);
