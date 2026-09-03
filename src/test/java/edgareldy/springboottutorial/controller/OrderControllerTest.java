@@ -14,8 +14,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edgareldy.springboottutorial.dto.common.PageResponse;
+import edgareldy.springboottutorial.dto.customer.CustomerResponse;
 import edgareldy.springboottutorial.dto.order.OrderRequest;
 import edgareldy.springboottutorial.dto.order.OrderResponse;
+import edgareldy.springboottutorial.dto.product.ProductResponse;
 import edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import edgareldy.springboottutorial.security.JwtService;
 import edgareldy.springboottutorial.service.OrderService;
@@ -64,12 +66,10 @@ class OrderControllerTest {
     private UserDetailsService userDetailsService;
 
     private static OrderResponse sampleResponse() {
-        return new OrderResponse(
-                1L,
-                new OrderResponse.CustomerSummary(1L, "Ada Lovelace"),
-                new OrderResponse.ProductSummary(1L, "Keyboard", 50.0f),
-                2,
-                100.0);
+        CustomerResponse customer = new CustomerResponse(
+                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way", List.of());
+        ProductResponse product = new ProductResponse(1L, "Keyboard", 50.0f, 1L, "Electronics");
+        return new OrderResponse(1L, customer, product, 2, 100.0);
     }
 
     @Test
@@ -89,7 +89,7 @@ class OrderControllerTest {
 
         mockMvc.perform(get("/api/v1/orders").param("customerId", "1").param("productId", "1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].customer.fullName").value("Ada Lovelace"));
+                .andExpect(jsonPath("$.data.content[0].customer.first_name").value("Ada"));
     }
 
     @Test
@@ -109,7 +109,7 @@ class OrderControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new OrderRequest(1L, 1L, 2))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.product.productName").value("Keyboard"));
+                .andExpect(jsonPath("$.data.product.product_name").value("Keyboard"));
     }
 
     @Test

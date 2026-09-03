@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -43,12 +43,12 @@ public class OrderController {
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Orders retrieved successfully")
     })
-    public ApiResponse<PageResponse<OrderResponse>> findAll(
+    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> findAll(
             @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) Long productId,
             Pageable pageable) {
-        return ApiResponse.success(
-                orderService.findAll(customerId, productId, pageable), "Orders retrieved successfully");
+        return ResponseEntity.ok(ApiResponse.success(
+                orderService.findAll(customerId, productId, pageable), "Orders retrieved successfully"));
     }
 
     @GetMapping("/{id}")
@@ -57,20 +57,20 @@ public class OrderController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Order retrieved successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Order not found")
     })
-    public ApiResponse<OrderResponse> findById(@PathVariable Long id) {
-        return ApiResponse.success(orderService.findById(id), "Order retrieved successfully");
+    public ResponseEntity<ApiResponse<OrderResponse>> findById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(orderService.findById(id), "Order retrieved successfully"));
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create an order")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Order created successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation failed"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Customer or product not found")
     })
-    public ApiResponse<OrderResponse> create(@Valid @RequestBody OrderRequest request) {
-        return ApiResponse.success(orderService.create(request), "Order created successfully");
+    public ResponseEntity<ApiResponse<OrderResponse>> create(@Valid @RequestBody OrderRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(orderService.create(request), "Order created successfully"));
     }
 
     @PutMapping("/{id}")
@@ -80,8 +80,8 @@ public class OrderController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation failed"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Order, customer, or product not found")
     })
-    public ApiResponse<OrderResponse> update(@PathVariable Long id, @Valid @RequestBody OrderRequest request) {
-        return ApiResponse.success(orderService.update(id, request), "Order updated successfully");
+    public ResponseEntity<ApiResponse<OrderResponse>> update(@PathVariable Long id, @Valid @RequestBody OrderRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(orderService.update(id, request), "Order updated successfully"));
     }
 
     @DeleteMapping("/{id}")
@@ -90,8 +90,8 @@ public class OrderController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Order deleted successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Order not found")
     })
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         orderService.delete(id);
-        return ApiResponse.success(null, "Order deleted successfully");
+        return ResponseEntity.ok(ApiResponse.success(null, "Order deleted successfully"));
     }
 }

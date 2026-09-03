@@ -1,9 +1,13 @@
 package edgareldy.springboottutorial.dto.auth;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Payload returned by {@code POST /api/v1/auth/login}: the JWT to send back
  * as a {@code Bearer} token on subsequent requests, plus enough profile
  * information for the client to avoid an extra call to {@code /auth/me}.
+ * The JSON contract is snake_case, decoupled from the Java field's own
+ * camelCase name via an explicit {@link JsonProperty} annotation.
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
  * Author : edgar.muhamyangabo
@@ -12,7 +16,10 @@ package edgareldy.springboottutorial.dto.auth;
  */
 public record AuthResponse(
         String token,
+
+        @JsonProperty("token_type")
         String tokenType,
+
         String username
 ) {
 

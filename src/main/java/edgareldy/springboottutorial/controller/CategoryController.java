@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,7 +19,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -42,8 +42,9 @@ public class CategoryController {
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Categories retrieved successfully")
     })
-    public ApiResponse<PageResponse<CategoryResponse>> findAll(Pageable pageable) {
-        return ApiResponse.success(categoryService.findAll(pageable), "Categories retrieved successfully");
+    public ResponseEntity<ApiResponse<PageResponse<CategoryResponse>>> findAll(Pageable pageable) {
+        return ResponseEntity.ok(
+                ApiResponse.success(categoryService.findAll(pageable), "Categories retrieved successfully"));
     }
 
     @GetMapping("/{id}")
@@ -52,19 +53,20 @@ public class CategoryController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Category retrieved successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Category not found")
     })
-    public ApiResponse<CategoryResponse> findById(@PathVariable Long id) {
-        return ApiResponse.success(categoryService.findById(id), "Category retrieved successfully");
+    public ResponseEntity<ApiResponse<CategoryResponse>> findById(@PathVariable Long id) {
+        return ResponseEntity.ok(
+                ApiResponse.success(categoryService.findById(id), "Category retrieved successfully"));
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create a category")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Category created successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation failed")
     })
-    public ApiResponse<CategoryResponse> create(@Valid @RequestBody CategoryRequest request) {
-        return ApiResponse.success(categoryService.create(request), "Category created successfully");
+    public ResponseEntity<ApiResponse<CategoryResponse>> create(@Valid @RequestBody CategoryRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(categoryService.create(request), "Category created successfully"));
     }
 
     @PutMapping("/{id}")
@@ -74,8 +76,10 @@ public class CategoryController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation failed"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Category not found")
     })
-    public ApiResponse<CategoryResponse> update(@PathVariable Long id, @Valid @RequestBody CategoryRequest request) {
-        return ApiResponse.success(categoryService.update(id, request), "Category updated successfully");
+    public ResponseEntity<ApiResponse<CategoryResponse>> update(
+            @PathVariable Long id, @Valid @RequestBody CategoryRequest request) {
+        return ResponseEntity.ok(
+                ApiResponse.success(categoryService.update(id, request), "Category updated successfully"));
     }
 
     @DeleteMapping("/{id}")
@@ -85,8 +89,8 @@ public class CategoryController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Category not found"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "Category still has products")
     })
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         categoryService.delete(id);
-        return ApiResponse.success(null, "Category deleted successfully");
+        return ResponseEntity.ok(ApiResponse.success(null, "Category deleted successfully"));
     }
 }

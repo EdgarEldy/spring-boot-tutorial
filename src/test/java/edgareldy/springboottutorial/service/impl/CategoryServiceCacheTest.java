@@ -12,6 +12,7 @@ import edgareldy.springboottutorial.mapper.CategoryMapper;
 import edgareldy.springboottutorial.repository.CategoryRepository;
 import edgareldy.springboottutorial.repository.ProductRepository;
 import edgareldy.springboottutorial.service.CategoryService;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -81,43 +82,46 @@ class CategoryServiceCacheTest {
     @Test
     void findByIdIsCachedAcrossCalls() {
         Category category = Category.builder().id(1L).categoryName("Electronics").build();
-        CategoryResponse response = new CategoryResponse(1L, "Electronics", null, null);
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(categoryMapper.toResponse(category)).thenReturn(response);
+        CategoryResponse response = new CategoryResponse(1L, "Electronics", null, null, List.of());
+        when(categoryRepository.findByIdWithProducts(1L)).thenReturn(Optional.of(category));
+        when(categoryMapper.toDetailResponse(category)).thenReturn(response);
 
         categoryService.findById(1L);
         categoryService.findById(1L);
 
-        verify(categoryRepository, times(1)).findById(1L);
+        verify(categoryRepository, times(1)).findByIdWithProducts(1L);
     }
 
     @Test
     void updateEvictsCacheForThatId() {
         Category category = Category.builder().id(1L).categoryName("Electronics").build();
-        CategoryResponse response = new CategoryResponse(1L, "Electronics", null, null);
+        CategoryResponse response = new CategoryResponse(1L, "Electronics", null, null, List.of());
+        when(categoryRepository.findByIdWithProducts(1L)).thenReturn(Optional.of(category));
+        when(categoryMapper.toDetailResponse(category)).thenReturn(response);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(categoryMapper.toResponse(category)).thenReturn(response);
         when(categoryRepository.save(any(Category.class))).thenReturn(category);
 
         categoryService.findById(1L);
         categoryService.update(1L, new CategoryRequest("Home Appliances"));
         categoryService.findById(1L);
 
-        // 3, not 2: update() loads the entity via getCategoryOrThrow(), which
-        // calls categoryRepository.findById() directly rather than through
-        // the cached findById() service method, so that lookup is never
-        // served from cache. The 3rd call is the one that actually proves
+        // update() loads the entity via getCategoryOrThrow(), which calls
+        // categoryRepository.findById() directly, a different repository
+        // method than the cached findById() service method uses
+        // (findByIdWithProducts()), so it never interacts with the cache
+        // either way. The 2nd findByIdWithProducts() call is what proves
         // eviction: without it, this last findById(1L) would still be a
-        // cache hit and the total would stay at 2.
-        verify(categoryRepository, times(3)).findById(1L);
+        // cache hit and the total would stay at 1.
+        verify(categoryRepository, times(2)).findByIdWithProducts(1L);
     }
 
     @Test
     void deleteEvictsCacheForThatId() {
         Category category = Category.builder().id(1L).categoryName("Electronics").build();
-        CategoryResponse response = new CategoryResponse(1L, "Electronics", null, null);
+        CategoryResponse response = new CategoryResponse(1L, "Electronics", null, null, List.of());
+        when(categoryRepository.findByIdWithProducts(1L)).thenReturn(Optional.of(category));
+        when(categoryMapper.toDetailResponse(category)).thenReturn(response);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(categoryMapper.toResponse(category)).thenReturn(response);
         when(productRepository.existsByCategoryId(1L)).thenReturn(false);
 
         categoryService.findById(1L);
@@ -125,7 +129,7 @@ class CategoryServiceCacheTest {
         categoryService.findById(1L);
 
         // Same reasoning as updateEvictsCacheForThatId: delete() also loads
-        // the entity via the uncached getCategoryOrThrow().
-        verify(categoryRepository, times(3)).findById(1L);
+        // the entity via the uncached getCategoryOrThrow()/findById().
+        verify(categoryRepository, times(2)).findByIdWithProducts(1L);
     }
 }
