@@ -1,11 +1,15 @@
 package edgareldy.springboottutorial.dto.order;
 
+import edgareldy.springboottutorial.dto.customer.CustomerResponse;
+import edgareldy.springboottutorial.dto.product.ProductResponse;
+
 /**
  * Representation of a {@link edgareldy.springboottutorial.entity.Order}
- * returned by the API. Carries summarized {@code customer}/{@code product}
- * sub-objects rather than the full {@code CustomerResponse}/
- * {@code ProductResponse} shapes, since an order listing only needs enough
- * of each to identify them, not their full detail.
+ * returned by the API. Carries the full {@link CustomerResponse}/
+ * {@link ProductResponse} shapes for {@code customer}/{@code product}
+ * rather than a summarized sub-object, so a caller never has to make a
+ * second request just to get the customer's address or the product's
+ * category.
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
  * Author : edgar.muhamyangabo
@@ -14,15 +18,9 @@ package edgareldy.springboottutorial.dto.order;
  */
 public record OrderResponse(
         Long id,
-        CustomerSummary customer,
-        ProductSummary product,
+        CustomerResponse customer,
+        ProductResponse product,
         int quantity,
         double total
 ) {
-
-    public record CustomerSummary(Long id, String fullName) {
-    }
-
-    public record ProductSummary(Long id, String productName, float unitPrice) {
-    }
 }
