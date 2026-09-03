@@ -386,6 +386,12 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 ## feature/orders
 
+### Response shapes
+
+- `OrderResponse` embeds the full `CustomerResponse`/`ProductResponse` DTOs (`customer`, `product`) instead of summarized sub-objects, on both the detail endpoint (`OrderRepository.findByIdWithDetails`, entity fetch join) and the paginated list (`OrderRepository.findAllProjected`, a flat JPQL constructor-expression projection extended with every column both DTOs need, still avoiding N+1 on a page of results).
+- `CustomerResponse.findById` (`GET /api/v1/customers/{id}`) now also returns the `products` that customer has ordered, resolved via a dedicated `OrderRepository.findDistinctProductsByCustomerId` query rather than a new JPA relationship on `Customer`/`Product`; `findAll` keeps returning an empty `products` list per customer to avoid the same N+1 cost on a page.
+- `OrderController` returns `ResponseEntity<ApiResponse<T>>`; `OrderRequest`/`OrderResponse` fields exposed in JSON as snake_case via `@JsonProperty` (`customer_id`, `product_id`).
+
 ### Endpoints
 
 | Method | URL | Description |
@@ -401,11 +407,12 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 - [x] `Order` entity with `@ManyToOne` to `Customer` and `Product`
 - [x] `OrderRepository` with join queries (`@Query` with `JOIN`), DTO projection for lists
-- [x] DTOs `OrderRequest` (customerId, productId, quantity) / `OrderResponse` (with summarized customer/product sub-objects)
+- [x] DTOs `OrderRequest` (customerId, productId, quantity) / `OrderResponse` (full `CustomerResponse`/`ProductResponse`, not summarized sub-objects)
 - [x] `OrderMapper`
 - [x] `OrderService` interface and `OrderServiceImpl` implementation (in `service/impl`): computes `total = quantity * product.unitPrice`, checks that the customer and product exist
 - [x] `OrderCreatedEvent` application event published after creation, consumed by `OrderCreatedEventListener` (e.g. business logging, future email notification)
-- [x] `OrderController`
+- [x] `OrderController` returns `ResponseEntity<ApiResponse<T>>`
+- [x] `CustomerResponse.findById` returns the customer's ordered products (see Response shapes above)
 - [x] Unit tests (total computation, business rules) and integration tests
 
 ## feature/auth
