@@ -20,16 +20,16 @@ import jakarta.validation.constraints.Positive;
 public record ProductRequest(
 
         @JsonProperty("category_id")
-        @NotNull(message = "category_id must not be null")
+        @NotNull(message = "Category id must not be null")
         Long categoryId,
 
         @JsonProperty("product_name")
-        @NotBlank(message = "product_name must not be blank")
+        @NotBlank(message = "Product name must not be blank")
         String productName,
 
         @JsonProperty("unit_price")
-        @NotNull(message = "unit_price must not be null")
-        @Positive(message = "unit_price must be greater than 0")
+        @NotNull(message = "Unit price must not be null")
+        @Positive(message = "Unit price must be greater than 0")
         Float unitPrice
 ) {
 }
