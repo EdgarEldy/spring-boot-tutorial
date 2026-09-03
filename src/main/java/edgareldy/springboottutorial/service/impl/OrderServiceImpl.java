@@ -97,7 +97,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private Product getProductOrThrow(Long productId) {
-        return productRepository.findById(productId)
+        return productRepository.findByIdWithCategory(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + productId));
     }
 }

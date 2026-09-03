@@ -1,7 +1,10 @@
 package edgareldy.springboottutorial.repository;
 
 import edgareldy.springboottutorial.entity.Category;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * Spring Data JPA repository for {@link Category}.
@@ -12,4 +15,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * Project : spring-boot-tutorial
  */
 public interface CategoryRepository extends JpaRepository<Category, Long> {
+
+    @Query("SELECT c FROM Category c LEFT JOIN FETCH c.products WHERE c.id = :id")
+    Optional<Category> findByIdWithProducts(@Param("id") Long id);
 }

@@ -13,7 +13,11 @@ import edgareldy.springboottutorial.dto.customer.CustomerResponse;
 import edgareldy.springboottutorial.entity.Customer;
 import edgareldy.springboottutorial.exception.BusinessRuleException;
 import edgareldy.springboottutorial.exception.ResourceNotFoundException;
+import edgareldy.springboottutorial.dto.product.ProductResponse;
+import edgareldy.springboottutorial.entity.Category;
+import edgareldy.springboottutorial.entity.Product;
 import edgareldy.springboottutorial.mapper.CustomerMapper;
+import edgareldy.springboottutorial.mapper.ProductMapper;
 import edgareldy.springboottutorial.repository.CustomerRepository;
 import edgareldy.springboottutorial.repository.OrderRepository;
 import java.util.List;
@@ -49,6 +53,9 @@ class CustomerServiceImplTest {
     @Mock
     private OrderRepository orderRepository;
 
+    @Mock
+    private ProductMapper productMapper;
+
     @InjectMocks
     private CustomerServiceImpl customerService;
 
@@ -61,7 +68,7 @@ class CustomerServiceImplTest {
                 .id(1L).firstName("Ada").lastName("Lovelace").telephone("+1 202-555-0100")
                 .email("ada@example.com").address("1 Analytical Engine Way").build();
         customerResponse = new CustomerResponse(
-                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way");
+                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way", List.of());
     }
 
     @Test
@@ -87,6 +94,22 @@ class CustomerServiceImplTest {
 
         assertThat(result.content()).containsExactly(customerResponse);
         verify(customerRepository, never()).findAll(pageable);
+    }
+
+    @Test
+    void findByIdReturnsResponseWithOrderedProducts() {
+        Category category = Category.builder().id(1L).categoryName("Electronics").build();
+        Product keyboard = Product.builder().id(1L).category(category).productName("Keyboard").unitPrice(79.99f).build();
+        ProductResponse keyboardResponse = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
+        CustomerResponse detailResponse = new CustomerResponse(
+                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
+                List.of(keyboardResponse));
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
+        when(orderRepository.findDistinctProductsByCustomerId(1L)).thenReturn(List.of(keyboard));
+        when(productMapper.toResponse(keyboard)).thenReturn(keyboardResponse);
+        when(customerMapper.toDetailResponse(customer, List.of(keyboardResponse))).thenReturn(detailResponse);
+
+        assertThat(customerService.findById(1L)).isEqualTo(detailResponse);
     }
 
     @Test
@@ -138,7 +161,7 @@ class CustomerServiceImplTest {
         CustomerRequest request = new CustomerRequest(
                 "Ada", "Byron", "+1 202-555-0100", "ada@example.com", "2 Analytical Engine Way");
         CustomerResponse updatedResponse = new CustomerResponse(
-                1L, "Ada", "Byron", "+1 202-555-0100", "ada@example.com", "2 Analytical Engine Way");
+                1L, "Ada", "Byron", "+1 202-555-0100", "ada@example.com", "2 Analytical Engine Way", List.of());
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(customerRepository.save(customer)).thenReturn(customer);
         when(customerMapper.toResponse(customer)).thenReturn(updatedResponse);
@@ -154,7 +177,7 @@ class CustomerServiceImplTest {
         CustomerRequest request = new CustomerRequest(
                 "Ada", "Byron", "+1 202-555-0100", "ADA@EXAMPLE.COM", "2 Analytical Engine Way");
         CustomerResponse updatedResponse = new CustomerResponse(
-                1L, "Ada", "Byron", "+1 202-555-0100", "ADA@EXAMPLE.COM", "2 Analytical Engine Way");
+                1L, "Ada", "Byron", "+1 202-555-0100", "ADA@EXAMPLE.COM", "2 Analytical Engine Way", List.of());
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(customerRepository.save(customer)).thenReturn(customer);
         when(customerMapper.toResponse(customer)).thenReturn(updatedResponse);

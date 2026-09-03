@@ -3,13 +3,16 @@ package edgareldy.springboottutorial.service.impl;
 import edgareldy.springboottutorial.dto.common.PageResponse;
 import edgareldy.springboottutorial.dto.customer.CustomerRequest;
 import edgareldy.springboottutorial.dto.customer.CustomerResponse;
+import edgareldy.springboottutorial.dto.product.ProductResponse;
 import edgareldy.springboottutorial.entity.Customer;
 import edgareldy.springboottutorial.exception.BusinessRuleException;
 import edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import edgareldy.springboottutorial.mapper.CustomerMapper;
+import edgareldy.springboottutorial.mapper.ProductMapper;
 import edgareldy.springboottutorial.repository.CustomerRepository;
 import edgareldy.springboottutorial.repository.OrderRepository;
 import edgareldy.springboottutorial.service.CustomerService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +36,7 @@ public class CustomerServiceImpl implements CustomerService {
     private final CustomerRepository customerRepository;
     private final CustomerMapper customerMapper;
     private final OrderRepository orderRepository;
+    private final ProductMapper productMapper;
 
     @Override
     public PageResponse<CustomerResponse> findAll(String search, Pageable pageable) {
@@ -44,7 +48,11 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public CustomerResponse findById(Long id) {
-        return customerMapper.toResponse(getCustomerOrThrow(id));
+        Customer customer = getCustomerOrThrow(id);
+        List<ProductResponse> orderedProducts = orderRepository.findDistinctProductsByCustomerId(id).stream()
+                .map(productMapper::toResponse)
+                .toList();
+        return customerMapper.toDetailResponse(customer, orderedProducts);
     }
 
     @Override

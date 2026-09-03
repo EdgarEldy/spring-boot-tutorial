@@ -107,7 +107,8 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new LoginRequest("ada", "password123"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.token").value("signed-token"));
+                .andExpect(jsonPath("$.data.token").value("signed-token"))
+                .andExpect(jsonPath("$.data.token_type").value("Bearer"));
     }
 
     @Test
