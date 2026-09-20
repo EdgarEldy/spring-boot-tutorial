@@ -34,14 +34,14 @@ class CustomerMapperTest {
     }
 
     @Test
-    void toResponseAlwaysReturnsEmptyProducts() {
+    void _01_ShouldReturnEmptyProducts_WhenUsingPlainResponse() {
         CustomerResponse response = customerMapper.toResponse(customer());
 
         assertThat(response.products()).isEmpty();
     }
 
     @Test
-    void toDetailResponseMapsSuppliedProducts() {
+    void _02_ShouldMapSuppliedProducts_WhenUsingDetailResponse() {
         ProductResponse keyboard = new ProductResponse(10L, "Keyboard", 79.99f, 1L, "Electronics");
 
         CustomerResponse response = customerMapper.toDetailResponse(customer(), List.of(keyboard));

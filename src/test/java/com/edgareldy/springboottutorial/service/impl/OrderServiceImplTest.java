@@ -87,7 +87,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void findAllDelegatesToProjectedQuery() {
+    void _01_ShouldDelegateToProjectedQuery_WhenListingOrders() {
         Pageable pageable = PageRequest.of(0, 10);
         OrderProjection projection = new OrderProjection(
                 1L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
@@ -102,7 +102,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void findByIdReturnsResponseWhenFound() {
+    void _02_ShouldReturnResponse_WhenOrderFound() {
         when(orderRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(order));
         when(orderMapper.toResponse(order)).thenReturn(orderResponse);
 
@@ -110,7 +110,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void findByIdThrowsWhenMissing() {
+    void _03_ShouldThrowNotFound_WhenOrderMissing() {
         when(orderRepository.findByIdWithDetails(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderService.findById(99L))
@@ -118,7 +118,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void createComputesTotalAndPublishesEvent() {
+    void _04_ShouldComputeTotalAndPublishEvent_WhenCreatingOrder() {
         OrderRequest request = new OrderRequest(1L, 1L, 2);
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(product));
@@ -140,7 +140,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void createThrowsWhenCustomerMissing() {
+    void _05_ShouldThrowNotFound_WhenCustomerMissingOnCreate() {
         OrderRequest request = new OrderRequest(99L, 1L, 2);
         when(customerRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -152,7 +152,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void createThrowsWhenProductMissing() {
+    void _06_ShouldThrowNotFound_WhenProductMissingOnCreate() {
         OrderRequest request = new OrderRequest(1L, 99L, 2);
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(productRepository.findByIdWithCategory(99L)).thenReturn(Optional.empty());
@@ -165,7 +165,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void updateRecomputesTotal() {
+    void _07_ShouldRecomputeTotal_WhenUpdatingOrder() {
         OrderRequest request = new OrderRequest(1L, 1L, 3);
         Order existing = Order.builder().id(1L).customer(customer).product(product).quantity(2).total(100.0).build();
         when(orderRepository.findById(1L)).thenReturn(Optional.of(existing));
@@ -181,7 +181,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void updateThrowsWhenOrderMissing() {
+    void _08_ShouldThrowNotFound_WhenOrderMissingOnUpdate() {
         OrderRequest request = new OrderRequest(1L, 1L, 3);
         when(orderRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -192,7 +192,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void deleteRemovesOrderWhenExists() {
+    void _09_ShouldRemoveOrder_WhenOrderExists() {
         when(orderRepository.existsById(1L)).thenReturn(true);
 
         orderService.delete(1L);
@@ -201,7 +201,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void deleteThrowsWhenMissing() {
+    void _10_ShouldThrowNotFound_WhenOrderMissingOnDelete() {
         when(orderRepository.existsById(99L)).thenReturn(false);
 
         assertThatThrownBy(() -> orderService.delete(99L))

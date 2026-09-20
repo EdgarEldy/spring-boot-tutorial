@@ -38,7 +38,7 @@ class DataSeederTest {
     private DataSeeder dataSeeder;
 
     @Test
-    void seedsCategoriesAndProductsWhenDatabaseIsEmpty() throws Exception {
+    void _01_ShouldSeedCategoriesAndProducts_WhenDatabaseIsEmpty() throws Exception {
         when(categoryRepository.count()).thenReturn(0L);
         when(categoryRepository.save(any(Category.class)))
                 .thenReturn(Category.builder().id(1L).categoryName("Electronics").build())
@@ -51,7 +51,7 @@ class DataSeederTest {
     }
 
     @Test
-    void skipsSeedingWhenCategoriesAlreadyExist() throws Exception {
+    void _02_ShouldSkipSeeding_WhenCategoriesAlreadyExist() throws Exception {
         when(categoryRepository.count()).thenReturn(1L);
 
         dataSeeder.seedDemoData().run();
