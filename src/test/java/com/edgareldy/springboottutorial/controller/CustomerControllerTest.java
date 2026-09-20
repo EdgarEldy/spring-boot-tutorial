@@ -61,7 +61,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void findAllWithoutSearchPassesNullThrough() throws Exception {
+    void _01_ShouldPassNullSearch_WhenNoSearchTermGiven() throws Exception {
         PageResponse<CustomerResponse> page = new PageResponse<>(List.of(savedResponse()), 0, 20, 1, 1);
         when(customerService.findAll(isNull(), any())).thenReturn(page);
 
@@ -71,7 +71,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void findAllWithSearchForwardsTerm() throws Exception {
+    void _02_ShouldForwardSearchTerm_WhenSearchTermGiven() throws Exception {
         PageResponse<CustomerResponse> page = new PageResponse<>(List.of(savedResponse()), 0, 20, 1, 1);
         when(customerService.findAll(eq("lovelace"), any())).thenReturn(page);
 
@@ -81,7 +81,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void findByIdReturns404WhenMissing() throws Exception {
+    void _03_ShouldReturn404_WhenCustomerMissing() throws Exception {
         when(customerService.findById(99L)).thenThrow(new ResourceNotFoundException("Customer not found with id 99"));
 
         mockMvc.perform(get("/api/v1/customers/99"))
@@ -90,7 +90,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void createReturns201WhenValid() throws Exception {
+    void _04_ShouldReturn201_WhenCreateRequestValid() throws Exception {
         when(customerService.create(any())).thenReturn(savedResponse());
 
         mockMvc.perform(post("/api/v1/customers")
@@ -101,7 +101,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void createReturns400WhenEmailInvalid() throws Exception {
+    void _05_ShouldReturn400_WhenEmailInvalid() throws Exception {
         CustomerRequest invalid = new CustomerRequest(
                 "Ada", "Lovelace", "+1 202-555-0100", "not-an-email", "1 Analytical Engine Way");
 
@@ -113,7 +113,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void createReturns422WhenEmailAlreadyUsed() throws Exception {
+    void _06_ShouldReturn422_WhenEmailAlreadyUsed() throws Exception {
         when(customerService.create(any()))
                 .thenThrow(new BusinessRuleException("Email ada@example.com is already in use"));
 
@@ -124,7 +124,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void updateReturns200WhenValid() throws Exception {
+    void _07_ShouldReturn200_WhenUpdateRequestValid() throws Exception {
         when(customerService.update(eq(1L), any())).thenReturn(savedResponse());
 
         mockMvc.perform(put("/api/v1/customers/1")
@@ -135,7 +135,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void updateReturns404WhenMissing() throws Exception {
+    void _08_ShouldReturn404_WhenCustomerMissingOnUpdate() throws Exception {
         when(customerService.update(eq(99L), any()))
                 .thenThrow(new ResourceNotFoundException("Customer not found with id 99"));
 
@@ -146,14 +146,14 @@ class CustomerControllerTest {
     }
 
     @Test
-    void deleteReturns200WhenSuccessful() throws Exception {
+    void _09_ShouldReturn200_WhenDeleteSucceeds() throws Exception {
         mockMvc.perform(delete("/api/v1/customers/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test
-    void deleteReturns404WhenMissing() throws Exception {
+    void _10_ShouldReturn404_WhenCustomerMissingOnDelete() throws Exception {
         doThrow(new ResourceNotFoundException("Customer not found with id 99"))
                 .when(customerService).delete(99L);
 
