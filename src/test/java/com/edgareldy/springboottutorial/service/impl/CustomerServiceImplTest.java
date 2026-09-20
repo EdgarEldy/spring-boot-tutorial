@@ -72,7 +72,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void findAllWithoutSearchUsesPlainFindAll() {
+    void _01_ShouldUsePlainFindAll_WhenNoSearchTermGiven() {
         Pageable pageable = PageRequest.of(0, 10);
         when(customerRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(customer), pageable, 1));
         when(customerMapper.toResponse(customer)).thenReturn(customerResponse);
@@ -84,7 +84,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void findAllWithSearchUsesSearchQuery() {
+    void _02_ShouldUseSearchQuery_WhenSearchTermGiven() {
         Pageable pageable = PageRequest.of(0, 10);
         when(customerRepository.search("lovelace", pageable))
                 .thenReturn(new PageImpl<>(List.of(customer), pageable, 1));
@@ -97,7 +97,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void findByIdReturnsResponseWithOrderedProducts() {
+    void _03_ShouldReturnResponseWithOrderedProducts_WhenCustomerFound() {
         Category category = Category.builder().id(1L).categoryName("Electronics").build();
         Product keyboard = Product.builder().id(1L).category(category).productName("Keyboard").unitPrice(79.99f).build();
         ProductResponse keyboardResponse = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
@@ -113,7 +113,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void findByIdThrowsWhenMissing() {
+    void _04_ShouldThrowNotFound_WhenCustomerMissing() {
         when(customerRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> customerService.findById(99L))
@@ -121,7 +121,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void createSavesWhenEmailUnused() {
+    void _05_ShouldSaveCustomer_WhenEmailUnused() {
         CustomerRequest request = new CustomerRequest(
                 "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way");
         when(customerRepository.existsByEmailIgnoreCase("ada@example.com")).thenReturn(false);
@@ -133,7 +133,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void createThrowsWhenEmailAlreadyUsed() {
+    void _06_ShouldThrowBusinessRule_WhenEmailAlreadyUsed() {
         CustomerRequest request = new CustomerRequest(
                 "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way");
         when(customerRepository.existsByEmailIgnoreCase("ada@example.com")).thenReturn(true);
@@ -145,7 +145,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void createThrowsWhenEmailAlreadyUsedInDifferentCase() {
+    void _07_ShouldThrowBusinessRule_WhenEmailAlreadyUsedInDifferentCase() {
         CustomerRequest request = new CustomerRequest(
                 "Ada", "Lovelace", "+1 202-555-0100", "ADA@EXAMPLE.COM", "1 Analytical Engine Way");
         when(customerRepository.existsByEmailIgnoreCase("ADA@EXAMPLE.COM")).thenReturn(true);
@@ -157,7 +157,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void updateAppliesRequestWhenEmailUnchanged() {
+    void _08_ShouldApplyRequest_WhenEmailUnchanged() {
         CustomerRequest request = new CustomerRequest(
                 "Ada", "Byron", "+1 202-555-0100", "ada@example.com", "2 Analytical Engine Way");
         CustomerResponse updatedResponse = new CustomerResponse(
@@ -173,7 +173,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void updateSkipsEmailCheckWhenOnlyCaseDiffers() {
+    void _09_ShouldSkipEmailCheck_WhenOnlyCaseDiffers() {
         CustomerRequest request = new CustomerRequest(
                 "Ada", "Byron", "+1 202-555-0100", "ADA@EXAMPLE.COM", "2 Analytical Engine Way");
         CustomerResponse updatedResponse = new CustomerResponse(
@@ -188,7 +188,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void updateThrowsWhenNewEmailAlreadyUsedByAnotherCustomer() {
+    void _10_ShouldThrowBusinessRule_WhenNewEmailUsedByAnotherCustomer() {
         CustomerRequest request = new CustomerRequest(
                 "Ada", "Lovelace", "+1 202-555-0100", "ada.lovelace@example.com", "1 Analytical Engine Way");
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
@@ -201,7 +201,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void updateThrowsWhenMissing() {
+    void _11_ShouldThrowNotFound_WhenCustomerMissingOnUpdate() {
         CustomerRequest request = new CustomerRequest(
                 "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way");
         when(customerRepository.findById(99L)).thenReturn(Optional.empty());
@@ -211,7 +211,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void deleteRemovesCustomerWhenExists() {
+    void _12_ShouldRemoveCustomer_WhenCustomerExists() {
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(orderRepository.existsByCustomerId(1L)).thenReturn(false);
 
@@ -221,7 +221,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void deleteThrowsWhenMissing() {
+    void _13_ShouldThrowNotFound_WhenCustomerMissingOnDelete() {
         when(customerRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> customerService.delete(99L))
@@ -229,7 +229,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void deleteThrowsWhenCustomerHasExistingOrders() {
+    void _14_ShouldThrowBusinessRule_WhenCustomerHasExistingOrders() {
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(orderRepository.existsByCustomerId(1L)).thenReturn(true);
 

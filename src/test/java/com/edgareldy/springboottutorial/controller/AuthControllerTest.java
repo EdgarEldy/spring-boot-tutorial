@@ -66,7 +66,7 @@ class AuthControllerTest {
     private UserDetailsService userDetailsService;
 
     @Test
-    void registerReturns201WhenValid() throws Exception {
+    void _01_ShouldReturn201_WhenRegisterRequestValid() throws Exception {
         UserResponse response = new UserResponse(1L, "ada", "ada@example.com", Role.USER);
         when(authService.register(any())).thenReturn(response);
 
@@ -79,7 +79,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void registerReturns400WhenPasswordTooShort() throws Exception {
+    void _02_ShouldReturn400_WhenPasswordTooShort() throws Exception {
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
@@ -89,7 +89,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void registerReturns422WhenUsernameAlreadyUsed() throws Exception {
+    void _03_ShouldReturn422_WhenUsernameAlreadyUsed() throws Exception {
         when(authService.register(any())).thenThrow(new BusinessRuleException("Username ada is already in use"));
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -100,7 +100,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void loginReturns200WhenCredentialsAreValid() throws Exception {
+    void _04_ShouldReturn200_WhenCredentialsValid() throws Exception {
         when(authService.login(any())).thenReturn(new AuthResponse("signed-token", "Bearer", "ada"));
 
         mockMvc.perform(post("/api/v1/auth/login")
@@ -112,7 +112,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void loginReturns401WhenCredentialsAreInvalid() throws Exception {
+    void _05_ShouldReturn401_WhenCredentialsInvalid() throws Exception {
         when(authService.login(any())).thenThrow(new BadCredentialsException("Bad credentials"));
 
         mockMvc.perform(post("/api/v1/auth/login")
@@ -122,7 +122,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void meReturnsCallerProfile() throws Exception {
+    void _06_ShouldReturnCallerProfile_WhenAuthenticated() throws Exception {
         when(authService.me("ada")).thenReturn(new UserResponse(1L, "ada", "ada@example.com", Role.USER));
 
         mockMvc.perform(get("/api/v1/auth/me").with(user("ada").roles("USER")))
@@ -131,7 +131,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void meReturns401WhenNotAuthenticated() throws Exception {
+    void _07_ShouldReturn401_WhenNotAuthenticated() throws Exception {
         mockMvc.perform(get("/api/v1/auth/me"))
                 .andExpect(status().isUnauthorized());
     }

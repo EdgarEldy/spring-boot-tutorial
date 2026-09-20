@@ -35,7 +35,7 @@ class UserDetailsServiceImplTest {
     private UserDetailsServiceImpl userDetailsService;
 
     @Test
-    void loadUserByUsernameBuildsUserDetailsWithRolePrefixedAuthority() {
+    void _01_ShouldBuildUserDetailsWithRolePrefixedAuthority_WhenUserExists() {
         AppUser appUser = AppUser.builder()
                 .id(1L).username("ada").email("ada@example.com").password("hashed").role(Role.ADMIN).build();
         when(appUserRepository.findByUsername("ada")).thenReturn(Optional.of(appUser));
@@ -50,7 +50,7 @@ class UserDetailsServiceImplTest {
     }
 
     @Test
-    void loadUserByUsernameThrowsWhenMissing() {
+    void _02_ShouldThrowUsernameNotFound_WhenUserMissing() {
         when(appUserRepository.findByUsername("unknown")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userDetailsService.loadUserByUsername("unknown"))

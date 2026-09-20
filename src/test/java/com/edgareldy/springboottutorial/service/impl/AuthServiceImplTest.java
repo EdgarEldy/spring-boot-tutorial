@@ -73,7 +73,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void registerSavesUserWithEncodedPasswordAndDefaultRole() {
+    void _01_ShouldSaveUserWithEncodedPasswordAndDefaultRole_WhenRegistering() {
         RegisterRequest request = new RegisterRequest("ada", "ada@example.com", "password123");
         when(appUserRepository.existsByUsername("ada")).thenReturn(false);
         when(appUserRepository.existsByEmailIgnoreCase("ada@example.com")).thenReturn(false);
@@ -90,7 +90,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void registerThrowsWhenUsernameAlreadyUsed() {
+    void _02_ShouldThrowBusinessRule_WhenUsernameAlreadyUsed() {
         RegisterRequest request = new RegisterRequest("ada", "ada@example.com", "password123");
         when(appUserRepository.existsByUsername("ada")).thenReturn(true);
 
@@ -101,7 +101,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void registerThrowsWhenEmailAlreadyUsed() {
+    void _03_ShouldThrowBusinessRule_WhenEmailAlreadyUsed() {
         RegisterRequest request = new RegisterRequest("ada", "ada@example.com", "password123");
         when(appUserRepository.existsByUsername("ada")).thenReturn(false);
         when(appUserRepository.existsByEmailIgnoreCase("ada@example.com")).thenReturn(true);
@@ -113,7 +113,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void loginReturnsTokenWhenCredentialsAreValid() {
+    void _04_ShouldReturnToken_WhenCredentialsValid() {
         LoginRequest request = new LoginRequest("ada", "password123");
         when(jwtService.generateToken("ada")).thenReturn("signed-token");
 
@@ -124,7 +124,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void loginThrowsWhenCredentialsAreInvalid() {
+    void _05_ShouldThrowAuthenticationException_WhenCredentialsInvalid() {
         LoginRequest request = new LoginRequest("ada", "wrong-password");
         when(authenticationManager.authenticate(any())).thenThrow(new BadCredentialsException("Bad credentials"));
 
@@ -135,7 +135,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void meReturnsProfileWhenUserExists() {
+    void _06_ShouldReturnProfile_WhenUserExists() {
         when(appUserRepository.findByUsername("ada")).thenReturn(Optional.of(appUser));
         when(appUserMapper.toResponse(appUser)).thenReturn(userResponse);
 
@@ -143,7 +143,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void meThrowsWhenUserMissing() {
+    void _07_ShouldThrowNotFound_WhenUserMissing() {
         when(appUserRepository.findByUsername("unknown")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.me("unknown"))

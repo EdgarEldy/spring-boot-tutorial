@@ -59,7 +59,7 @@ class RepositoryAuditAspectTest {
     }
 
     @Test
-    void saveTriggersBeforeAfterAndAfterReturning() {
+    void _01_ShouldTriggerBeforeAfterAndAfterReturning_WhenSaveSucceeds() {
         categoryRepository.save(Category.builder().categoryName("Aspect Probe").build());
 
         List<String> messages = appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
@@ -69,7 +69,7 @@ class RepositoryAuditAspectTest {
     }
 
     @Test
-    void savingInvalidEntityTriggersAfterThrowing() {
+    void _02_ShouldTriggerAfterThrowing_WhenSavingInvalidEntity() {
         assertThatThrownBy(() -> categoryRepository.save(Category.builder().categoryName(null).build()))
                 .isInstanceOf(DataIntegrityViolationException.class);
 
