@@ -169,7 +169,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void findOrdersReturns200WhenCustomerExists() throws Exception {
+    void _11_ShouldReturn200_WhenListingOrdersOfExistingCustomer() throws Exception {
         ProductResponse product = new ProductResponse(1L, "Keyboard", 50.0f, 1L, "Electronics");
         OrderResponse order = new OrderResponse(1L, savedResponse(), product, 2, 100.0);
         PageResponse<OrderResponse> page = new PageResponse<>(List.of(order), 0, 20, 1, 1);
@@ -182,7 +182,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void findOrdersReturns404WhenCustomerMissing() throws Exception {
+    void _12_ShouldReturn404_WhenListingOrdersOfMissingCustomer() throws Exception {
         when(customerService.findById(99L)).thenThrow(new ResourceNotFoundException("Customer not found with id 99"));
 
         mockMvc.perform(get("/api/v1/customers/99/orders"))

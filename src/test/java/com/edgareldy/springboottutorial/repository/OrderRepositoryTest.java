@@ -65,14 +65,14 @@ class OrderRepositoryTest {
     }
 
     @Test
-    void findAllProjectedReturnsEveryOrderWhenNoFilter() {
+    void _01_ShouldReturnEveryOrder_WhenNoFilterGiven() {
         var page = orderRepository.findAllProjected(null, null, PageRequest.of(0, 10));
 
         assertThat(page.getContent()).hasSize(2);
     }
 
     @Test
-    void findAllProjectedFiltersByCustomerId() {
+    void _02_ShouldFilterByCustomer_WhenCustomerIdGiven() {
         var page = orderRepository.findAllProjected(ada.getId(), null, PageRequest.of(0, 10));
 
         assertThat(page.getContent()).hasSize(1);
@@ -84,7 +84,7 @@ class OrderRepositoryTest {
     }
 
     @Test
-    void findAllProjectedFiltersByProductId() {
+    void _03_ShouldFilterByProduct_WhenProductIdGiven() {
         var page = orderRepository.findAllProjected(null, desk.getId(), PageRequest.of(0, 10));
 
         assertThat(page.getContent()).hasSize(1);
@@ -93,7 +93,7 @@ class OrderRepositoryTest {
     }
 
     @Test
-    void findByIdWithDetailsEagerlyLoadsCustomerAndProduct() {
+    void _04_ShouldLoadCustomerAndProductEagerly_WhenFindingOrderById() {
         Long orderId = orderRepository.findAllProjected(ada.getId(), null, PageRequest.of(0, 10))
                 .getContent().get(0).id();
 
@@ -105,14 +105,14 @@ class OrderRepositoryTest {
     }
 
     @Test
-    void findDistinctProductsByCustomerIdReturnsOnlyThatCustomerProducts() {
+    void _05_ShouldReturnOnlyThatCustomerProducts_WhenFindingDistinctProducts() {
         var products = orderRepository.findDistinctProductsByCustomerId(ada.getId());
 
         assertThat(products).extracting(Product::getProductName).containsExactly("Keyboard");
     }
 
     @Test
-    void findDistinctProductsByCustomerIdDeduplicatesRepeatedProducts() {
+    void _06_ShouldDeduplicateProducts_WhenCustomerOrderedSameProductTwice() {
         orderRepository.save(Order.builder().customer(ada).product(keyboard).quantity(1).total(50.0).build());
 
         var products = orderRepository.findDistinctProductsByCustomerId(ada.getId());
@@ -121,7 +121,7 @@ class OrderRepositoryTest {
     }
 
     @Test
-    void findDistinctProductsByCustomerIdReturnsEmptyWhenCustomerHasNoOrders() {
+    void _07_ShouldReturnEmpty_WhenCustomerHasNoOrders() {
         Customer noOrders = customerRepository.save(Customer.builder()
                 .firstName("Alan").lastName("Turing").telephone("+1 202-555-0102")
                 .email("alan@example.com").address("3 Enigma Way").build());

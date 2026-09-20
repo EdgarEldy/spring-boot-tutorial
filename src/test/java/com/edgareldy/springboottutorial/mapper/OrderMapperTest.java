@@ -33,7 +33,7 @@ class OrderMapperTest {
     private OrderMapper orderMapper;
 
     @Test
-    void toResponseFromEntityNestsFullCustomerAndProductWithEmptyProductsList() {
+    void _01_ShouldNestFullCustomerAndProduct_WhenMappingFromEntity() {
         Customer customer = Customer.builder().id(1L).firstName("Ada").lastName("Lovelace")
                 .telephone("+1 202-555-0100").email("ada@example.com").address("1 Analytical Engine Way").build();
         Category category = Category.builder().id(1L).categoryName("Electronics").build();
@@ -50,7 +50,7 @@ class OrderMapperTest {
     }
 
     @Test
-    void toResponseFromProjectionMapsEachFieldToItsOwnDtoProperty() {
+    void _02_ShouldMapEachField_WhenMappingFromProjection() {
         OrderProjection projection = new OrderProjection(
                 100L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
                 10L, "Keyboard", 50.0f, 5L, "Electronics", 2, 100.0);

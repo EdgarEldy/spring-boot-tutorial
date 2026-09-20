@@ -204,7 +204,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void deleteThrowsWhenProductHasExistingOrders() {
+    void _13_ShouldThrowBusinessRule_WhenProductHasExistingOrders() {
         when(productRepository.existsById(1L)).thenReturn(true);
         when(orderRepository.existsByProductId(1L)).thenReturn(true);
 
