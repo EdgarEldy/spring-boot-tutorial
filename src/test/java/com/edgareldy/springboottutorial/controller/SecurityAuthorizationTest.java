@@ -48,12 +48,12 @@ class SecurityAuthorizationTest {
     private ObjectMapper objectMapper;
 
     @Test
-    void listCategoriesIsPublic() throws Exception {
+    void _01_ShouldAllowAccess_WhenListingCategoriesAnonymously() throws Exception {
         mockMvc.perform(get("/api/v1/categories")).andExpect(status().isOk());
     }
 
     @Test
-    void createCategoryRequiresAuthentication() throws Exception {
+    void _02_ShouldReturn401_WhenCreatingCategoryAnonymously() throws Exception {
         mockMvc.perform(post("/api/v1/categories")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CategoryRequest("Books"))))
@@ -61,7 +61,7 @@ class SecurityAuthorizationTest {
     }
 
     @Test
-    void createCategoryIsForbiddenForNonAdmin() throws Exception {
+    void _03_ShouldReturn403_WhenNonAdminCreatesCategory() throws Exception {
         mockMvc.perform(post("/api/v1/categories")
                         .with(user("ada").roles("USER"))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -70,7 +70,7 @@ class SecurityAuthorizationTest {
     }
 
     @Test
-    void createCategoryIsAllowedForAdmin() throws Exception {
+    void _04_ShouldAllowAccess_WhenAdminCreatesCategory() throws Exception {
         mockMvc.perform(post("/api/v1/categories")
                         .with(user("admin").roles("ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -79,18 +79,18 @@ class SecurityAuthorizationTest {
     }
 
     @Test
-    void listCustomersRequiresAuthentication() throws Exception {
+    void _05_ShouldReturn401_WhenListingCustomersAnonymously() throws Exception {
         mockMvc.perform(get("/api/v1/customers")).andExpect(status().isUnauthorized());
     }
 
     @Test
-    void listCustomersIsAllowedForAnyAuthenticatedUser() throws Exception {
+    void _06_ShouldAllowAccess_WhenAuthenticatedUserListsCustomers() throws Exception {
         mockMvc.perform(get("/api/v1/customers").with(user("ada").roles("USER")))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void createCustomerIsForbiddenForNonAdmin() throws Exception {
+    void _07_ShouldReturn403_WhenNonAdminCreatesCustomer() throws Exception {
         CustomerRequest request = new CustomerRequest(
                 "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way");
 
@@ -102,7 +102,7 @@ class SecurityAuthorizationTest {
     }
 
     @Test
-    void createCustomerIsAllowedForAdmin() throws Exception {
+    void _08_ShouldAllowAccess_WhenAdminCreatesCustomer() throws Exception {
         CustomerRequest request = new CustomerRequest(
                 "Grace", "Hopper", "+1 202-555-0101", "grace@example.com", "2 Compiler Street");
 
@@ -114,7 +114,7 @@ class SecurityAuthorizationTest {
     }
 
     @Test
-    void registerIsPublic() throws Exception {
+    void _09_ShouldAllowAccess_WhenRegisteringAnonymously() throws Exception {
         RegisterRequest request = new RegisterRequest("turing", "turing@example.com", "password123");
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -124,28 +124,28 @@ class SecurityAuthorizationTest {
     }
 
     @Test
-    void meRequiresAuthentication() throws Exception {
+    void _10_ShouldReturn401_WhenCallingMeAnonymously() throws Exception {
         mockMvc.perform(get("/api/v1/auth/me")).andExpect(status().isUnauthorized());
     }
 
     @Test
-    void listProductsIsPublic() throws Exception {
+    void _11_ShouldAllowAccess_WhenListingProductsAnonymously() throws Exception {
         mockMvc.perform(get("/api/v1/products")).andExpect(status().isOk());
     }
 
     @Test
-    void listOrdersRequiresAuthentication() throws Exception {
+    void _12_ShouldReturn401_WhenListingOrdersAnonymously() throws Exception {
         mockMvc.perform(get("/api/v1/orders")).andExpect(status().isUnauthorized());
     }
 
     @Test
-    void listOrdersIsAllowedForAnyAuthenticatedUser() throws Exception {
+    void _13_ShouldAllowAccess_WhenAuthenticatedUserListsOrders() throws Exception {
         mockMvc.perform(get("/api/v1/orders").with(user("ada").roles("USER")))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void loginIssuesTokenThatAuthenticatesSubsequentRequests() throws Exception {
+    void _14_ShouldAuthenticateSubsequentRequests_WhenLoginIssuesToken() throws Exception {
         RegisterRequest register = new RegisterRequest("hopper", "hopper@example.com", "password123");
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -166,7 +166,7 @@ class SecurityAuthorizationTest {
     }
 
     @Test
-    void loginWithWrongPasswordIsPublicButRejected() throws Exception {
+    void _15_ShouldRejectLogin_WhenPasswordIsWrong() throws Exception {
         RegisterRequest register = new RegisterRequest("babbage", "babbage@example.com", "password123");
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)

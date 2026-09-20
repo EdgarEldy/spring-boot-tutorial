@@ -27,28 +27,28 @@ class JwtServiceTest {
     }
 
     @Test
-    void generateTokenEncodesUsernameAsSubject() {
+    void _01_ShouldEncodeUsernameAsSubject_WhenGeneratingToken() {
         String token = jwtService.generateToken("ada");
 
         assertThat(jwtService.extractUsername(token)).isEqualTo("ada");
     }
 
     @Test
-    void isTokenValidReturnsTrueForMatchingUsername() {
+    void _02_ShouldReturnTrue_WhenUsernameMatches() {
         String token = jwtService.generateToken("ada");
 
         assertThat(jwtService.isTokenValid(token, "ada")).isTrue();
     }
 
     @Test
-    void isTokenValidReturnsFalseForDifferentUsername() {
+    void _03_ShouldReturnFalse_WhenUsernameDiffers() {
         String token = jwtService.generateToken("ada");
 
         assertThat(jwtService.isTokenValid(token, "grace")).isFalse();
     }
 
     @Test
-    void isTokenValidReturnsFalseForExpiredToken() throws InterruptedException {
+    void _04_ShouldReturnFalse_WhenTokenExpired() throws InterruptedException {
         JwtService shortLivedService = new JwtService(new JwtProperties(SECRET, 1L));
         String token = shortLivedService.generateToken("ada");
         Thread.sleep(10);
@@ -57,7 +57,7 @@ class JwtServiceTest {
     }
 
     @Test
-    void isTokenValidReturnsFalseForTamperedToken() {
+    void _05_ShouldReturnFalse_WhenTokenTampered() {
         String token = jwtService.generateToken("ada");
 
         assertThat(jwtService.isTokenValid(token + "tampered", "ada")).isFalse();

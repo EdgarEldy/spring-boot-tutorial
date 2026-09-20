@@ -19,21 +19,21 @@ import org.junit.jupiter.api.Test;
 class AuthDtoMaskingTest {
 
     @Test
-    void registerRequestToStringMasksPassword() {
+    void _01_ShouldMaskPassword_WhenRegisterRequestPrinted() {
         String result = new RegisterRequest("ada", "ada@example.com", "s3cr3tPassword").toString();
 
         assertThat(result).contains("ada", "ada@example.com").doesNotContain("s3cr3tPassword");
     }
 
     @Test
-    void loginRequestToStringMasksPassword() {
+    void _02_ShouldMaskPassword_WhenLoginRequestPrinted() {
         String result = new LoginRequest("ada", "s3cr3tPassword").toString();
 
         assertThat(result).contains("ada").doesNotContain("s3cr3tPassword");
     }
 
     @Test
-    void authResponseToStringMasksToken() {
+    void _03_ShouldMaskToken_WhenAuthResponsePrinted() {
         String result = new AuthResponse("signed.jwt.token", "Bearer", "ada").toString();
 
         assertThat(result).contains("Bearer", "ada").doesNotContain("signed.jwt.token");
