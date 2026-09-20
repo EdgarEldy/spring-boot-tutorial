@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 class ApiResponseTest {
 
     @Test
-    void successSetsSuccessTrueAndCarriesData() {
+    void _01_ShouldSetSuccessTrueAndCarryData_WhenCreatedWithSuccess() {
         ApiResponse<String> response = ApiResponse.success("payload", "created");
 
         assertThat(response.success()).isTrue();
@@ -27,7 +27,7 @@ class ApiResponseTest {
     }
 
     @Test
-    void errorSetsSuccessFalseAndNullData() {
+    void _02_ShouldSetSuccessFalseAndNullData_WhenCreatedWithError() {
         ApiResponse<String> response = ApiResponse.error("not found");
 
         assertThat(response.success()).isFalse();
