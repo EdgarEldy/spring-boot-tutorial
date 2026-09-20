@@ -36,14 +36,14 @@ class CategoryMapperTest {
     }
 
     @Test
-    void toDetailResponseMapsProducts() {
+    void _01_ShouldMapProducts_WhenUsingDetailResponse() {
         CategoryResponse response = categoryMapper.toDetailResponse(categoryWithProducts());
 
         assertThat(response.products()).extracting("productName").containsExactly("Keyboard");
     }
 
     @Test
-    void toResponseAlwaysReturnsEmptyProductsEvenWhenLoaded() {
+    void _02_ShouldReturnEmptyProducts_WhenUsingPlainResponse() {
         CategoryResponse response = categoryMapper.toResponse(categoryWithProducts());
 
         assertThat(response.products()).isEmpty();

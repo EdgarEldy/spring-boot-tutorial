@@ -52,7 +52,7 @@ class ProductRepositoryTest {
     }
 
     @Test
-    void findAllEagerlyLoadsCategoryForEveryProduct() {
+    void _01_ShouldLoadCategoryEagerly_WhenFindingAllProducts() {
         var page = productRepository.findAll(PageRequest.of(0, 10));
 
         assertThat(page.getContent()).hasSize(2);
@@ -65,14 +65,14 @@ class ProductRepositoryTest {
     }
 
     @Test
-    void findByCategoryIdReturnsOnlyMatchingProducts() {
+    void _02_ShouldReturnOnlyMatchingProducts_WhenFilteringByCategory() {
         var page = productRepository.findByCategoryId(electronics.getId(), PageRequest.of(0, 10));
 
         assertThat(page.getContent()).extracting(Product::getProductName).containsExactly("Keyboard");
     }
 
     @Test
-    void findByIdWithCategoryEagerlyLoadsCategory() {
+    void _03_ShouldLoadCategoryEagerly_WhenFindingProductById() {
         Long productId = productRepository.findByCategoryId(furniture.getId(), PageRequest.of(0, 10))
                 .getContent().get(0).getId();
 
@@ -83,7 +83,7 @@ class ProductRepositoryTest {
     }
 
     @Test
-    void savingStaleProductThrowsOptimisticLockingFailure() {
+    void _04_ShouldThrowOptimisticLockingFailure_WhenProductIsStale() {
         Product saved = productRepository.saveAndFlush(
                 Product.builder().category(electronics).productName("Mouse").unitPrice(29.99f).build());
 
@@ -100,7 +100,7 @@ class ProductRepositoryTest {
     }
 
     @Test
-    void existsByCategoryIdReflectsCurrentData() {
+    void _05_ShouldReflectCurrentData_WhenCheckingProductsExistForCategory() {
         assertThat(productRepository.existsByCategoryId(electronics.getId())).isTrue();
 
         Category empty = categoryRepository.save(Category.builder().categoryName("Empty").build());

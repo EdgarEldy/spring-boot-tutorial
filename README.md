@@ -465,6 +465,7 @@ Includes `Category` and `Product`, given their direct link in the model.
 - Endpoint names are plural, `kebab-case` when composed
 - Every endpoint documented with `@Operation(summary = "...")`
 - All REST endpoints are versioned under the `/api/v1` prefix (e.g. `/api/v1/categories`), so the API can introduce a breaking `/api/v2` later without touching existing clients
+- **Test naming convention**: every test method is named `_NN_Should<Outcome>_When<Condition>`, where `NN` is a two-digit sequence number with a leading zero, restarting at `_01_` in each test class and following the order of the methods in the source (e.g. `_01_ShouldReturnCategory_WhenCategoryExists`, `_02_ShouldReturnEmpty_WhenCategoryDoesNotExist`). This applies to every kind of test (unit, repository, controller, integration, parameterized). No other style (`shouldX()`, `testX()`, `givenX_whenY_thenZ()`) is accepted.
 
 ## Concepts covered
 

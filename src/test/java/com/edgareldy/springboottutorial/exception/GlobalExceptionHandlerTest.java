@@ -34,7 +34,7 @@ class GlobalExceptionHandlerTest {
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
     @Test
-    void resourceNotFoundMapsTo404() {
+    void _01_ShouldReturn404_WhenResourceNotFound() {
         HttpServletRequest request = mockRequest("/api/categories/99");
 
         ResponseEntity<ApiResponse<ProblemDetail>> response =
@@ -49,7 +49,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void businessRuleMapsTo422() {
+    void _02_ShouldReturn422_WhenBusinessRuleViolated() {
         HttpServletRequest request = mockRequest("/api/categories/1");
 
         ResponseEntity<ApiResponse<ProblemDetail>> response = handler.handleBusinessRule(
@@ -60,7 +60,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void optimisticLockingFailureMapsTo409() {
+    void _03_ShouldReturn409_WhenOptimisticLockingFails() {
         HttpServletRequest request = mockRequest("/api/v1/products/7");
 
         ResponseEntity<ApiResponse<ProblemDetail>> response = handler.handleOptimisticLocking(
@@ -71,7 +71,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void validationErrorsMapTo400WithFieldErrors() {
+    void _04_ShouldReturn400WithFieldErrors_WhenValidationFails() {
         HttpServletRequest request = mockRequest("/api/products");
         BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "productRequest");
         bindingResult.addError(new FieldError("productRequest", "unitPrice", "must be greater than 0"));
@@ -88,7 +88,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void genericExceptionMapsTo500() {
+    void _05_ShouldReturn500_WhenUnexpectedExceptionThrown() {
         HttpServletRequest request = mockRequest("/api/orders");
 
         ResponseEntity<ApiResponse<ProblemDetail>> response =
