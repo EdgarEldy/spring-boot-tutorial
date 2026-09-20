@@ -66,7 +66,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void findAllWithoutCategoryIdUsesPlainFindAll() {
+    void _01_ShouldUsePlainFindAll_WhenNoCategoryIdGiven() {
         Pageable pageable = PageRequest.of(0, 10);
         when(productRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(product), pageable, 1));
         when(productMapper.toResponse(product)).thenReturn(productResponse);
@@ -77,7 +77,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void findAllWithCategoryIdFiltersByCategory() {
+    void _02_ShouldFilterByCategory_WhenCategoryIdGiven() {
         Pageable pageable = PageRequest.of(0, 10);
         when(productRepository.findByCategoryId(1L, pageable))
                 .thenReturn(new PageImpl<>(List.of(product), pageable, 1));
@@ -90,7 +90,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void findAllWithAnyAdvancedFilterUsesSpecification() {
+    void _03_ShouldUseSpecification_WhenAdvancedFilterGiven() {
         Pageable pageable = PageRequest.of(0, 10);
         when(productRepository.findAll(any(Specification.class), eq(pageable)))
                 .thenReturn(new PageImpl<>(List.of(product), pageable, 1));
@@ -104,7 +104,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void findByIdReturnsResponseWhenFound() {
+    void _04_ShouldReturnResponse_WhenProductFound() {
         when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(product));
         when(productMapper.toResponse(product)).thenReturn(productResponse);
 
@@ -112,7 +112,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void findByIdThrowsWhenMissing() {
+    void _05_ShouldThrowNotFound_WhenProductMissing() {
         when(productRepository.findByIdWithCategory(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> productService.findById(99L))
@@ -120,7 +120,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void createResolvesCategoryAndSaves() {
+    void _06_ShouldResolveCategoryAndSave_WhenCreatingProduct() {
         ProductRequest request = new ProductRequest(1L, "Keyboard", 79.99f);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(productMapper.toEntity(request)).thenReturn(product);
@@ -131,7 +131,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void createThrowsWhenCategoryMissing() {
+    void _07_ShouldThrowNotFound_WhenCategoryMissingOnCreate() {
         ProductRequest request = new ProductRequest(99L, "Keyboard", 79.99f);
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -142,7 +142,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void updateResolvesCategoryAndSaves() {
+    void _08_ShouldResolveCategoryAndSave_WhenUpdatingProduct() {
         ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", 99.99f);
         ProductResponse updatedResponse = new ProductResponse(1L, "Mechanical Keyboard", 99.99f, 1L, "Electronics");
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
@@ -156,7 +156,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void updateThrowsWhenProductMissing() {
+    void _09_ShouldThrowNotFound_WhenProductMissingOnUpdate() {
         ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", 99.99f);
         when(productRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -167,7 +167,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void updateThrowsWhenCategoryMissing() {
+    void _10_ShouldThrowNotFound_WhenCategoryMissingOnUpdate() {
         ProductRequest request = new ProductRequest(99L, "Mechanical Keyboard", 99.99f);
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
@@ -179,7 +179,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void deleteRemovesProductWhenExists() {
+    void _11_ShouldRemoveProduct_WhenProductExists() {
         when(productRepository.existsById(1L)).thenReturn(true);
 
         productService.delete(1L);
@@ -188,7 +188,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void deleteThrowsWhenMissing() {
+    void _12_ShouldThrowNotFound_WhenProductMissingOnDelete() {
         when(productRepository.existsById(99L)).thenReturn(false);
 
         assertThatThrownBy(() -> productService.delete(99L))
