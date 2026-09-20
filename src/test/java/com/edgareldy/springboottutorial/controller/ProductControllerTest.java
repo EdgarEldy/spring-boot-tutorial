@@ -65,7 +65,7 @@ class ProductControllerTest {
     private UserDetailsService userDetailsService;
 
     @Test
-    void findAllWithoutCategoryIdPassesNullThrough() throws Exception {
+    void _01_ShouldPassNullCategoryId_WhenNoFilterGiven() throws Exception {
         ProductResponse product = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
         PageResponse<ProductResponse> page = new PageResponse<>(List.of(product), 0, 20, 1, 1);
         when(productService.findAll(isNull(), isNull(), isNull(), isNull(), any())).thenReturn(page);
@@ -76,7 +76,7 @@ class ProductControllerTest {
     }
 
     @Test
-    void findAllWithCategoryIdForwardsFilter() throws Exception {
+    void _02_ShouldForwardCategoryFilter_WhenCategoryIdGiven() throws Exception {
         ProductResponse product = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
         PageResponse<ProductResponse> page = new PageResponse<>(List.of(product), 0, 20, 1, 1);
         when(productService.findAll(eq(1L), isNull(), isNull(), isNull(), any())).thenReturn(page);
@@ -87,7 +87,7 @@ class ProductControllerTest {
     }
 
     @Test
-    void findAllForwardsProductNameAndPriceRangeFilters() throws Exception {
+    void _03_ShouldForwardNameAndPriceFilters_WhenAdvancedFiltersGiven() throws Exception {
         ProductResponse product = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
         PageResponse<ProductResponse> page = new PageResponse<>(List.of(product), 0, 20, 1, 1);
         when(productService.findAll(isNull(), eq("key"), eq(50f), eq(100f), any())).thenReturn(page);
@@ -101,7 +101,7 @@ class ProductControllerTest {
     }
 
     @Test
-    void findByIdReturns404WhenMissing() throws Exception {
+    void _04_ShouldReturn404_WhenProductMissing() throws Exception {
         when(productService.findById(99L)).thenThrow(new ResourceNotFoundException("Product not found with id 99"));
 
         mockMvc.perform(get("/api/v1/products/99"))
@@ -110,7 +110,7 @@ class ProductControllerTest {
     }
 
     @Test
-    void createReturns201WhenValid() throws Exception {
+    void _05_ShouldReturn201_WhenCreateRequestValid() throws Exception {
         ProductRequest request = new ProductRequest(1L, "Keyboard", 79.99f);
         when(productService.create(any())).thenReturn(new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics"));
 
@@ -122,7 +122,7 @@ class ProductControllerTest {
     }
 
     @Test
-    void createReturns400WhenUnitPriceNotPositive() throws Exception {
+    void _06_ShouldReturn400_WhenUnitPriceNotPositive() throws Exception {
         ProductRequest invalid = new ProductRequest(1L, "Keyboard", -5f);
 
         mockMvc.perform(post("/api/v1/products")
@@ -133,7 +133,7 @@ class ProductControllerTest {
     }
 
     @Test
-    void createReturns404WhenCategoryMissing() throws Exception {
+    void _07_ShouldReturn404_WhenCategoryMissingOnCreate() throws Exception {
         ProductRequest request = new ProductRequest(99L, "Keyboard", 79.99f);
         when(productService.create(any())).thenThrow(new ResourceNotFoundException("Category not found with id 99"));
 
@@ -144,7 +144,7 @@ class ProductControllerTest {
     }
 
     @Test
-    void updateReturns200WhenValid() throws Exception {
+    void _08_ShouldReturn200_WhenUpdateRequestValid() throws Exception {
         ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", 99.99f);
         when(productService.update(eq(1L), any()))
                 .thenReturn(new ProductResponse(1L, "Mechanical Keyboard", 99.99f, 1L, "Electronics"));
@@ -157,7 +157,7 @@ class ProductControllerTest {
     }
 
     @Test
-    void updateReturns409WhenStale() throws Exception {
+    void _09_ShouldReturn409_WhenProductIsStale() throws Exception {
         ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", 99.99f);
         when(productService.update(eq(1L), any()))
                 .thenThrow(new OptimisticLockingFailureException("Row was updated concurrently"));
@@ -170,7 +170,7 @@ class ProductControllerTest {
     }
 
     @Test
-    void updateReturns404WhenProductMissing() throws Exception {
+    void _10_ShouldReturn404_WhenProductMissingOnUpdate() throws Exception {
         ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", 99.99f);
         when(productService.update(eq(99L), any()))
                 .thenThrow(new ResourceNotFoundException("Product not found with id 99"));
@@ -182,14 +182,14 @@ class ProductControllerTest {
     }
 
     @Test
-    void deleteReturns200WhenSuccessful() throws Exception {
+    void _11_ShouldReturn200_WhenDeleteSucceeds() throws Exception {
         mockMvc.perform(delete("/api/v1/products/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test
-    void deleteReturns404WhenMissing() throws Exception {
+    void _12_ShouldReturn404_WhenProductMissingOnDelete() throws Exception {
         doThrow(new ResourceNotFoundException("Product not found with id 99"))
                 .when(productService).delete(99L);
 

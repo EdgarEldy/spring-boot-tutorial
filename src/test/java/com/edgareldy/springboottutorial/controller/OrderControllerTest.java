@@ -73,7 +73,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void findAllWithoutFiltersPassesNullsThrough() throws Exception {
+    void _01_ShouldPassNullFilters_WhenNoFilterGiven() throws Exception {
         PageResponse<OrderResponse> page = new PageResponse<>(List.of(sampleResponse()), 0, 20, 1, 1);
         when(orderService.findAll(isNull(), isNull(), any())).thenReturn(page);
 
@@ -83,7 +83,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void findAllForwardsCustomerAndProductFilters() throws Exception {
+    void _02_ShouldForwardFilters_WhenCustomerAndProductGiven() throws Exception {
         PageResponse<OrderResponse> page = new PageResponse<>(List.of(sampleResponse()), 0, 20, 1, 1);
         when(orderService.findAll(eq(1L), eq(1L), any())).thenReturn(page);
 
@@ -93,7 +93,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void findByIdReturns404WhenMissing() throws Exception {
+    void _03_ShouldReturn404_WhenOrderMissing() throws Exception {
         when(orderService.findById(99L)).thenThrow(new ResourceNotFoundException("Order not found with id 99"));
 
         mockMvc.perform(get("/api/v1/orders/99"))
@@ -102,7 +102,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void createReturns201WhenValid() throws Exception {
+    void _04_ShouldReturn201_WhenCreateRequestValid() throws Exception {
         when(orderService.create(any())).thenReturn(sampleResponse());
 
         mockMvc.perform(post("/api/v1/orders")
@@ -113,7 +113,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void createReturns400WhenQuantityNotPositive() throws Exception {
+    void _05_ShouldReturn400_WhenQuantityNotPositive() throws Exception {
         mockMvc.perform(post("/api/v1/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new OrderRequest(1L, 1L, 0))))
@@ -122,7 +122,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void createReturns404WhenCustomerMissing() throws Exception {
+    void _06_ShouldReturn404_WhenCustomerMissingOnCreate() throws Exception {
         when(orderService.create(any())).thenThrow(new ResourceNotFoundException("Customer not found with id 99"));
 
         mockMvc.perform(post("/api/v1/orders")
@@ -132,7 +132,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void updateReturns200WhenValid() throws Exception {
+    void _07_ShouldReturn200_WhenUpdateRequestValid() throws Exception {
         when(orderService.update(eq(1L), any())).thenReturn(sampleResponse());
 
         mockMvc.perform(put("/api/v1/orders/1")
@@ -143,7 +143,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void updateReturns404WhenOrderMissing() throws Exception {
+    void _08_ShouldReturn404_WhenOrderMissingOnUpdate() throws Exception {
         when(orderService.update(eq(99L), any()))
                 .thenThrow(new ResourceNotFoundException("Order not found with id 99"));
 
@@ -154,14 +154,14 @@ class OrderControllerTest {
     }
 
     @Test
-    void deleteReturns200WhenSuccessful() throws Exception {
+    void _09_ShouldReturn200_WhenDeleteSucceeds() throws Exception {
         mockMvc.perform(delete("/api/v1/orders/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test
-    void deleteReturns404WhenMissing() throws Exception {
+    void _10_ShouldReturn404_WhenOrderMissingOnDelete() throws Exception {
         doThrow(new ResourceNotFoundException("Order not found with id 99"))
                 .when(orderService).delete(99L);
 

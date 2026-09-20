@@ -91,7 +91,7 @@ class ProductServiceCacheTest {
     }
 
     @Test
-    void findByIdIsCachedAcrossCalls() {
+    void _01_ShouldHitRepositoryOnce_WhenFindByIdCalledTwice() {
         Product product = sampleProduct();
         ProductResponse response = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
         when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(product));
@@ -104,7 +104,7 @@ class ProductServiceCacheTest {
     }
 
     @Test
-    void updateEvictsCacheForThatId() {
+    void _02_ShouldEvictCache_WhenProductUpdated() {
         Product product = sampleProduct();
         ProductResponse response = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
         when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(product));
@@ -121,7 +121,7 @@ class ProductServiceCacheTest {
     }
 
     @Test
-    void deleteEvictsCacheForThatId() {
+    void _03_ShouldEvictCache_WhenProductDeleted() {
         Product product = sampleProduct();
         ProductResponse response = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
         when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(product));

@@ -39,7 +39,7 @@ class CategoryRepositoryTest {
     private EntityManager entityManager;
 
     @Test
-    void savesAndFindsCategoryById() {
+    void _01_ShouldFindCategory_WhenSavedById() {
         Category saved = categoryRepository.save(Category.builder().categoryName("Books").build());
 
         assertThat(categoryRepository.findById(saved.getId()))
@@ -50,7 +50,7 @@ class CategoryRepositoryTest {
     }
 
     @Test
-    void savingSetsCreatedAtAndUpdatedAt() {
+    void _02_ShouldSetAuditTimestamps_WhenCategorySaved() {
         Category saved = categoryRepository.save(Category.builder().categoryName("Books").build());
 
         assertThat(saved.getCreatedAt()).isNotNull();
@@ -58,7 +58,7 @@ class CategoryRepositoryTest {
     }
 
     @Test
-    void updatingChangesUpdatedAtButNotCreatedAt() throws InterruptedException {
+    void _03_ShouldChangeOnlyUpdatedAt_WhenCategoryUpdated() throws InterruptedException {
         Category saved = categoryRepository.saveAndFlush(Category.builder().categoryName("Books").build());
         var originalCreatedAt = saved.getCreatedAt();
         var originalUpdatedAt = saved.getUpdatedAt();
@@ -78,7 +78,7 @@ class CategoryRepositoryTest {
     }
 
     @Test
-    void findByIdWithProductsLoadsAssociatedProducts() {
+    void _04_ShouldLoadProducts_WhenCategoryHasProducts() {
         Category saved = categoryRepository.saveAndFlush(Category.builder().categoryName("Electronics").build());
         productRepository.saveAndFlush(
                 Product.builder().category(saved).productName("Keyboard").unitPrice(79.99f).build());
@@ -93,7 +93,7 @@ class CategoryRepositoryTest {
     }
 
     @Test
-    void findByIdWithProductsReturnsEmptyCollectionWhenCategoryHasNone() {
+    void _05_ShouldReturnEmptyProducts_WhenCategoryHasNone() {
         Category saved = categoryRepository.saveAndFlush(Category.builder().categoryName("Empty").build());
         entityManager.clear();
 
@@ -103,7 +103,7 @@ class CategoryRepositoryTest {
     }
 
     @Test
-    void findAllReturnsSavedCategories() {
+    void _06_ShouldReturnAllCategories_WhenCategoriesSaved() {
         categoryRepository.save(Category.builder().categoryName("Toys").build());
         categoryRepository.save(Category.builder().categoryName("Garden").build());
 

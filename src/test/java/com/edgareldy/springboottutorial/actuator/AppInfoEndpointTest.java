@@ -25,7 +25,7 @@ class AppInfoEndpointTest {
     private Environment environment;
 
     @Test
-    void appInfoReportsApplicationNameAndActiveProfiles() {
+    void _01_ShouldReportApplicationNameAndActiveProfiles_WhenEndpointInvoked() {
         when(environment.getProperty("spring.application.name")).thenReturn("spring-boot-tutorial");
         when(environment.getActiveProfiles()).thenReturn(new String[] {"dev"});
 

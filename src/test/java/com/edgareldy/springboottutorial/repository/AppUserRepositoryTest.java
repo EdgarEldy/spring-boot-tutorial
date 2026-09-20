@@ -35,7 +35,7 @@ class AppUserRepositoryTest {
     }
 
     @Test
-    void findByUsernameReturnsMatchingUser() {
+    void _01_ShouldReturnMatchingUser_WhenFindingByUsername() {
         assertThat(appUserRepository.findByUsername("ada"))
                 .isPresent()
                 .get()
@@ -44,18 +44,18 @@ class AppUserRepositoryTest {
     }
 
     @Test
-    void findByUsernameReturnsEmptyWhenMissing() {
+    void _02_ShouldReturnEmpty_WhenUsernameMissing() {
         assertThat(appUserRepository.findByUsername("unknown")).isEmpty();
     }
 
     @Test
-    void existsByUsernameReflectsCurrentData() {
+    void _03_ShouldReflectCurrentData_WhenCheckingUsernameExists() {
         assertThat(appUserRepository.existsByUsername("ada")).isTrue();
         assertThat(appUserRepository.existsByUsername("unknown")).isFalse();
     }
 
     @Test
-    void existsByEmailIgnoreCaseMatchesRegardlessOfCase() {
+    void _04_ShouldMatchEmail_WhenCaseDiffers() {
         assertThat(appUserRepository.existsByEmailIgnoreCase("ADA@EXAMPLE.COM")).isTrue();
         assertThat(appUserRepository.existsByEmailIgnoreCase("unknown@example.com")).isFalse();
     }

@@ -80,7 +80,7 @@ class CategoryServiceCacheTest {
     }
 
     @Test
-    void findByIdIsCachedAcrossCalls() {
+    void _01_ShouldHitRepositoryOnce_WhenFindByIdCalledTwice() {
         Category category = Category.builder().id(1L).categoryName("Electronics").build();
         CategoryResponse response = new CategoryResponse(1L, "Electronics", null, null, List.of());
         when(categoryRepository.findByIdWithProducts(1L)).thenReturn(Optional.of(category));
@@ -93,7 +93,7 @@ class CategoryServiceCacheTest {
     }
 
     @Test
-    void updateEvictsCacheForThatId() {
+    void _02_ShouldEvictCache_WhenCategoryUpdated() {
         Category category = Category.builder().id(1L).categoryName("Electronics").build();
         CategoryResponse response = new CategoryResponse(1L, "Electronics", null, null, List.of());
         when(categoryRepository.findByIdWithProducts(1L)).thenReturn(Optional.of(category));
@@ -116,7 +116,7 @@ class CategoryServiceCacheTest {
     }
 
     @Test
-    void deleteEvictsCacheForThatId() {
+    void _03_ShouldEvictCache_WhenCategoryDeleted() {
         Category category = Category.builder().id(1L).categoryName("Electronics").build();
         CategoryResponse response = new CategoryResponse(1L, "Electronics", null, null, List.of());
         when(categoryRepository.findByIdWithProducts(1L)).thenReturn(Optional.of(category));
