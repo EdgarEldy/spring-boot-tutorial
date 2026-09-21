@@ -58,11 +58,8 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponse create(OrderRequest request) {
         Customer customer = getCustomerOrThrow(request.customerId());
         Product product = getProductOrThrow(request.productId());
-        Order order = orderMapper.toEntity(request);
-        order.setCustomer(customer);
-        order.setProduct(product);
-        order.setTotal(request.quantity() * product.getUnitPrice());
-        Order saved = orderRepository.save(order);
+        double total = request.quantity() * product.getUnitPrice();
+        Order saved = orderRepository.save(orderMapper.toEntity(request, customer, product, total));
         eventPublisher.publishEvent(new OrderCreatedEvent(
                 saved.getId(), customer.getId(), product.getId(), saved.getQuantity(), saved.getTotal()));
         return orderMapper.toResponse(saved);
@@ -75,10 +72,8 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id " + id));
         Customer customer = getCustomerOrThrow(request.customerId());
         Product product = getProductOrThrow(request.productId());
-        order.setCustomer(customer);
-        order.setProduct(product);
-        order.setQuantity(request.quantity());
-        order.setTotal(request.quantity() * product.getUnitPrice());
+        double total = request.quantity() * product.getUnitPrice();
+        orderMapper.updateEntity(request, customer, product, total, order);
         return orderMapper.toResponse(orderRepository.save(order));
     }
 

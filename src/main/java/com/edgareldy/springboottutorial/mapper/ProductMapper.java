@@ -2,6 +2,7 @@ package com.edgareldy.springboottutorial.mapper;
 
 import com.edgareldy.springboottutorial.dto.product.ProductRequest;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
+import com.edgareldy.springboottutorial.entity.Category;
 import com.edgareldy.springboottutorial.entity.Product;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -9,9 +10,10 @@ import org.mapstruct.MappingTarget;
 
 /**
  * MapStruct mapper converting between {@link Product} and its DTOs. The
- * {@code category} association itself is resolved by the service layer
- * (which needs a repository lookup), not by this mapper: every mapping
- * method that touches an entity ignores the {@code category} field.
+ * {@code category} association is looked up by the service layer (which needs
+ * a repository lookup) and handed to the entity-building methods as a
+ * parameter: this mapper only assigns it, so the service never calls a
+ * setter itself.
  * <p>
  * Created edgar.muhamyangabo on 7/4/26
  * Author : edgar.muhamyangabo
@@ -26,12 +28,12 @@ public interface ProductMapper {
     ProductResponse toResponse(Product product);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "category", ignore = true)
+    @Mapping(target = "category", source = "category")
     @Mapping(target = "version", ignore = true)
-    Product toEntity(ProductRequest request);
+    Product toEntity(ProductRequest request, Category category);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "category", ignore = true)
+    @Mapping(target = "category", source = "category")
     @Mapping(target = "version", ignore = true)
-    void updateEntityFromRequest(ProductRequest request, @MappingTarget Product product);
+    void updateEntityFromRequest(ProductRequest request, Category category, @MappingTarget Product product);
 }

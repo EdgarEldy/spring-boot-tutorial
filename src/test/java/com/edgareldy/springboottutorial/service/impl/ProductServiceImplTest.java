@@ -128,7 +128,7 @@ class ProductServiceImplTest {
     void _06_ShouldResolveCategoryAndSave_WhenCreatingProduct() {
         ProductRequest request = new ProductRequest(1L, "Keyboard", 79.99f);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(productMapper.toEntity(request)).thenReturn(product);
+        when(productMapper.toEntity(request, category)).thenReturn(product);
         when(productRepository.save(product)).thenReturn(product);
         when(productMapper.toResponse(product)).thenReturn(productResponse);
 
@@ -157,7 +157,7 @@ class ProductServiceImplTest {
 
         assertThat(productService.update(1L, request)).isEqualTo(updatedResponse);
 
-        verify(productMapper).updateEntityFromRequest(request, product);
+        verify(productMapper).updateEntityFromRequest(request, category, product);
     }
 
     @Test

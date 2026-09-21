@@ -4,11 +4,14 @@ import com.edgareldy.springboottutorial.dto.customer.CustomerResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderRequest;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
+import com.edgareldy.springboottutorial.entity.Customer;
 import com.edgareldy.springboottutorial.entity.Order;
+import com.edgareldy.springboottutorial.entity.Product;
 import com.edgareldy.springboottutorial.repository.OrderProjection;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
 /**
  * MapStruct mapper converting between {@link Order} and its DTOs. Two
@@ -48,9 +51,29 @@ public interface OrderMapper {
         return new OrderResponse(projection.id(), customer, product, projection.quantity(), projection.total());
     }
 
+    /**
+     * Builds a new {@link Order} from the request plus the already resolved
+     * {@code customer} and {@code product}, and the {@code total} the service
+     * computed. The mapper only assigns these values: looking the associations
+     * up and computing the total are business decisions that stay in the
+     * service.
+     */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "customer", ignore = true)
-    @Mapping(target = "product", ignore = true)
-    @Mapping(target = "total", ignore = true)
-    Order toEntity(OrderRequest request);
+    @Mapping(target = "customer", source = "customer")
+    @Mapping(target = "product", source = "product")
+    @Mapping(target = "quantity", source = "request.quantity")
+    @Mapping(target = "total", source = "total")
+    Order toEntity(OrderRequest request, Customer customer, Product product, double total);
+
+    /**
+     * Applies the same values onto an existing {@link Order}, keeping its
+     * identity.
+     */
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "customer", source = "customer")
+    @Mapping(target = "product", source = "product")
+    @Mapping(target = "quantity", source = "request.quantity")
+    @Mapping(target = "total", source = "total")
+    void updateEntity(OrderRequest request, Customer customer, Product product, double total,
+                      @MappingTarget Order order);
 }
