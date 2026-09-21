@@ -2,6 +2,7 @@ package com.edgareldy.springboottutorial.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.edgareldy.springboottutorial.dto.order.OrderRequest;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
 import com.edgareldy.springboottutorial.entity.Category;
 import com.edgareldy.springboottutorial.entity.Customer;
@@ -71,5 +72,35 @@ class OrderMapperTest {
         assertThat(response.product().categoryName()).isEqualTo("Electronics");
         assertThat(response.quantity()).isEqualTo(2);
         assertThat(response.total()).isEqualTo(100.0);
+    }
+
+    @Test
+    void _03_ShouldAssignAssociationsQuantityAndTotal_WhenBuildingNewOrder() {
+        Customer customer = Customer.builder().id(1L).firstName("Ada").lastName("Lovelace").build();
+        Product product = Product.builder().id(10L).productName("Keyboard").unitPrice(50.0f).build();
+
+        Order order = orderMapper.toEntity(new OrderRequest(1L, 10L, 2), customer, product, 100.0);
+
+        assertThat(order.getId()).isNull();
+        assertThat(order.getCustomer()).isSameAs(customer);
+        assertThat(order.getProduct()).isSameAs(product);
+        assertThat(order.getQuantity()).isEqualTo(2);
+        assertThat(order.getTotal()).isEqualTo(100.0);
+    }
+
+    @Test
+    void _04_ShouldKeepIdentityAndReplaceValues_WhenUpdatingExistingOrder() {
+        Customer oldCustomer = Customer.builder().id(1L).firstName("Ada").lastName("Lovelace").build();
+        Customer newCustomer = Customer.builder().id(2L).firstName("Grace").lastName("Hopper").build();
+        Product product = Product.builder().id(10L).productName("Keyboard").unitPrice(50.0f).build();
+        Order existing = Order.builder().id(100L).customer(oldCustomer).product(product).quantity(2).total(100.0).build();
+
+        orderMapper.updateEntity(new OrderRequest(2L, 10L, 3), newCustomer, product, 150.0, existing);
+
+        assertThat(existing.getId()).isEqualTo(100L);
+        assertThat(existing.getCustomer()).isSameAs(newCustomer);
+        assertThat(existing.getProduct()).isSameAs(product);
+        assertThat(existing.getQuantity()).isEqualTo(3);
+        assertThat(existing.getTotal()).isEqualTo(150.0);
     }
 }

@@ -122,17 +122,14 @@ class OrderServiceImplTest {
         OrderRequest request = new OrderRequest(1L, 1L, 2);
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(product));
-        when(orderMapper.toEntity(request)).thenReturn(Order.builder().quantity(2).build());
-        when(orderRepository.save(any(Order.class))).thenReturn(order);
+        when(orderMapper.toEntity(request, customer, product, 100.0)).thenReturn(order);
+        when(orderRepository.save(order)).thenReturn(order);
         when(orderMapper.toResponse(order)).thenReturn(orderResponse);
 
         assertThat(orderService.create(request)).isEqualTo(orderResponse);
 
-        ArgumentCaptor<Order> savedOrderCaptor = ArgumentCaptor.forClass(Order.class);
-        verify(orderRepository).save(savedOrderCaptor.capture());
-        assertThat(savedOrderCaptor.getValue().getTotal()).isEqualTo(100.0);
-        assertThat(savedOrderCaptor.getValue().getCustomer()).isEqualTo(customer);
-        assertThat(savedOrderCaptor.getValue().getProduct()).isEqualTo(product);
+        verify(orderMapper).toEntity(request, customer, product, 100.0);
+        verify(orderRepository).save(order);
 
         ArgumentCaptor<OrderCreatedEvent> eventCaptor = ArgumentCaptor.forClass(OrderCreatedEvent.class);
         verify(eventPublisher).publishEvent(eventCaptor.capture());
@@ -176,8 +173,7 @@ class OrderServiceImplTest {
 
         orderService.update(1L, request);
 
-        assertThat(existing.getQuantity()).isEqualTo(3);
-        assertThat(existing.getTotal()).isEqualTo(150.0);
+        verify(orderMapper).updateEntity(request, customer, product, 150.0, existing);
     }
 
     @Test
