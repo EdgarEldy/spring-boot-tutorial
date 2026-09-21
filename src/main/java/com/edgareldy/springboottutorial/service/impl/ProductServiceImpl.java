@@ -81,8 +81,7 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductResponse create(ProductRequest request) {
         Category category = getCategoryOrThrow(request.categoryId());
-        Product product = productMapper.toEntity(request);
-        product.setCategory(category);
+        Product product = productMapper.toEntity(request, category);
         return productMapper.toResponse(productRepository.save(product));
     }
 
@@ -93,8 +92,7 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + id));
         Category category = getCategoryOrThrow(request.categoryId());
-        productMapper.updateEntityFromRequest(request, product);
-        product.setCategory(category);
+        productMapper.updateEntityFromRequest(request, category, product);
         return productMapper.toResponse(productRepository.save(product));
     }
 
