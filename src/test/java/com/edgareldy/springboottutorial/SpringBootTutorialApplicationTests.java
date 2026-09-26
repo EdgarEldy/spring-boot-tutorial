@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Import;
 class SpringBootTutorialApplicationTests {
 
 	@Test
-	void _01_ShouldLoadContext_WhenApplicationStarts() {
+	void contextLoads() {
 	}
 
 }
