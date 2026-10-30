@@ -53,10 +53,23 @@ class UserDetailsServiceImplTest {
     }
 
     @Test
-    void _02_ShouldThrowUsernameNotFound_WhenUserMissing() {
+    void _02_ShouldBuildDisabledUserDetails_WhenUserNotEnabled() {
+        AppUser appUser = AppUser.builder()
+                .id(2L).username("disabled").email("disabled@example.com").password("hashed")
+                .enabled(false).roles(Set.of()).build();
+        when(appUserRepository.findByUsername("disabled")).thenReturn(Optional.of(appUser));
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername("disabled");
+
+        assertThat(userDetails.isEnabled()).isFalse();
+    }
+
+    @Test
+    void _03_ShouldThrowUsernameNotFound_WhenUserMissing() {
         when(appUserRepository.findByUsername("unknown")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userDetailsService.loadUserByUsername("unknown"))
                 .isInstanceOf(UsernameNotFoundException.class);
     }
 }
+
