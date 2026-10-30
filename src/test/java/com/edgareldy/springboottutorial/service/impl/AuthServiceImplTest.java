@@ -18,6 +18,8 @@ import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.mapper.AppUserMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.security.JwtService;
+import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
+import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +36,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 /**
  * Unit tests for {@link AuthServiceImpl}, with {@link AppUserRepository},
  * {@link AppUserMapper}, {@link PasswordEncoder}, {@link AuthenticationManager},
- * and {@link JwtService} mocked.
+ * {@link JwtService}, and {@link BlacklistedTokenService} mocked.
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
  * Author : edgar.muhamyangabo
@@ -58,6 +60,9 @@ class AuthServiceImplTest {
 
     @Mock
     private JwtService jwtService;
+
+    @Mock
+    private BlacklistedTokenService blacklistedTokenService;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -148,5 +153,34 @@ class AuthServiceImplTest {
 
         assertThatThrownBy(() -> authService.me("unknown"))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void _08_ShouldBlacklistToken_WhenLogoutCalled() {
+        String rawToken = "signed-token";
+        String jti = "jti-123";
+        Instant expiresAt = Instant.now().plusSeconds(3600);
+        when(jwtService.extractJti(rawToken)).thenReturn(jti);
+        when(jwtService.extractUsername(rawToken)).thenReturn("ada");
+        when(jwtService.extractExpiration(rawToken)).thenReturn(expiresAt);
+        when(appUserRepository.findByUsername("ada")).thenReturn(Optional.of(appUser));
+
+        authService.logout(rawToken);
+
+        verify(blacklistedTokenService).blacklist(appUser, rawToken, jti, expiresAt);
+    }
+
+    @Test
+    void _09_ShouldThrowNotFound_WhenLogoutCalledForUnknownUser() {
+        String rawToken = "signed-token";
+        when(jwtService.extractJti(rawToken)).thenReturn("jti-123");
+        when(jwtService.extractUsername(rawToken)).thenReturn("ghost");
+        when(jwtService.extractExpiration(rawToken)).thenReturn(Instant.now().plusSeconds(3600));
+        when(appUserRepository.findByUsername("ghost")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.logout(rawToken))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(blacklistedTokenService, never()).blacklist(any(), any(), any(), any());
     }
 }
