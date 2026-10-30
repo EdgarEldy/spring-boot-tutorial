@@ -1,6 +1,7 @@
 package com.edgareldy.springboottutorial.dto.auth;
 
-import com.edgareldy.springboottutorial.entity.user.Role;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Set;
 
 /**
  * Representation of an {@link com.edgareldy.springboottutorial.entity.user.AppUser}
@@ -15,6 +16,7 @@ public record UserResponse(
         Long id,
         String username,
         String email,
-        Role role
+        boolean enabled,
+        @JsonProperty("roles") Set<String> roles
 ) {
 }

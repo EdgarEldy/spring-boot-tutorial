@@ -4,14 +4,18 @@ import com.edgareldy.springboottutorial.dto.auth.AuthResponse;
 import com.edgareldy.springboottutorial.dto.auth.LoginRequest;
 import com.edgareldy.springboottutorial.dto.auth.RegisterRequest;
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
+import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
-import com.edgareldy.springboottutorial.entity.user.Role;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.mapper.AppUserMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
+import com.edgareldy.springboottutorial.repository.RoleRepository;
 import com.edgareldy.springboottutorial.security.JwtService;
+import com.edgareldy.springboottutorial.service.ActivationTokenService;
 import com.edgareldy.springboottutorial.service.AuthService;
+import com.edgareldy.springboottutorial.service.EmailService;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -36,10 +40,13 @@ public class AuthServiceImpl implements AuthService {
     private static final String BEARER_TOKEN_TYPE = "Bearer";
 
     private final AppUserRepository appUserRepository;
+    private final RoleRepository roleRepository;
     private final AppUserMapper appUserMapper;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final ActivationTokenService activationTokenService;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -50,13 +57,19 @@ public class AuthServiceImpl implements AuthService {
         if (appUserRepository.existsByEmailIgnoreCase(request.email())) {
             throw new BusinessRuleException("Email " + request.email() + " is already in use");
         }
+        Role userRole = roleRepository.findByRoleNameIgnoreCase("USER")
+                .orElseThrow(() -> new ResourceNotFoundException("Bootstrap role USER not found"));
         AppUser appUser = AppUser.builder()
                 .username(request.username())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
-                .role(Role.USER)
+                .enabled(false)
+                .roles(Set.of(userRole))
                 .build();
-        return appUserMapper.toResponse(appUserRepository.save(appUser));
+        AppUser saved = appUserRepository.save(appUser);
+        String token = activationTokenService.generate(saved);
+        emailService.sendActivationEmail(saved, token);
+        return appUserMapper.toResponse(saved);
     }
 
     @Override

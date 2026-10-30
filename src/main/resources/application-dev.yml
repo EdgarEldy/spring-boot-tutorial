@@ -9,6 +9,15 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+  mail:
+    host: localhost
+    port: 1025
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
 
 management:
   endpoints:
