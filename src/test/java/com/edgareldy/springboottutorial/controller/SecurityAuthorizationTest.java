@@ -10,6 +10,7 @@ import com.edgareldy.springboottutorial.dto.auth.LoginRequest;
 import com.edgareldy.springboottutorial.dto.auth.RegisterRequest;
 import com.edgareldy.springboottutorial.dto.category.CategoryRequest;
 import com.edgareldy.springboottutorial.dto.customer.CustomerRequest;
+import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -48,6 +49,9 @@ class SecurityAuthorizationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private AppUserRepository appUserRepository;
 
     @Test
     void _01_ShouldAllowAccess_WhenListingCategoriesAnonymously() throws Exception {
@@ -153,6 +157,13 @@ class SecurityAuthorizationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(register)))
                 .andExpect(status().isCreated());
+
+        // Registration sets enabled=false pending activation. Enable the account
+        // directly to simulate the activation step for this end-to-end JWT test.
+        appUserRepository.findByUsername("hopper").ifPresent(u -> {
+            u.setEnabled(true);
+            appUserRepository.saveAndFlush(u);
+        });
 
         LoginRequest login = new LoginRequest("hopper", "password123");
         MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
