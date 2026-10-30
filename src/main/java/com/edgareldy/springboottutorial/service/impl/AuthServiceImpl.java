@@ -12,6 +12,8 @@ import com.edgareldy.springboottutorial.mapper.AppUserMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.security.JwtService;
 import com.edgareldy.springboottutorial.service.AuthService;
+import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -40,6 +42,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final BlacklistedTokenService blacklistedTokenService;
 
     @Override
     @Transactional
@@ -65,6 +68,17 @@ public class AuthServiceImpl implements AuthService {
                 new UsernamePasswordAuthenticationToken(request.username(), request.password()));
         String token = jwtService.generateToken(request.username());
         return new AuthResponse(token, BEARER_TOKEN_TYPE, request.username());
+    }
+
+    @Override
+    @Transactional
+    public void logout(String rawToken) {
+        String jti = jwtService.extractJti(rawToken);
+        String username = jwtService.extractUsername(rawToken);
+        Instant expiresAt = jwtService.extractExpiration(rawToken);
+        AppUser user = appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username " + username));
+        blacklistedTokenService.blacklist(user, rawToken, jti, expiresAt);
     }
 
     @Override
