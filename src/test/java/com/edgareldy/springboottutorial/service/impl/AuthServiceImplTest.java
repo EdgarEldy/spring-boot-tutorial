@@ -95,7 +95,7 @@ class AuthServiceImplTest {
         appUser = AppUser.builder()
                 .id(1L).username("ada").email("ada@example.com").password("hashed")
                 .enabled(false).roles(Set.of(userRole)).build();
-        userResponse = new UserResponse(1L, "ada", "ada@example.com", false,
+        userResponse = new UserResponse(1L, "ada", "ada@example.com", false, false,
                 List.of(new RoleResponse(1L, "USER", List.of())));
     }
 
