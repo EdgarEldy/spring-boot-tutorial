@@ -61,7 +61,4 @@ public class BlacklistedToken {
 
     @Column(name = "expires_at")
     private Instant expiresAt;
-
-    @Column(name = "validated_at")
-    private Instant validatedAt;
 }
