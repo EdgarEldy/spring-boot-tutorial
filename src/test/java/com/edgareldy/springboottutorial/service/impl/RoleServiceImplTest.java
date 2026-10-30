@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.role.RoleRequest;
 import com.edgareldy.springboottutorial.dto.role.RoleResponse;
 import com.edgareldy.springboottutorial.entity.Permission;
@@ -25,6 +26,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Unit tests for {@link RoleServiceImpl}, with {@link RoleRepository},
@@ -65,11 +68,14 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void _01_ShouldReturnMappedList_WhenListingRoles() {
-        when(roleRepository.findAll()).thenReturn(List.of(role));
+    void _01_ShouldReturnMappedPage_WhenListingRoles() {
+        Pageable pageable = Pageable.ofSize(20);
+        when(roleRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(role)));
         when(roleMapper.toResponse(role)).thenReturn(roleResponse);
 
-        assertThat(roleService.findAll()).containsExactly(roleResponse);
+        PageResponse<RoleResponse> result = roleService.findAll(pageable);
+        assertThat(result.content()).containsExactly(roleResponse);
+        assertThat(result.totalElements()).isEqualTo(1);
     }
 
     @Test
