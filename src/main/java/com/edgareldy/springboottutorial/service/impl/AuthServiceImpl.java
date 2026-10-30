@@ -76,10 +76,13 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.username(), request.password()));
-        String token = jwtService.generateToken(request.username());
+        AppUser appUser = appUserRepository.findByUsername(request.username())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username " + request.username()));
+        String token = jwtService.generateToken(appUser);
         return new AuthResponse(token, BEARER_TOKEN_TYPE, request.username());
     }
 
@@ -95,6 +98,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponse me(String username) {
         AppUser appUser = appUserRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username " + username));
