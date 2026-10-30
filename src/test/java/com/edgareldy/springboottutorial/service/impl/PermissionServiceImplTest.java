@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.permission.PermissionRequest;
 import com.edgareldy.springboottutorial.dto.permission.PermissionResponse;
 import com.edgareldy.springboottutorial.entity.Permission;
@@ -23,6 +24,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Unit tests for {@link PermissionServiceImpl}, with
@@ -59,11 +62,14 @@ class PermissionServiceImplTest {
     }
 
     @Test
-    void _01_ShouldReturnMappedList_WhenListingPermissions() {
-        when(permissionRepository.findAll()).thenReturn(List.of(permission));
+    void _01_ShouldReturnMappedPage_WhenListingPermissions() {
+        Pageable pageable = Pageable.ofSize(20);
+        when(permissionRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(permission)));
         when(permissionMapper.toResponse(permission)).thenReturn(permissionResponse);
 
-        assertThat(permissionService.findAll()).containsExactly(permissionResponse);
+        PageResponse<PermissionResponse> result = permissionService.findAll(pageable);
+        assertThat(result.content()).containsExactly(permissionResponse);
+        assertThat(result.totalElements()).isEqualTo(1);
     }
 
     @Test
