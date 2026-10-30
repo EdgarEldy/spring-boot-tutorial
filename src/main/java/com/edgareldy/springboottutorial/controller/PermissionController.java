@@ -1,13 +1,14 @@
 package com.edgareldy.springboottutorial.controller;
 
 import com.edgareldy.springboottutorial.dto.common.ApiResponse;
+import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.permission.PermissionRequest;
 import com.edgareldy.springboottutorial.dto.permission.PermissionResponse;
 import com.edgareldy.springboottutorial.service.PermissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -40,9 +41,9 @@ public class PermissionController {
 
     @GetMapping
     @Operation(summary = "List permissions")
-    public ResponseEntity<ApiResponse<List<PermissionResponse>>> findAll() {
+    public ResponseEntity<ApiResponse<PageResponse<PermissionResponse>>> findAll(Pageable pageable) {
         return ResponseEntity.ok(
-                ApiResponse.success(permissionService.findAll(), "Permissions retrieved successfully"));
+                ApiResponse.success(permissionService.findAll(pageable), "Permissions retrieved successfully"));
     }
 
     @PostMapping
