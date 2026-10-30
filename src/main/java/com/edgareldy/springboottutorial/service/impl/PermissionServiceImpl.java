@@ -1,5 +1,6 @@
 package com.edgareldy.springboottutorial.service.impl;
 
+import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.permission.PermissionRequest;
 import com.edgareldy.springboottutorial.dto.permission.PermissionResponse;
 import com.edgareldy.springboottutorial.entity.Permission;
@@ -9,8 +10,8 @@ import com.edgareldy.springboottutorial.mapper.PermissionMapper;
 import com.edgareldy.springboottutorial.repository.PermissionRepository;
 import com.edgareldy.springboottutorial.repository.RoleRepository;
 import com.edgareldy.springboottutorial.service.PermissionService;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,8 +33,8 @@ public class PermissionServiceImpl implements PermissionService {
     private final PermissionMapper permissionMapper;
 
     @Override
-    public List<PermissionResponse> findAll() {
-        return permissionRepository.findAll().stream().map(permissionMapper::toResponse).toList();
+    public PageResponse<PermissionResponse> findAll(Pageable pageable) {
+        return PageResponse.from(permissionRepository.findAll(pageable).map(permissionMapper::toResponse));
     }
 
     @Override
