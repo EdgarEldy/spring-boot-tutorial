@@ -15,7 +15,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
-    @EntityGraph(attributePaths = "roles")
+    @EntityGraph(attributePaths = {"roles", "roles.permissions"})
     Optional<AppUser> findByUsername(String username);
 
     Optional<AppUser> findByEmailIgnoreCase(String email);
