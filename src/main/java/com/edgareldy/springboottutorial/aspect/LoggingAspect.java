@@ -28,6 +28,16 @@ import org.springframework.stereotype.Component;
  * whose simple name contains "Token" (e.g. a generate method that hands
  * back a raw token with no parameter name to key off on the way out).
  * <p>
+ * <strong>Compilation requirement:</strong> parameter-name masking relies
+ * on {@link java.lang.reflect.Parameter#getName()} returning source names
+ * such as {@code token} or {@code password}. This requires the
+ * {@code -parameters} javac flag, which {@code spring-boot-starter-parent}
+ * activates by default via its {@code maven-compiler-plugin} defaults.
+ * Without that flag, {@code getName()} returns {@code arg0}, {@code arg1},
+ * etc., and name-based masking silently stops working. The test
+ * {@code LoggingAspectTest._01} acts as a compile-time guard: it would
+ * fail if the flag were ever removed.
+ * <p>
  * Created edgar.muhamyangabo on 7/4/26
  * Author : edgar.muhamyangabo
  * Date : 7/4/26
