@@ -46,6 +46,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<UserResponse> findAll(Pageable pageable) {
         Page<UserResponse> page = appUserRepository.findAll(pageable)
                 .map(appUserMapper::toResponse);
@@ -53,6 +54,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponse findById(Long id) {
         return appUserMapper.toResponse(getUserOrThrow(id));
     }
