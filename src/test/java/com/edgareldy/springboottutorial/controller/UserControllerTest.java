@@ -62,7 +62,7 @@ class UserControllerTest {
     @Test
     void _01_ShouldReturn200WithPage_WhenFindingAll() throws Exception {
         UserResponse userResponse = new UserResponse(1L, "ada", "ada@example.com", true, Set.of("USER"));
-        PageResponse<UserResponse> page = PageResponse.of(
+        PageResponse<UserResponse> page = PageResponse.from(
                 new org.springframework.data.domain.PageImpl<>(List.of(userResponse)));
         when(userService.findAll(any())).thenReturn(page);
 
