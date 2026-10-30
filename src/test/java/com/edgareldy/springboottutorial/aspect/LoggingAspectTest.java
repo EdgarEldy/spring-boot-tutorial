@@ -105,6 +105,11 @@ class LoggingAspectTest {
     /**
      * Stand-in target whose name mirrors a real {@code *TokenServiceImpl},
      * exercising the aspect's declaring-class-name heuristic for return-value masking.
+     * <p>
+     * Created edgar.muhamyangabo on 10/30/26
+     * Author : edgar.muhamyangabo
+     * Date : 10/30/26
+     * Project : spring-boot-tutorial
      */
     static class FakeActivationTokenServiceImpl {
 
@@ -117,7 +122,14 @@ class LoggingAspectTest {
         }
     }
 
-    /** Stand-in target with no "Token" in its name, for the negative case. */
+    /**
+     * Stand-in target with no "Token" in its name, for the negative case.
+     * <p>
+     * Created edgar.muhamyangabo on 10/30/26
+     * Author : edgar.muhamyangabo
+     * Date : 10/30/26
+     * Project : spring-boot-tutorial
+     */
     static class FakeGenericService {
 
         public String describe(String label) {
