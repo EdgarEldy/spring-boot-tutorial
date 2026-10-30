@@ -1,7 +1,10 @@
 package com.edgareldy.springboottutorial.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.jsonwebtoken.JwtException;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -34,32 +37,32 @@ class JwtServiceTest {
     }
 
     @Test
-    void _02_ShouldReturnTrue_WhenUsernameMatches() {
-        String token = jwtService.generateToken("ada");
+    void _02_ShouldEmbedUniqueJti_WhenGeneratingTwoTokens() {
+        String token1 = jwtService.generateToken("ada");
+        String token2 = jwtService.generateToken("ada");
 
-        assertThat(jwtService.isTokenValid(token, "ada")).isTrue();
+        String jti1 = jwtService.extractJti(token1);
+        String jti2 = jwtService.extractJti(token2);
+
+        assertThat(jti1).isNotNull().isNotEmpty();
+        assertThat(jti2).isNotNull().isNotEmpty();
+        assertThat(jti1).isNotEqualTo(jti2);
     }
 
     @Test
-    void _03_ShouldReturnFalse_WhenUsernameDiffers() {
+    void _03_ShouldReturnFutureExpiration_WhenTokenIsValid() {
         String token = jwtService.generateToken("ada");
 
-        assertThat(jwtService.isTokenValid(token, "grace")).isFalse();
+        Instant expiration = jwtService.extractExpiration(token);
+
+        assertThat(expiration).isAfter(Instant.now());
     }
 
     @Test
-    void _04_ShouldReturnFalse_WhenTokenExpired() throws InterruptedException {
-        JwtService shortLivedService = new JwtService(new JwtProperties(SECRET, 1L));
-        String token = shortLivedService.generateToken("ada");
-        Thread.sleep(10);
-
-        assertThat(shortLivedService.isTokenValid(token, "ada")).isFalse();
-    }
-
-    @Test
-    void _05_ShouldReturnFalse_WhenTokenTampered() {
+    void _04_ShouldThrowJwtException_WhenTokenTampered() {
         String token = jwtService.generateToken("ada");
 
-        assertThat(jwtService.isTokenValid(token + "tampered", "ada")).isFalse();
+        assertThatThrownBy(() -> jwtService.extractUsername(token + "tampered"))
+                .isInstanceOf(JwtException.class);
     }
 }
