@@ -18,6 +18,7 @@ public record UserResponse(
         String username,
         String email,
         boolean enabled,
+        @JsonProperty("account_locked") boolean accountLocked,
         @JsonProperty("roles") List<RoleResponse> roles
 ) {
 }
