@@ -14,9 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Default {@link PasswordResetTokenService} implementation backed by
- * {@link PasswordResetTokenRepository}. The token is deleted as soon as it
- * is looked up in {@link #validateAndConsume} so it cannot be replayed even
- * if the expiry check is slow.
+ * {@link PasswordResetTokenRepository}. In {@link #validateAndConsume}, the
+ * token row is deleted before the expiry check so a valid token is never
+ * reusable. For an expired token the subsequent {@link InvalidTokenException}
+ * causes Spring to roll back the transaction, so the row is not actually
+ * removed; it stays until {@code TokenCleanupScheduler} runs.
  * <p>
  * Created edgar.muhamyangabo on 10/30/26
  * Author : edgar.muhamyangabo
