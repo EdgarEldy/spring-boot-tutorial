@@ -92,7 +92,7 @@ class PasswordResetTokenServiceImplTest {
     }
 
     @Test
-    void _04_ShouldThrowExceptionAndStillDeleteToken_WhenTokenIsExpired() {
+    void _04_ShouldThrowExceptionAndCallDelete_WhenTokenIsExpired() {
         PasswordResetToken token = PasswordResetToken.builder()
                 .id(1L).user(user).token("raw-token").type("PASSWORD_RESET")
                 .expiryDate(Instant.now().minus(1, ChronoUnit.HOURS))
