@@ -4,10 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
+import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
-import com.edgareldy.springboottutorial.entity.user.Role;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,8 +37,10 @@ class UserDetailsServiceImplTest {
 
     @Test
     void _01_ShouldBuildUserDetailsWithRolePrefixedAuthority_WhenUserExists() {
+        Role adminRole = Role.builder().id(1L).roleName("ADMIN").build();
         AppUser appUser = AppUser.builder()
-                .id(1L).username("ada").email("ada@example.com").password("hashed").role(Role.ADMIN).build();
+                .id(1L).username("ada").email("ada@example.com").password("hashed")
+                .enabled(true).roles(Set.of(adminRole)).build();
         when(appUserRepository.findByUsername("ada")).thenReturn(Optional.of(appUser));
 
         UserDetails userDetails = userDetailsService.loadUserByUsername("ada");
@@ -50,10 +53,23 @@ class UserDetailsServiceImplTest {
     }
 
     @Test
-    void _02_ShouldThrowUsernameNotFound_WhenUserMissing() {
+    void _02_ShouldBuildDisabledUserDetails_WhenUserNotEnabled() {
+        AppUser appUser = AppUser.builder()
+                .id(2L).username("disabled").email("disabled@example.com").password("hashed")
+                .enabled(false).roles(Set.of()).build();
+        when(appUserRepository.findByUsername("disabled")).thenReturn(Optional.of(appUser));
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername("disabled");
+
+        assertThat(userDetails.isEnabled()).isFalse();
+    }
+
+    @Test
+    void _03_ShouldThrowUsernameNotFound_WhenUserMissing() {
         when(appUserRepository.findByUsername("unknown")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userDetailsService.loadUserByUsername("unknown"))
                 .isInstanceOf(UsernameNotFoundException.class);
     }
 }
+

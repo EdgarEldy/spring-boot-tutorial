@@ -11,15 +11,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.edgareldy.springboottutorial.config.SecurityConfig;
 import com.edgareldy.springboottutorial.dto.auth.AuthResponse;
+import com.edgareldy.springboottutorial.dto.auth.ForgotPasswordRequest;
 import com.edgareldy.springboottutorial.dto.auth.LoginRequest;
 import com.edgareldy.springboottutorial.dto.auth.RegisterRequest;
+import com.edgareldy.springboottutorial.dto.auth.ResetPasswordRequest;
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
-import com.edgareldy.springboottutorial.entity.user.Role;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
+import com.edgareldy.springboottutorial.exception.InvalidTokenException;
 import com.edgareldy.springboottutorial.security.JwtAccessDeniedHandler;
 import com.edgareldy.springboottutorial.security.JwtAuthenticationEntryPoint;
 import com.edgareldy.springboottutorial.security.JwtService;
 import com.edgareldy.springboottutorial.service.AuthService;
+import com.edgareldy.springboottutorial.service.UserService;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -57,6 +61,9 @@ class AuthControllerTest {
     @MockitoBean
     private AuthService authService;
 
+    @MockitoBean
+    private UserService userService;
+
     // Unused directly: JwtAuthFilter/SecurityConfig need these to construct,
     // even though no request in this class carries a JWT.
     @MockitoBean
@@ -67,7 +74,7 @@ class AuthControllerTest {
 
     @Test
     void _01_ShouldReturn201_WhenRegisterRequestValid() throws Exception {
-        UserResponse response = new UserResponse(1L, "ada", "ada@example.com", Role.USER);
+        UserResponse response = new UserResponse(1L, "ada", "ada@example.com", false, Set.of("USER"));
         when(authService.register(any())).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -123,7 +130,7 @@ class AuthControllerTest {
 
     @Test
     void _06_ShouldReturnCallerProfile_WhenAuthenticated() throws Exception {
-        when(authService.me("ada")).thenReturn(new UserResponse(1L, "ada", "ada@example.com", Role.USER));
+        when(authService.me("ada")).thenReturn(new UserResponse(1L, "ada", "ada@example.com", true, Set.of("USER")));
 
         mockMvc.perform(get("/api/v1/auth/me").with(user("ada").roles("USER")))
                 .andExpect(status().isOk())
@@ -134,5 +141,64 @@ class AuthControllerTest {
     void _07_ShouldReturn401_WhenNotAuthenticated() throws Exception {
         mockMvc.perform(get("/api/v1/auth/me"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void _08_ShouldReturn200_WhenActivationTokenValid() throws Exception {
+        UserResponse activated = new UserResponse(1L, "ada", "ada@example.com", true, Set.of("USER"));
+        when(userService.activate("valid-token")).thenReturn(activated);
+
+        mockMvc.perform(get("/api/v1/auth/activate").param("token", "valid-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.enabled").value(true));
+    }
+
+    @Test
+    void _09_ShouldReturn400_WhenActivationTokenInvalid() throws Exception {
+        when(userService.activate("bad-token"))
+                .thenThrow(new InvalidTokenException("Invalid activation token"));
+
+        mockMvc.perform(get("/api/v1/auth/activate").param("token", "bad-token"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void _10_ShouldReturn200_WhenForgotPasswordRequestValid() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new ForgotPasswordRequest("ada@example.com"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void _11_ShouldReturn400_WhenForgotPasswordEmailInvalid() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"not-an-email\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void _12_ShouldReturn200_WhenResetPasswordRequestValid() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new ResetPasswordRequest("valid-token", "newpassword"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void _13_ShouldReturn400_WhenResetPasswordTokenInvalid() throws Exception {
+        org.mockito.Mockito.doThrow(new InvalidTokenException("Invalid password reset token"))
+                .when(userService).resetPassword("bad-token", "newpassword");
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new ResetPasswordRequest("bad-token", "newpassword"))))
+                .andExpect(status().isBadRequest());
     }
 }

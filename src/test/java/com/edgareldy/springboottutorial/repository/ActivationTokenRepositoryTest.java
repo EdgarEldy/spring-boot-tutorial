@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.edgareldy.springboottutorial.entity.token.ActivationToken;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
-import com.edgareldy.springboottutorial.entity.user.Role;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,7 +39,7 @@ class ActivationTokenRepositoryTest {
     void setUp() {
         user = appUserRepository.save(AppUser.builder()
                 .username("ada").email("ada@example.com")
-                .password("hashed").role(Role.USER).build());
+                .password("hashed").enabled(true).build());
     }
 
     @Test

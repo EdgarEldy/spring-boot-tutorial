@@ -1,8 +1,11 @@
 package com.edgareldy.springboottutorial.security;
 
+import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -30,9 +33,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) {
         AppUser appUser = appUserRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username " + username));
+        var authorities = appUser.getRoles().stream()
+                .map(Role::getRoleName)
+                .map(name -> new SimpleGrantedAuthority("ROLE_" + name))
+                .collect(Collectors.toList());
         return User.withUsername(appUser.getUsername())
                 .password(appUser.getPassword())
-                .authorities("ROLE_" + appUser.getRole().name())
+                .authorities(authorities)
+                .disabled(!appUser.isEnabled())
                 .build();
     }
 }

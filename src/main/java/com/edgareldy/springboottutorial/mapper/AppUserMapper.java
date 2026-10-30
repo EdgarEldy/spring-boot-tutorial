@@ -1,8 +1,10 @@
 package com.edgareldy.springboottutorial.mapper;
 
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
+import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 /**
  * MapStruct mapper converting {@link AppUser} to {@link UserResponse}. No
@@ -19,5 +21,6 @@ import org.mapstruct.Mapper;
 @Mapper(componentModel = "spring")
 public interface AppUserMapper {
 
+    @Mapping(target = "roles", expression = "java(appUser.getRoles().stream().map(com.edgareldy.springboottutorial.entity.Role::getRoleName).collect(java.util.stream.Collectors.toSet()))")
     UserResponse toResponse(AppUser appUser);
 }

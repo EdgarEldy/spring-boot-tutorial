@@ -37,11 +37,13 @@ class RoleRepositoryTest {
 
     @BeforeEach
     void setUp() {
+        // ADMIN is already seeded by Flyway V7. Add a test permission to it so
+        // _03 can verify existsByPermissions_Id on a known assignment.
         permission = permissionRepository.save(Permission.builder().resource("PRODUCT").action("WRITE").build());
-        roleRepository.save(Role.builder()
-                .roleName("ADMIN")
-                .permissions(new HashSet<>(Set.of(permission)))
-                .build());
+        Role admin = roleRepository.findByRoleNameIgnoreCase("ADMIN")
+                .orElseThrow(() -> new IllegalStateException("Bootstrap role ADMIN not found"));
+        admin.getPermissions().add(permission);
+        roleRepository.save(admin);
     }
 
     @Test
