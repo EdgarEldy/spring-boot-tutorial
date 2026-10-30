@@ -13,6 +13,12 @@ import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -59,8 +65,92 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void _03_ShouldReturn400WithFieldErrors_WhenValidationFails() {
-        HttpServletRequest request = mockRequest("/api/products");
+    void _03_ShouldReturn400_WhenTokenIsInvalid() {
+        HttpServletRequest request = mockRequest("/api/v1/auth/activate-account");
+
+        ResponseEntity<ApiResponse<ProblemDetail>> response = handler.handleInvalidToken(
+                new InvalidTokenException("Activation token has expired"), request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().data().getStatus()).isEqualTo(400);
+        assertThat(response.getBody().data().getDetail()).isEqualTo("Activation token has expired");
+        assertThat(response.getBody().data().getTitle()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
+    }
+
+    @Test
+    void _04_ShouldReturn403_WhenAccessDenied() {
+        HttpServletRequest request = mockRequest("/api/v1/users/1");
+
+        ResponseEntity<ApiResponse<ProblemDetail>> response =
+                handler.handleAccessDenied(new AccessDeniedException("Access is denied"), request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody().message()).isEqualTo("Access denied");
+        assertThat(response.getBody().data().getStatus()).isEqualTo(403);
+        assertThat(response.getBody().data().getInstance()).isEqualTo(URI.create("/api/v1/users/1"));
+    }
+
+    @Test
+    void _05_ShouldReturn401_WhenCredentialsAreBad() {
+        HttpServletRequest request = mockRequest("/api/v1/auth/login");
+
+        ResponseEntity<ApiResponse<ProblemDetail>> response =
+                handler.handleBadCredentials(new BadCredentialsException("Bad credentials"), request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody().message()).isEqualTo("Invalid email or password");
+        assertThat(response.getBody().data().getStatus()).isEqualTo(401);
+    }
+
+    @Test
+    void _06_ShouldReturn401_WhenAccountIsLocked() {
+        HttpServletRequest request = mockRequest("/api/v1/auth/login");
+
+        ResponseEntity<ApiResponse<ProblemDetail>> response =
+                handler.handleLocked(new LockedException("Account is locked"), request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody().message()).isEqualTo("Account is locked");
+        assertThat(response.getBody().data().getStatus()).isEqualTo(401);
+    }
+
+    @Test
+    void _07_ShouldReturn401_WhenAccountIsDisabled() {
+        HttpServletRequest request = mockRequest("/api/v1/auth/login");
+
+        ResponseEntity<ApiResponse<ProblemDetail>> response =
+                handler.handleDisabled(new DisabledException("Account is not activated"), request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody().message()).isEqualTo("Account is not activated");
+        assertThat(response.getBody().data().getStatus()).isEqualTo(401);
+    }
+
+    @Test
+    void _08_ShouldReturn401_WhenGenericAuthenticationExceptionThrown() {
+        HttpServletRequest request = mockRequest("/api/v1/auth/login");
+
+        ResponseEntity<ApiResponse<ProblemDetail>> response = handler.handleAuthentication(
+                new InsufficientAuthenticationException("Full authentication is required"), request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody().data().getStatus()).isEqualTo(401);
+    }
+
+    @Test
+    void _09_ShouldReturn409_WhenOptimisticLockingConflict() {
+        HttpServletRequest request = mockRequest("/api/v1/products/1");
+
+        ResponseEntity<ApiResponse<ProblemDetail>> response = handler.handleOptimisticLocking(
+                new ObjectOptimisticLockingFailureException(Object.class, 1L), request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().data().getStatus()).isEqualTo(409);
+    }
+
+    @Test
+    void _10_ShouldReturn400WithFieldErrors_WhenValidationFails() {
+        HttpServletRequest request = mockRequest("/api/v1/products");
         BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "productRequest");
         bindingResult.addError(new FieldError("productRequest", "unitPrice", "must be greater than 0"));
         MethodArgumentNotValidException ex =
@@ -76,8 +166,9 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void _04_ShouldReturn500_WhenUnexpectedExceptionThrown() {
-        HttpServletRequest request = mockRequest("/api/orders");
+    void _11_ShouldReturn500_WhenUnexpectedExceptionThrown() {
+        HttpServletRequest request = mockRequest("/api/v1/orders");
+        when(request.getMethod()).thenReturn("GET");
 
         ResponseEntity<ApiResponse<ProblemDetail>> response =
                 handler.handleGeneric(new RuntimeException("boom"), request);
