@@ -506,19 +506,23 @@ Token lifecycle management for account activation and password reset, plus async
 
 ### Model
 
-- `ActivationToken` entity (`id`, `token`, `user`, `expiresAt`, `used`) - migration `V6`
-- `BlacklistedToken` entity (`id`, `token`, `invalidatedAt`) for JWT revocation
-- `PasswordResetToken` entity (`id`, `token`, `user`, `expiresAt`, `used`)
+- `ActivationToken` entity (`id`, `user`, `token`, `createdAt`, `expiresAt`, `validatedAt`) - migration `V6`; 24-hour TTL; `validatedAt` marks a used token (not deleted, auditable); `findByToken` carries `PESSIMISTIC_WRITE` lock to prevent double-use races
+- `BlacklistedToken` entity (`id`, `user`, `token`, `jti`, `blacklistedAt`, `createdAt`, `expiresAt`, `validatedAt`) for JWT revocation; revocation check via `existsByJti` (no lock needed, read-only)
+- `PasswordResetToken` entity (`id`, `user`, `token`, `type`, `expiryDate`) - 1-hour TTL; consumed by deletion (single-use: token is deleted before expiry is checked, so it is never reusable even if validation fails)
 
 ### Tasks
 
-- [ ] `ActivationToken`, `BlacklistedToken`, `PasswordResetToken` entities and repositories
-- [ ] Migration `V6__tokens.sql`
-- [ ] `SecureTokenGenerator`: generates cryptographically random URL-safe tokens
-- [ ] `EmailService` interface and `EmailServiceImpl` (`@Async` with `JavaMailSender`, uses the `AsyncConfig` executor)
-- [ ] `TokenCleanupScheduler` (`@Scheduled`, removes expired/used tokens on a configurable interval)
-- [ ] `InvalidTokenException` handler already present in `GlobalExceptionHandler` (wired by `feature/core-architecture`)
-- [ ] Unit and integration tests
+- [x] `ActivationToken`, `BlacklistedToken`, `PasswordResetToken` entities and repositories (package `entity/token`, `repository`)
+- [x] Migration `V6__init_token_tables.sql` (activation_tokens, password_reset_tokens, blacklisted_tokens with FK to app_users, indexes on user_id)
+- [x] `SecureTokenGenerator` (`@Component`, `SecureRandom`, 32 bytes Base64 URL-safe without padding)
+- [x] `EmailService` interface and `EmailServiceImpl` (`@Async("emailTaskExecutor")` with `JavaMailSender`; uses executor from `AsyncConfig` in `feature/core-architecture`; `app.base-url` property for link generation)
+- [x] `ActivationTokenService`/`ActivationTokenServiceImpl`, `BlacklistedTokenService`/`BlacklistedTokenServiceImpl`, `PasswordResetTokenService`/`PasswordResetTokenServiceImpl`
+- [x] `TokenCleanupScheduler` (`@Scheduled(cron = "0 0 3 * * *")` daily at 3 AM; three separate `@Transactional` methods, one per table; uses `SchedulingConfig` from `feature/core-architecture`)
+- [x] `InvalidTokenException` handler already present in `GlobalExceptionHandler` (wired by `feature/core-architecture`)
+- [x] MailHog service added to `docker-compose.yml`; `application-dev.yml` points to `localhost:1025`; `application-prod.yml` reads `MAIL_HOST`/`MAIL_PORT`/`MAIL_USERNAME`/`MAIL_PASSWORD` from env; `.env.example` updated with `MAIL_*` and `APP_BASE_URL`
+- [x] Unit tests: `ActivationTokenServiceImplTest`, `BlacklistedTokenServiceImplTest`, `PasswordResetTokenServiceImplTest`, `EmailServiceImplTest`, `SecureTokenGeneratorTest`, `TokenCleanupSchedulerTest`
+- [x] Repository tests (Testcontainers): `ActivationTokenRepositoryTest`, `BlacklistedTokenRepositoryTest`, `PasswordResetTokenRepositoryTest`
+- [x] Fixed `@ActiveProfiles("test")` on all three `@SpringBootTest` full-context classes (`RepositoryAuditAspectTest`, `SpringBootTutorialApplicationTests`, `SecurityAuthorizationTest`) so `application-test.yml` (which stubs `spring.mail.host`) is loaded and `JavaMailSender` is auto-configured
 
 ## feature/user-management
 
