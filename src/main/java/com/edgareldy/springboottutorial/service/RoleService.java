@@ -1,8 +1,9 @@
 package com.edgareldy.springboottutorial.service;
 
+import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.role.RoleRequest;
 import com.edgareldy.springboottutorial.dto.role.RoleResponse;
-import java.util.List;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Contract for {@link com.edgareldy.springboottutorial.entity.Role} business
@@ -16,7 +17,7 @@ import java.util.List;
  */
 public interface RoleService {
 
-    List<RoleResponse> findAll();
+    PageResponse<RoleResponse> findAll(Pageable pageable);
 
     RoleResponse create(RoleRequest request);
 
