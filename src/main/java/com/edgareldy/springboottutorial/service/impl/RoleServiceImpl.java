@@ -1,5 +1,6 @@
 package com.edgareldy.springboottutorial.service.impl;
 
+import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.role.RoleRequest;
 import com.edgareldy.springboottutorial.dto.role.RoleResponse;
 import com.edgareldy.springboottutorial.entity.Permission;
@@ -10,8 +11,8 @@ import com.edgareldy.springboottutorial.mapper.RoleMapper;
 import com.edgareldy.springboottutorial.repository.PermissionRepository;
 import com.edgareldy.springboottutorial.repository.RoleRepository;
 import com.edgareldy.springboottutorial.service.RoleService;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,8 +36,8 @@ public class RoleServiceImpl implements RoleService {
     private final RoleMapper roleMapper;
 
     @Override
-    public List<RoleResponse> findAll() {
-        return roleRepository.findAll().stream().map(roleMapper::toResponse).toList();
+    public PageResponse<RoleResponse> findAll(Pageable pageable) {
+        return PageResponse.from(roleRepository.findAll(pageable).map(roleMapper::toResponse));
     }
 
     @Override
