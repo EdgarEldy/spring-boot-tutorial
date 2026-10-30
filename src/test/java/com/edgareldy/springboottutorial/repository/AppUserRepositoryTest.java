@@ -58,4 +58,14 @@ class AppUserRepositoryTest {
         assertThat(appUserRepository.existsByEmailIgnoreCase("ADA@EXAMPLE.COM")).isTrue();
         assertThat(appUserRepository.existsByEmailIgnoreCase("unknown@example.com")).isFalse();
     }
+
+    @Test
+    void _05_ShouldFindUserByEmail_WhenCaseDiffers() {
+        assertThat(appUserRepository.findByEmailIgnoreCase("ADA@EXAMPLE.COM"))
+                .isPresent()
+                .get()
+                .extracting(AppUser::getUsername)
+                .isEqualTo("ada");
+        assertThat(appUserRepository.findByEmailIgnoreCase("unknown@example.com")).isEmpty();
+    }
 }
