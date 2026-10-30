@@ -560,6 +560,7 @@ Admin-facing user management: list, view, activate/deactivate accounts, assign r
 - [x] `UserController` (ADMIN-only, `@PreAuthorize` at class level)
 - [x] Account activation flow (register -> activation email -> `GET /auth/activate?token=`)
 - [x] Password-reset flow (forgot-password -> email -> `POST /auth/reset-password`)
+- [x] `UserResponse` exposes `account_locked` field so the Angular users list can show lock status on initial load
 - [x] Unit and integration tests (service, repository, controller, security authorization)
 
 ## Order of work

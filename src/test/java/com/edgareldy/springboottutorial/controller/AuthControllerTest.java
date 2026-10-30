@@ -81,7 +81,7 @@ class AuthControllerTest {
 
     @Test
     void _01_ShouldReturn201_WhenRegisterRequestValid() throws Exception {
-        UserResponse response = new UserResponse(1L, "ada", "ada@example.com", false,
+        UserResponse response = new UserResponse(1L, "ada", "ada@example.com", false, false,
                 List.of(new RoleResponse(1L, "USER", List.of())));
         when(authService.register(any())).thenReturn(response);
 
@@ -138,7 +138,7 @@ class AuthControllerTest {
 
     @Test
     void _06_ShouldReturnCallerProfile_WhenAuthenticated() throws Exception {
-        when(authService.me("ada")).thenReturn(new UserResponse(1L, "ada", "ada@example.com", true,
+        when(authService.me("ada")).thenReturn(new UserResponse(1L, "ada", "ada@example.com", true, false,
                 List.of(new RoleResponse(1L, "USER", List.of()))));
 
         mockMvc.perform(get("/api/v1/auth/me").with(user("ada").roles("USER")))
@@ -154,7 +154,7 @@ class AuthControllerTest {
 
     @Test
     void _08_ShouldReturn200_WhenActivationTokenValid() throws Exception {
-        UserResponse activated = new UserResponse(1L, "ada", "ada@example.com", true,
+        UserResponse activated = new UserResponse(1L, "ada", "ada@example.com", true, false,
                 List.of(new RoleResponse(1L, "USER", List.of())));
         when(userService.activate("valid-token")).thenReturn(activated);
 
