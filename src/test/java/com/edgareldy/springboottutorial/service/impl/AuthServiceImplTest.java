@@ -12,6 +12,7 @@ import com.edgareldy.springboottutorial.dto.auth.AuthResponse;
 import com.edgareldy.springboottutorial.dto.auth.LoginRequest;
 import com.edgareldy.springboottutorial.dto.auth.RegisterRequest;
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
+import com.edgareldy.springboottutorial.dto.role.RoleResponse;
 import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
@@ -24,6 +25,7 @@ import com.edgareldy.springboottutorial.service.ActivationTokenService;
 import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import com.edgareldy.springboottutorial.service.EmailService;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -93,7 +95,8 @@ class AuthServiceImplTest {
         appUser = AppUser.builder()
                 .id(1L).username("ada").email("ada@example.com").password("hashed")
                 .enabled(false).roles(Set.of(userRole)).build();
-        userResponse = new UserResponse(1L, "ada", "ada@example.com", false, Set.of("USER"));
+        userResponse = new UserResponse(1L, "ada", "ada@example.com", false,
+                List.of(new RoleResponse(1L, "USER", List.of())));
     }
 
     @Test
@@ -142,7 +145,8 @@ class AuthServiceImplTest {
     @Test
     void _04_ShouldReturnToken_WhenCredentialsValid() {
         LoginRequest request = new LoginRequest("ada", "password123");
-        when(jwtService.generateToken("ada")).thenReturn("signed-token");
+        when(appUserRepository.findByUsername("ada")).thenReturn(Optional.of(appUser));
+        when(jwtService.generateToken(appUser)).thenReturn("signed-token");
 
         AuthResponse response = authService.login(request);
 
@@ -158,7 +162,7 @@ class AuthServiceImplTest {
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(BadCredentialsException.class);
 
-        verify(jwtService, never()).generateToken(any());
+        verify(jwtService, never()).generateToken(any(AppUser.class));
     }
 
     @Test
