@@ -540,17 +540,21 @@ Admin-facing user management: list, view, activate/deactivate accounts, assign r
 | GET | `/api/v1/users/{id}` | User detail | ADMIN |
 | PUT | `/api/v1/users/{id}/roles` | Assign roles to a user | ADMIN |
 | DELETE | `/api/v1/users/{id}` | Delete a user | ADMIN |
-| POST | `/api/v1/auth/activate` | Activate account with token | Public |
+| GET | `/api/v1/auth/activate` | Activate account with token | Public |
 | POST | `/api/v1/auth/forgot-password` | Request a password-reset email | Public |
 | POST | `/api/v1/auth/reset-password` | Reset password with token | Public |
 
 ### Tasks
 
-- [ ] Migration `V7__role_user.sql` (`role_user` join table)
-- [ ] `UserController` (ADMIN-only except activation/reset endpoints)
-- [ ] Account activation flow (register -> activation email -> activate)
-- [ ] Password-reset flow (forgot-password -> email -> reset)
-- [ ] Unit and integration tests
+- [x] Migration `V7__role_user.sql` (`role_user` join table, seeds ADMIN/USER roles, migrates enum data)
+- [x] `AppUser` refactored from `@Enumerated Role` to `@ManyToMany Set<Role>` + `boolean enabled`
+- [x] `UserDetailsServiceImpl` maps roles to `ROLE_` prefixed authorities, propagates `disabled(!enabled)`
+- [x] `AppUserRepository.findByUsername` annotated `@EntityGraph(attributePaths="roles")` to avoid `LazyInitializationException` in `JwtAuthFilter`
+- [x] `AuthServiceImpl.register()` sets `enabled=false`, loads USER role from DB, sends activation email
+- [x] `UserController` (ADMIN-only, `@PreAuthorize` at class level)
+- [x] Account activation flow (register -> activation email -> `GET /auth/activate?token=`)
+- [x] Password-reset flow (forgot-password -> email -> `POST /auth/reset-password`)
+- [x] Unit and integration tests (service, repository, controller, security authorization)
 
 ## Order of work
 
