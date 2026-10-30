@@ -3,7 +3,6 @@ package com.edgareldy.springboottutorial.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.edgareldy.springboottutorial.entity.user.AppUser;
-import com.edgareldy.springboottutorial.entity.user.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +30,7 @@ class AppUserRepositoryTest {
     @BeforeEach
     void setUp() {
         appUserRepository.save(AppUser.builder()
-                .username("ada").email("ada@example.com").password("hashed-password").role(Role.USER).build());
+                .username("ada").email("ada@example.com").password("hashed-password").enabled(true).build());
     }
 
     @Test
