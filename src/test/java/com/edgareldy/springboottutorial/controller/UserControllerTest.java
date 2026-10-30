@@ -69,7 +69,7 @@ class UserControllerTest {
 
     @Test
     void _01_ShouldReturn200WithPage_WhenFindingAll() throws Exception {
-        UserResponse userResponse = new UserResponse(1L, "ada", "ada@example.com", true,
+        UserResponse userResponse = new UserResponse(1L, "ada", "ada@example.com", true, false,
                 List.of(new RoleResponse(1L, "USER", List.of())));
         PageResponse<UserResponse> page = PageResponse.from(
                 new org.springframework.data.domain.PageImpl<>(List.of(userResponse)));
@@ -83,7 +83,7 @@ class UserControllerTest {
 
     @Test
     void _02_ShouldReturn200_WhenFindingById() throws Exception {
-        UserResponse userResponse = new UserResponse(1L, "ada", "ada@example.com", true,
+        UserResponse userResponse = new UserResponse(1L, "ada", "ada@example.com", true, false,
                 List.of(new RoleResponse(1L, "USER", List.of())));
         when(userService.findById(1L)).thenReturn(userResponse);
 
@@ -102,7 +102,7 @@ class UserControllerTest {
 
     @Test
     void _04_ShouldReturn200_WhenAssigningRoles() throws Exception {
-        UserResponse updated = new UserResponse(1L, "ada", "ada@example.com", true,
+        UserResponse updated = new UserResponse(1L, "ada", "ada@example.com", true, false,
                 List.of(new RoleResponse(1L, "USER", List.of()), new RoleResponse(2L, "ADMIN", List.of())));
         when(userService.assignRoles(eq(1L), any())).thenReturn(updated);
 
@@ -151,13 +151,14 @@ class UserControllerTest {
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
     void _09_ShouldReturn200_WhenLockingUser() throws Exception {
-        UserResponse locked = new UserResponse(1L, "target", "target@example.com", true,
+        UserResponse locked = new UserResponse(1L, "target", "target@example.com", true, true,
                 List.of(new RoleResponse(1L, "USER", List.of())));
         when(userService.lock(eq(1L), eq("admin"))).thenReturn(locked);
 
         mockMvc.perform(patch("/api/v1/users/1/lock"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.username").value("target"));
+                .andExpect(jsonPath("$.data.username").value("target"))
+                .andExpect(jsonPath("$.data.account_locked").value(true));
     }
 
     @Test
@@ -172,18 +173,19 @@ class UserControllerTest {
 
     @Test
     void _11_ShouldReturn200_WhenUnlockingUser() throws Exception {
-        UserResponse unlocked = new UserResponse(1L, "target", "target@example.com", true,
+        UserResponse unlocked = new UserResponse(1L, "target", "target@example.com", true, false,
                 List.of(new RoleResponse(1L, "USER", List.of())));
         when(userService.unlock(1L)).thenReturn(unlocked);
 
         mockMvc.perform(patch("/api/v1/users/1/unlock"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.username").value("target"));
+                .andExpect(jsonPath("$.data.username").value("target"))
+                .andExpect(jsonPath("$.data.account_locked").value(false));
     }
 
     @Test
     void _12_ShouldReturn200_WhenUpdatingProfile() throws Exception {
-        UserResponse updated = new UserResponse(1L, "newname", "new@example.com", true,
+        UserResponse updated = new UserResponse(1L, "newname", "new@example.com", true, false,
                 List.of(new RoleResponse(1L, "USER", List.of())));
         when(userService.updateProfile(eq(1L), any())).thenReturn(updated);
 

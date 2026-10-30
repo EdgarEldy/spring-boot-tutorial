@@ -84,7 +84,7 @@ class UserServiceImplTest {
         appUser = AppUser.builder()
                 .id(1L).username("ada").email("ada@example.com").password("hashed")
                 .enabled(false).roles(Set.of(userRole)).build();
-        userResponse = new UserResponse(1L, "ada", "ada@example.com", false,
+        userResponse = new UserResponse(1L, "ada", "ada@example.com", false, false,
                 List.of(new RoleResponse(1L, "USER", List.of())));
     }
 
@@ -123,7 +123,7 @@ class UserServiceImplTest {
         AppUser saved = AppUser.builder()
                 .id(1L).username("ada").email("ada@example.com").password("hashed")
                 .enabled(true).roles(Set.of(userRole, adminRole)).build();
-        UserResponse savedResponse = new UserResponse(1L, "ada", "ada@example.com", true,
+        UserResponse savedResponse = new UserResponse(1L, "ada", "ada@example.com", true, false,
                 List.of(new RoleResponse(1L, "USER", List.of()), new RoleResponse(2L, "ADMIN", List.of())));
 
         when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
@@ -171,7 +171,7 @@ class UserServiceImplTest {
         AppUser enabled = AppUser.builder()
                 .id(1L).username("ada").email("ada@example.com").password("hashed")
                 .enabled(true).roles(Set.of(userRole)).build();
-        UserResponse enabledResponse = new UserResponse(1L, "ada", "ada@example.com", true,
+        UserResponse enabledResponse = new UserResponse(1L, "ada", "ada@example.com", true, false,
                 List.of(new RoleResponse(1L, "USER", List.of())));
         when(appUserRepository.save(appUser)).thenReturn(enabled);
         when(appUserMapper.toResponse(enabled)).thenReturn(enabledResponse);
@@ -218,7 +218,7 @@ class UserServiceImplTest {
         AppUser target = AppUser.builder()
                 .id(2L).username("target").email("target@example.com").password("hashed")
                 .enabled(true).roles(Set.of(userRole)).build();
-        UserResponse lockedResponse = new UserResponse(2L, "target", "target@example.com", true,
+        UserResponse lockedResponse = new UserResponse(2L, "target", "target@example.com", true, true,
                 List.of(new RoleResponse(1L, "USER", List.of())));
         when(appUserRepository.findById(2L)).thenReturn(Optional.of(target));
         when(appUserRepository.save(target)).thenReturn(target);
