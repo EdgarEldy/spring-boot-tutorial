@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.edgareldy.springboottutorial.config.MethodSecurityConfig;
+import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.permission.PermissionResponse;
 import com.edgareldy.springboottutorial.dto.role.RoleRequest;
 import com.edgareldy.springboottutorial.dto.role.RoleResponse;
@@ -72,14 +73,18 @@ class RoleControllerTest {
         return new RoleResponse(1L, "ADMIN", List.of(new PermissionResponse(1L, "PRODUCT", "WRITE")));
     }
 
+    private static PageResponse<RoleResponse> pagedResponse() {
+        return new PageResponse<>(List.of(savedResponse()), 0, 20, 1, 1);
+    }
+
     @Test
     @WithMockUser(roles = "ADMIN")
     void _01_ShouldReturn200_WhenAdminListsRoles() throws Exception {
-        when(roleService.findAll()).thenReturn(List.of(savedResponse()));
+        when(roleService.findAll(any())).thenReturn(pagedResponse());
 
         mockMvc.perform(get("/api/v1/roles"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].role_name").value("ADMIN"));
+                .andExpect(jsonPath("$.data.content[0].role_name").value("ADMIN"));
     }
 
     @Test
@@ -127,8 +132,21 @@ class RoleControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "USER")
+    void _06_ShouldReturn403_WhenNonAdminCreatesRole() throws Exception {
+        RoleRequest request = new RoleRequest("ADMIN");
+
+        mockMvc.perform(post("/api/v1/roles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+
+        verify(roleService, never()).create(any());
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
-    void _06_ShouldReturn200_WhenUpdateSucceeds() throws Exception {
+    void _07_ShouldReturn200_WhenUpdateSucceeds() throws Exception {
         RoleRequest request = new RoleRequest("MODERATOR");
         RoleResponse updated = new RoleResponse(1L, "MODERATOR", List.of());
         when(roleService.update(eq(1L), any())).thenReturn(updated);
@@ -142,7 +160,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void _07_ShouldReturn404_WhenUpdatingMissingRole() throws Exception {
+    void _08_ShouldReturn404_WhenUpdatingMissingRole() throws Exception {
         RoleRequest request = new RoleRequest("MODERATOR");
         when(roleService.update(eq(99L), any()))
                 .thenThrow(new ResourceNotFoundException("Role not found with id 99"));
@@ -155,7 +173,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void _08_ShouldReturn200_WhenDeleteSucceeds() throws Exception {
+    void _09_ShouldReturn200_WhenDeleteSucceeds() throws Exception {
         mockMvc.perform(delete("/api/v1/roles/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
@@ -163,7 +181,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void _09_ShouldReturn403_WhenNonAdminDeletesRole() throws Exception {
+    void _10_ShouldReturn403_WhenNonAdminDeletesRole() throws Exception {
         mockMvc.perform(delete("/api/v1/roles/1"))
                 .andExpect(status().isForbidden());
 
@@ -172,7 +190,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void _10_ShouldReturn404_WhenDeletingMissingRole() throws Exception {
+    void _11_ShouldReturn404_WhenDeletingMissingRole() throws Exception {
         doThrow(new ResourceNotFoundException("Role not found with id 99"))
                 .when(roleService).delete(eq(99L));
 
@@ -182,7 +200,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void _11_ShouldReturn200_WhenAssignPermissionSucceeds() throws Exception {
+    void _12_ShouldReturn200_WhenAssignPermissionSucceeds() throws Exception {
         when(roleService.assignPermission(1L, 1L)).thenReturn(savedResponse());
 
         mockMvc.perform(post("/api/v1/roles/1/permissions/1"))
@@ -192,7 +210,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void _12_ShouldReturn422_WhenPermissionAlreadyAssigned() throws Exception {
+    void _13_ShouldReturn422_WhenPermissionAlreadyAssigned() throws Exception {
         when(roleService.assignPermission(1L, 1L))
                 .thenThrow(new BusinessRuleException("Permission 1 is already assigned to role 1"));
 
@@ -202,7 +220,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void _13_ShouldReturn200_WhenRemovePermissionSucceeds() throws Exception {
+    void _14_ShouldReturn200_WhenRemovePermissionSucceeds() throws Exception {
         when(roleService.removePermission(1L, 1L)).thenReturn(new RoleResponse(1L, "ADMIN", List.of()));
 
         mockMvc.perform(delete("/api/v1/roles/1/permissions/1"))
@@ -211,7 +229,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void _14_ShouldReturn422_WhenPermissionNotAssigned() throws Exception {
+    void _15_ShouldReturn422_WhenPermissionNotAssigned() throws Exception {
         when(roleService.removePermission(1L, 1L))
                 .thenThrow(new BusinessRuleException("Permission 1 is not assigned to role 1"));
 
