@@ -6,8 +6,8 @@ import com.edgareldy.springboottutorial.dto.auth.RegisterRequest;
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
 
 /**
- * Contract for registration, login, and profile lookup. Controllers and
- * tests depend on this interface, never on its implementation directly.
+ * Contract for registration, login, logout, and profile lookup. Controllers
+ * and tests depend on this interface, never on its implementation directly.
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
  * Author : edgar.muhamyangabo
@@ -19,6 +19,8 @@ public interface AuthService {
     UserResponse register(RegisterRequest request);
 
     AuthResponse login(LoginRequest request);
+
+    void logout(String rawToken);
 
     UserResponse me(String username);
 }
