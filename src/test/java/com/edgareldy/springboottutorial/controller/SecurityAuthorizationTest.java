@@ -209,4 +209,73 @@ class SecurityAuthorizationTest {
                         .content(objectMapper.writeValueAsString(wrongPassword)))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void _20_ShouldReturn401_WhenValidTokenBelongsToLockedAccount() throws Exception {
+        RegisterRequest register = new RegisterRequest("wozniak", "wozniak@example.com", "password123");
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(register)))
+                .andExpect(status().isCreated());
+
+        appUserRepository.findByUsername("wozniak").ifPresent(u -> {
+            u.setEnabled(true);
+            appUserRepository.saveAndFlush(u);
+        });
+
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequest("wozniak", "password123"))))
+                .andExpect(status().isOk())
+                .andReturn();
+        String token = objectMapper.readTree(loginResult.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+
+        // Account is now accessible with the token.
+        mockMvc.perform(get("/api/v1/customers").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        // Lock the account directly.
+        appUserRepository.findByUsername("wozniak").ifPresent(u -> {
+            u.setAccountLocked(true);
+            appUserRepository.saveAndFlush(u);
+        });
+
+        // The same token must no longer grant access once the account is locked.
+        mockMvc.perform(get("/api/v1/customers").header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void _19_ShouldReturn401_WhenTokenIsUsedAfterLogout() throws Exception {
+        RegisterRequest register = new RegisterRequest("lovelace", "lovelace@example.com", "password123");
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(register)))
+                .andExpect(status().isCreated());
+
+        // Registration sets enabled=false pending activation. Enable the account
+        // directly to simulate the activation step for this end-to-end JWT test.
+        appUserRepository.findByUsername("lovelace").ifPresent(u -> {
+            u.setEnabled(true);
+            appUserRepository.saveAndFlush(u);
+        });
+
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequest("lovelace", "password123"))))
+                .andExpect(status().isOk())
+                .andReturn();
+        String token = objectMapper.readTree(loginResult.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+
+        mockMvc.perform(get("/api/v1/customers").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/auth/logout").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/customers").header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized());
+    }
 }

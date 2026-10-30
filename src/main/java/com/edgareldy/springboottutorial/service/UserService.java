@@ -2,6 +2,7 @@ package com.edgareldy.springboottutorial.service;
 
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
 import com.edgareldy.springboottutorial.dto.user.AssignRolesRequest;
+import com.edgareldy.springboottutorial.dto.user.UpdateProfileRequest;
 import org.springframework.data.domain.Pageable;
 
 /**
@@ -23,6 +24,12 @@ public interface UserService {
     UserResponse assignRoles(Long userId, AssignRolesRequest request);
 
     void delete(Long id);
+
+    UserResponse lock(Long id, String currentUsername);
+
+    UserResponse unlock(Long id);
+
+    UserResponse updateProfile(Long id, UpdateProfileRequest request);
 
     UserResponse activate(String token);
 

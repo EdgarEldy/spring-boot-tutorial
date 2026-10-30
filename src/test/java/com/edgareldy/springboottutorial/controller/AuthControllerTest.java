@@ -1,6 +1,7 @@
 package com.edgareldy.springboottutorial.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -16,14 +17,16 @@ import com.edgareldy.springboottutorial.dto.auth.LoginRequest;
 import com.edgareldy.springboottutorial.dto.auth.RegisterRequest;
 import com.edgareldy.springboottutorial.dto.auth.ResetPasswordRequest;
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
+import com.edgareldy.springboottutorial.dto.role.RoleResponse;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.InvalidTokenException;
 import com.edgareldy.springboottutorial.security.JwtAccessDeniedHandler;
 import com.edgareldy.springboottutorial.security.JwtAuthenticationEntryPoint;
 import com.edgareldy.springboottutorial.security.JwtService;
 import com.edgareldy.springboottutorial.service.AuthService;
+import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import com.edgareldy.springboottutorial.service.UserService;
-import java.util.Set;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -72,9 +75,14 @@ class AuthControllerTest {
     @MockitoBean
     private UserDetailsService userDetailsService;
 
+    // JwtAuthFilter also needs BlacklistedTokenService to construct.
+    @MockitoBean
+    private BlacklistedTokenService blacklistedTokenService;
+
     @Test
     void _01_ShouldReturn201_WhenRegisterRequestValid() throws Exception {
-        UserResponse response = new UserResponse(1L, "ada", "ada@example.com", false, Set.of("USER"));
+        UserResponse response = new UserResponse(1L, "ada", "ada@example.com", false,
+                List.of(new RoleResponse(1L, "USER", List.of())));
         when(authService.register(any())).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -130,7 +138,8 @@ class AuthControllerTest {
 
     @Test
     void _06_ShouldReturnCallerProfile_WhenAuthenticated() throws Exception {
-        when(authService.me("ada")).thenReturn(new UserResponse(1L, "ada", "ada@example.com", true, Set.of("USER")));
+        when(authService.me("ada")).thenReturn(new UserResponse(1L, "ada", "ada@example.com", true,
+                List.of(new RoleResponse(1L, "USER", List.of()))));
 
         mockMvc.perform(get("/api/v1/auth/me").with(user("ada").roles("USER")))
                 .andExpect(status().isOk())
@@ -145,7 +154,8 @@ class AuthControllerTest {
 
     @Test
     void _08_ShouldReturn200_WhenActivationTokenValid() throws Exception {
-        UserResponse activated = new UserResponse(1L, "ada", "ada@example.com", true, Set.of("USER"));
+        UserResponse activated = new UserResponse(1L, "ada", "ada@example.com", true,
+                List.of(new RoleResponse(1L, "USER", List.of())));
         when(userService.activate("valid-token")).thenReturn(activated);
 
         mockMvc.perform(get("/api/v1/auth/activate").param("token", "valid-token"))
@@ -200,5 +210,23 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(
                                 new ResetPasswordRequest("bad-token", "newpassword"))))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void _14_ShouldReturn200_WhenLogoutWithValidToken() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .header("Authorization", "Bearer signed-token")
+                        .with(user("ada").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Logged out successfully"));
+
+        verify(authService).logout("signed-token");
+    }
+
+    @Test
+    void _15_ShouldReturn401_WhenLogoutWithoutAuthentication() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .header("Authorization", "Bearer signed-token"))
+                .andExpect(status().isUnauthorized());
     }
 }

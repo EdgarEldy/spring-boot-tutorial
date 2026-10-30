@@ -20,6 +20,7 @@ import com.edgareldy.springboottutorial.dto.order.OrderResponse;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.security.JwtService;
+import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import com.edgareldy.springboottutorial.service.OrderService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -64,6 +65,9 @@ class OrderControllerTest {
 
     @MockitoBean
     private UserDetailsService userDetailsService;
+
+    @MockitoBean
+    private BlacklistedTokenService blacklistedTokenService;
 
     private static OrderResponse sampleResponse() {
         CustomerResponse customer = new CustomerResponse(

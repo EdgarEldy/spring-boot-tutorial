@@ -3,6 +3,7 @@ package com.edgareldy.springboottutorial.service.impl;
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.user.AssignRolesRequest;
+import com.edgareldy.springboottutorial.dto.user.UpdateProfileRequest;
 import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
@@ -76,6 +77,44 @@ public class UserServiceImpl implements UserService {
     public void delete(Long id) {
         AppUser user = getUserOrThrow(id);
         appUserRepository.delete(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse lock(Long id, String currentUsername) {
+        AppUser user = getUserOrThrow(id);
+        if (user.getUsername().equals(currentUsername)) {
+            throw new BusinessRuleException("Admin cannot lock their own account");
+        }
+        user.setAccountLocked(true);
+        return appUserMapper.toResponse(appUserRepository.save(user));
+    }
+
+    @Override
+    @Transactional
+    public UserResponse unlock(Long id) {
+        AppUser user = getUserOrThrow(id);
+        user.setAccountLocked(false);
+        return appUserMapper.toResponse(appUserRepository.save(user));
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateProfile(Long id, UpdateProfileRequest request) {
+        AppUser user = getUserOrThrow(id);
+        if (request.username() != null && !request.username().equals(user.getUsername())) {
+            if (appUserRepository.existsByUsername(request.username())) {
+                throw new BusinessRuleException("Username " + request.username() + " is already in use");
+            }
+            user.setUsername(request.username());
+        }
+        if (request.email() != null && !request.email().equalsIgnoreCase(user.getEmail())) {
+            if (appUserRepository.existsByEmailIgnoreCase(request.email())) {
+                throw new BusinessRuleException("Email " + request.email() + " is already in use");
+            }
+            user.setEmail(request.email());
+        }
+        return appUserMapper.toResponse(appUserRepository.save(user));
     }
 
     @Override

@@ -6,17 +6,22 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
+import org.springframework.security.test.context.support.WithMockUser;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
+import com.edgareldy.springboottutorial.dto.role.RoleResponse;
 import com.edgareldy.springboottutorial.dto.user.AssignRolesRequest;
+import com.edgareldy.springboottutorial.dto.user.UpdateProfileRequest;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.security.JwtService;
+import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import com.edgareldy.springboottutorial.service.UserService;
 import java.util.List;
 import java.util.Set;
@@ -59,9 +64,13 @@ class UserControllerTest {
     @MockitoBean
     private UserDetailsService userDetailsService;
 
+    @MockitoBean
+    private BlacklistedTokenService blacklistedTokenService;
+
     @Test
     void _01_ShouldReturn200WithPage_WhenFindingAll() throws Exception {
-        UserResponse userResponse = new UserResponse(1L, "ada", "ada@example.com", true, Set.of("USER"));
+        UserResponse userResponse = new UserResponse(1L, "ada", "ada@example.com", true,
+                List.of(new RoleResponse(1L, "USER", List.of())));
         PageResponse<UserResponse> page = PageResponse.from(
                 new org.springframework.data.domain.PageImpl<>(List.of(userResponse)));
         when(userService.findAll(any())).thenReturn(page);
@@ -74,7 +83,8 @@ class UserControllerTest {
 
     @Test
     void _02_ShouldReturn200_WhenFindingById() throws Exception {
-        UserResponse userResponse = new UserResponse(1L, "ada", "ada@example.com", true, Set.of("USER"));
+        UserResponse userResponse = new UserResponse(1L, "ada", "ada@example.com", true,
+                List.of(new RoleResponse(1L, "USER", List.of())));
         when(userService.findById(1L)).thenReturn(userResponse);
 
         mockMvc.perform(get("/api/v1/users/1"))
@@ -92,7 +102,8 @@ class UserControllerTest {
 
     @Test
     void _04_ShouldReturn200_WhenAssigningRoles() throws Exception {
-        UserResponse updated = new UserResponse(1L, "ada", "ada@example.com", true, Set.of("ADMIN", "USER"));
+        UserResponse updated = new UserResponse(1L, "ada", "ada@example.com", true,
+                List.of(new RoleResponse(1L, "USER", List.of()), new RoleResponse(2L, "ADMIN", List.of())));
         when(userService.assignRoles(eq(1L), any())).thenReturn(updated);
 
         mockMvc.perform(put("/api/v1/users/1/roles")
@@ -135,5 +146,64 @@ class UserControllerTest {
 
         mockMvc.perform(delete("/api/v1/users/99"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void _09_ShouldReturn200_WhenLockingUser() throws Exception {
+        UserResponse locked = new UserResponse(1L, "target", "target@example.com", true,
+                List.of(new RoleResponse(1L, "USER", List.of())));
+        when(userService.lock(eq(1L), eq("admin"))).thenReturn(locked);
+
+        mockMvc.perform(patch("/api/v1/users/1/lock"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.username").value("target"));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void _10_ShouldReturn422_WhenAdminLocksOwnAccount() throws Exception {
+        when(userService.lock(eq(1L), any()))
+                .thenThrow(new BusinessRuleException("Admin cannot lock their own account"));
+
+        mockMvc.perform(patch("/api/v1/users/1/lock"))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    void _11_ShouldReturn200_WhenUnlockingUser() throws Exception {
+        UserResponse unlocked = new UserResponse(1L, "target", "target@example.com", true,
+                List.of(new RoleResponse(1L, "USER", List.of())));
+        when(userService.unlock(1L)).thenReturn(unlocked);
+
+        mockMvc.perform(patch("/api/v1/users/1/unlock"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.username").value("target"));
+    }
+
+    @Test
+    void _12_ShouldReturn200_WhenUpdatingProfile() throws Exception {
+        UserResponse updated = new UserResponse(1L, "newname", "new@example.com", true,
+                List.of(new RoleResponse(1L, "USER", List.of())));
+        when(userService.updateProfile(eq(1L), any())).thenReturn(updated);
+
+        mockMvc.perform(put("/api/v1/users/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new UpdateProfileRequest("newname", "new@example.com"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.username").value("newname"));
+    }
+
+    @Test
+    void _13_ShouldReturn422_WhenUsernameAlreadyUsed() throws Exception {
+        when(userService.updateProfile(eq(1L), any()))
+                .thenThrow(new BusinessRuleException("Username newname is already in use"));
+
+        mockMvc.perform(put("/api/v1/users/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new UpdateProfileRequest("newname", null))))
+                .andExpect(status().isUnprocessableEntity());
     }
 }

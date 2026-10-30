@@ -10,7 +10,9 @@ import static org.mockito.Mockito.when;
 
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
+import com.edgareldy.springboottutorial.dto.role.RoleResponse;
 import com.edgareldy.springboottutorial.dto.user.AssignRolesRequest;
+import com.edgareldy.springboottutorial.dto.user.UpdateProfileRequest;
 import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
@@ -36,8 +38,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
  * Unit tests for {@link UserServiceImpl}, with all dependencies mocked.
- * Covers admin user management (findAll, findById, assignRoles, delete) and
- * the three token-driven flows (activate, forgotPassword, resetPassword).
+ * Covers admin user management (findAll, findById, assignRoles, delete,
+ * lock, unlock, updateProfile) and the three token-driven flows (activate,
+ * forgotPassword, resetPassword).
  * <p>
  * Created edgar.muhamyangabo on 10/30/26
  * Author : edgar.muhamyangabo
@@ -81,7 +84,8 @@ class UserServiceImplTest {
         appUser = AppUser.builder()
                 .id(1L).username("ada").email("ada@example.com").password("hashed")
                 .enabled(false).roles(Set.of(userRole)).build();
-        userResponse = new UserResponse(1L, "ada", "ada@example.com", false, Set.of("USER"));
+        userResponse = new UserResponse(1L, "ada", "ada@example.com", false,
+                List.of(new RoleResponse(1L, "USER", List.of())));
     }
 
     @Test
@@ -119,7 +123,8 @@ class UserServiceImplTest {
         AppUser saved = AppUser.builder()
                 .id(1L).username("ada").email("ada@example.com").password("hashed")
                 .enabled(true).roles(Set.of(userRole, adminRole)).build();
-        UserResponse savedResponse = new UserResponse(1L, "ada", "ada@example.com", true, Set.of("USER", "ADMIN"));
+        UserResponse savedResponse = new UserResponse(1L, "ada", "ada@example.com", true,
+                List.of(new RoleResponse(1L, "USER", List.of()), new RoleResponse(2L, "ADMIN", List.of())));
 
         when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
         when(roleRepository.findAllById(Set.of(1L, 2L))).thenReturn(List.of(userRole, adminRole));
@@ -166,7 +171,8 @@ class UserServiceImplTest {
         AppUser enabled = AppUser.builder()
                 .id(1L).username("ada").email("ada@example.com").password("hashed")
                 .enabled(true).roles(Set.of(userRole)).build();
-        UserResponse enabledResponse = new UserResponse(1L, "ada", "ada@example.com", true, Set.of("USER"));
+        UserResponse enabledResponse = new UserResponse(1L, "ada", "ada@example.com", true,
+                List.of(new RoleResponse(1L, "USER", List.of())));
         when(appUserRepository.save(appUser)).thenReturn(enabled);
         when(appUserMapper.toResponse(enabled)).thenReturn(enabledResponse);
 
@@ -205,5 +211,84 @@ class UserServiceImplTest {
 
         assertThat(appUser.getPassword()).isEqualTo("new-hashed");
         verify(appUserRepository).save(appUser);
+    }
+
+    @Test
+    void _12_ShouldLockUser_WhenCallerIsNotTarget() {
+        AppUser target = AppUser.builder()
+                .id(2L).username("target").email("target@example.com").password("hashed")
+                .enabled(true).roles(Set.of(userRole)).build();
+        UserResponse lockedResponse = new UserResponse(2L, "target", "target@example.com", true,
+                List.of(new RoleResponse(1L, "USER", List.of())));
+        when(appUserRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(appUserRepository.save(target)).thenReturn(target);
+        when(appUserMapper.toResponse(target)).thenReturn(lockedResponse);
+
+        UserResponse result = userService.lock(2L, "admin");
+
+        assertThat(result).isEqualTo(lockedResponse);
+        assertThat(target.isAccountLocked()).isTrue();
+    }
+
+    @Test
+    void _13_ShouldThrowBusinessRule_WhenAdminLocksOwnAccount() {
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
+
+        assertThatThrownBy(() -> userService.lock(1L, "ada"))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Admin cannot lock their own account");
+
+        verify(appUserRepository, never()).save(any());
+    }
+
+    @Test
+    void _14_ShouldUnlockUser_WhenCalled() {
+        appUser.setAccountLocked(true);
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
+        when(appUserRepository.save(appUser)).thenReturn(appUser);
+        when(appUserMapper.toResponse(appUser)).thenReturn(userResponse);
+
+        userService.unlock(1L);
+
+        assertThat(appUser.isAccountLocked()).isFalse();
+    }
+
+    @Test
+    void _15_ShouldUpdateUsername_WhenNewUsernameAvailable() {
+        UpdateProfileRequest request = new UpdateProfileRequest("newname", null);
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
+        when(appUserRepository.existsByUsername("newname")).thenReturn(false);
+        when(appUserRepository.save(appUser)).thenReturn(appUser);
+        when(appUserMapper.toResponse(appUser)).thenReturn(userResponse);
+
+        userService.updateProfile(1L, request);
+
+        assertThat(appUser.getUsername()).isEqualTo("newname");
+    }
+
+    @Test
+    void _16_ShouldThrowBusinessRule_WhenNewUsernameAlreadyUsed() {
+        UpdateProfileRequest request = new UpdateProfileRequest("taken", null);
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
+        when(appUserRepository.existsByUsername("taken")).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.updateProfile(1L, request))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("already in use");
+
+        verify(appUserRepository, never()).save(any());
+    }
+
+    @Test
+    void _17_ShouldUpdateEmail_WhenNewEmailAvailable() {
+        UpdateProfileRequest request = new UpdateProfileRequest(null, "new@example.com");
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
+        when(appUserRepository.existsByEmailIgnoreCase("new@example.com")).thenReturn(false);
+        when(appUserRepository.save(appUser)).thenReturn(appUser);
+        when(appUserMapper.toResponse(appUser)).thenReturn(userResponse);
+
+        userService.updateProfile(1L, request);
+
+        assertThat(appUser.getEmail()).isEqualTo("new@example.com");
     }
 }

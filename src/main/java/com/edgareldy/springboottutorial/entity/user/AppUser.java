@@ -54,6 +54,10 @@ public class AppUser {
     @Column(nullable = false)
     private boolean enabled;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean accountLocked = false;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "role_user",

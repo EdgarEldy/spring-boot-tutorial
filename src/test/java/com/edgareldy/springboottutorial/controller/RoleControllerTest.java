@@ -23,6 +23,7 @@ import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.security.CustomPermissionEvaluator;
 import com.edgareldy.springboottutorial.security.JwtService;
+import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import com.edgareldy.springboottutorial.service.RoleService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -68,6 +69,9 @@ class RoleControllerTest {
 
     @MockitoBean
     private UserDetailsService userDetailsService;
+
+    @MockitoBean
+    private BlacklistedTokenService blacklistedTokenService;
 
     private static RoleResponse savedResponse() {
         return new RoleResponse(1L, "ADMIN", List.of(new PermissionResponse(1L, "PRODUCT", "WRITE")));
