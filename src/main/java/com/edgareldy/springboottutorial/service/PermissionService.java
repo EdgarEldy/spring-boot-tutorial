@@ -1,8 +1,9 @@
 package com.edgareldy.springboottutorial.service;
 
+import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.permission.PermissionRequest;
 import com.edgareldy.springboottutorial.dto.permission.PermissionResponse;
-import java.util.List;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Contract for {@link com.edgareldy.springboottutorial.entity.Permission}
@@ -16,7 +17,7 @@ import java.util.List;
  */
 public interface PermissionService {
 
-    List<PermissionResponse> findAll();
+    PageResponse<PermissionResponse> findAll(Pageable pageable);
 
     PermissionResponse create(PermissionRequest request);
 
