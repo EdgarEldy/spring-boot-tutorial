@@ -20,6 +20,7 @@ import com.edgareldy.springboottutorial.security.JwtAccessDeniedHandler;
 import com.edgareldy.springboottutorial.security.JwtAuthenticationEntryPoint;
 import com.edgareldy.springboottutorial.security.JwtService;
 import com.edgareldy.springboottutorial.service.AuthService;
+import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -64,6 +65,10 @@ class AuthControllerTest {
 
     @MockitoBean
     private UserDetailsService userDetailsService;
+
+    // JwtAuthFilter also needs BlacklistedTokenService to construct.
+    @MockitoBean
+    private BlacklistedTokenService blacklistedTokenService;
 
     @Test
     void _01_ShouldReturn201_WhenRegisterRequestValid() throws Exception {
@@ -133,6 +138,22 @@ class AuthControllerTest {
     @Test
     void _07_ShouldReturn401_WhenNotAuthenticated() throws Exception {
         mockMvc.perform(get("/api/v1/auth/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void _08_ShouldReturn200_WhenLogoutWithValidToken() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .header("Authorization", "Bearer signed-token")
+                        .with(user("ada").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Logged out successfully"));
+    }
+
+    @Test
+    void _09_ShouldReturn401_WhenLogoutWithoutAuthentication() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .header("Authorization", "Bearer signed-token"))
                 .andExpect(status().isUnauthorized());
     }
 }
