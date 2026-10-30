@@ -2,6 +2,7 @@ package com.edgareldy.springboottutorial.security;
 
 import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import io.jsonwebtoken.JwtException;
+import org.springframework.dao.DataAccessException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -66,9 +67,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
-        } catch (JwtException | IllegalArgumentException e) {
-            // Malformed, expired, or tampered token: leave the SecurityContext empty
-            // so the request is treated as anonymous instead of failing with a 500.
+        } catch (JwtException | IllegalArgumentException | DataAccessException e) {
+            // Malformed, expired, or tampered token, or a transient DB failure on
+            // the blacklist check: leave the SecurityContext empty so the request
+            // is treated as anonymous instead of propagating a 500.
         }
 
         filterChain.doFilter(request, response);
