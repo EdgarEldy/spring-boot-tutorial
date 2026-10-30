@@ -21,6 +21,7 @@ import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.security.CustomPermissionEvaluator;
 import com.edgareldy.springboottutorial.security.JwtService;
+import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import com.edgareldy.springboottutorial.service.PermissionService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -68,6 +69,9 @@ class PermissionControllerTest {
 
     @MockitoBean
     private UserDetailsService userDetailsService;
+
+    @MockitoBean
+    private BlacklistedTokenService blacklistedTokenService;
 
     private static PermissionResponse savedResponse() {
         return new PermissionResponse(1L, "PRODUCT", "WRITE");

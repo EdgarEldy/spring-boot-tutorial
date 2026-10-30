@@ -209,4 +209,30 @@ class SecurityAuthorizationTest {
                         .content(objectMapper.writeValueAsString(wrongPassword)))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void _16_ShouldReturn401_WhenTokenIsUsedAfterLogout() throws Exception {
+        RegisterRequest register = new RegisterRequest("lovelace", "lovelace@example.com", "password123");
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(register)))
+                .andExpect(status().isCreated());
+
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequest("lovelace", "password123"))))
+                .andExpect(status().isOk())
+                .andReturn();
+        String token = objectMapper.readTree(loginResult.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+
+        mockMvc.perform(get("/api/v1/customers").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/auth/logout").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/customers").header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized());
+    }
 }
