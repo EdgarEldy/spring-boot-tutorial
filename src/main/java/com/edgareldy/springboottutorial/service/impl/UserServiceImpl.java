@@ -49,7 +49,7 @@ public class UserServiceImpl implements UserService {
     public PageResponse<UserResponse> findAll(Pageable pageable) {
         Page<UserResponse> page = appUserRepository.findAll(pageable)
                 .map(appUserMapper::toResponse);
-        return PageResponse.of(page);
+        return PageResponse.from(page);
     }
 
     @Override
