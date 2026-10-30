@@ -179,7 +179,24 @@ class SecurityAuthorizationTest {
     }
 
     @Test
-    void _15_ShouldRejectLogin_WhenPasswordIsWrong() throws Exception {
+    void _15_ShouldReturn401_WhenListingUsersAnonymously() throws Exception {
+        mockMvc.perform(get("/api/v1/users")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void _16_ShouldReturn403_WhenListingUsersAsNonAdmin() throws Exception {
+        mockMvc.perform(get("/api/v1/users").with(user("ada").roles("USER")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void _17_ShouldReturn200_WhenListingUsersAsAdmin() throws Exception {
+        mockMvc.perform(get("/api/v1/users").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void _18_ShouldReturn401_WhenPasswordIsWrong() throws Exception {
         RegisterRequest register = new RegisterRequest("babbage", "babbage@example.com", "password123");
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
