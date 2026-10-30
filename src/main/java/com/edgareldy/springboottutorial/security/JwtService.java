@@ -1,7 +1,6 @@
 package com.edgareldy.springboottutorial.security;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.time.Instant;
@@ -55,15 +54,6 @@ public class JwtService {
 
     public Instant extractExpiration(String token) {
         return parseClaims(token).getExpiration().toInstant();
-    }
-
-    public boolean isTokenValid(String token, String username) {
-        try {
-            Claims claims = parseClaims(token);
-            return claims.getSubject().equals(username) && claims.getExpiration().after(new Date());
-        } catch (JwtException | IllegalArgumentException e) {
-            return false;
-        }
     }
 
     private Claims parseClaims(String token) {
