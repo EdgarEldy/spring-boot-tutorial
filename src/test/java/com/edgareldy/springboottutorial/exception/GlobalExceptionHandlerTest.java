@@ -98,7 +98,7 @@ class GlobalExceptionHandlerTest {
                 handler.handleBadCredentials(new BadCredentialsException("Bad credentials"), request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        assertThat(response.getBody().message()).isEqualTo("Invalid email or password");
+        assertThat(response.getBody().message()).isEqualTo("Invalid username or password");
         assertThat(response.getBody().data().getStatus()).isEqualTo(401);
     }
 
