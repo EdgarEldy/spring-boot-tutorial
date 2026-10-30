@@ -36,6 +36,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
+    private static final String BEARER_PREFIX = "Bearer ";
+
     private final AuthService authService;
 
     @PostMapping("/register")
@@ -68,7 +70,7 @@ public class AuthController {
     })
     public ResponseEntity<ApiResponse<Void>> logout(
             @RequestHeader("Authorization") String authHeader) {
-        String rawToken = authHeader.substring(7);
+        String rawToken = authHeader.substring(BEARER_PREFIX.length());
         authService.logout(rawToken);
         return ResponseEntity.ok(ApiResponse.success(null, "Logged out successfully"));
     }
