@@ -21,6 +21,9 @@ Repository: https://github.com/EdgarEldy/spring-boot-tutorial
 - [feature/customers](#featurecustomers)
 - [feature/orders](#featureorders)
 - [feature/auth](#featureauth)
+- [feature/roles-permissions](#featureroles-permissions)
+- [feature/token-management](#featuretoken-management)
+- [feature/user-management](#featureuser-management)
 - [Order of work](#order-of-work)
 - [Code conventions](#code-conventions)
 - [Concepts covered](#concepts-covered)
@@ -111,6 +114,9 @@ customers (id, first_name, last_name, telephone, email, address)
 | `feature/customers` | `Customer` CRUD. |
 | `feature/orders` | `Order` CRUD, business logic linking products and customers. |
 | `feature/auth` | Authentication and authorization (Spring Security + JWT). |
+| `feature/roles-permissions` | Fine-grained Role/Permission CRUD and method-level security (`@PreAuthorize`, custom `PermissionEvaluator`). |
+| `feature/token-management` | Activation, blacklisted and password-reset tokens; async email (`@Async`); scheduled cleanup (`@Scheduled`). |
+| `feature/user-management` | `AppUser` CRUD (admin), user-role assignment (`role_user` join table, V7), account activation/password-reset flows. |
 
 Each feature is developed on its own branch, then merged into `develop` via a documented **Pull Request** (even solo), to keep a clear, educational trace of each step. In practice, on this particular repository, merges have been done locally (`git merge`) rather than through an actual GitHub Pull Request: this section describes the intended workflow for anyone forking or following along, not necessarily every merge already present in this history.
 
@@ -279,26 +285,30 @@ Technical foundation shared by the whole project, to be merged first into `devel
 ### Tasks
 
 - [x] Initialize the project via Spring Initializr (Maven, Java 17, Spring Boot 3.5.16)
-- [x] Dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-starter-actuator`, `spring-boot-starter-security`, `spring-boot-starter-aop`, `spring-boot-devtools`, `flyway-core`, `flyway-database-postgresql`, `postgresql` driver, `lombok`, `mapstruct` + `mapstruct-processor`, `springdoc-openapi-starter-webmvc-ui`, `jjwt-api`/`jjwt-impl`/`jjwt-jackson`
+- [x] Dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-starter-actuator`, `spring-boot-starter-security`, `spring-boot-starter-aop`, `spring-boot-starter-mail`, `spring-boot-devtools`, `flyway-core`, `flyway-database-postgresql`, `postgresql` driver, `lombok`, `mapstruct` + `mapstruct-processor`, `springdoc-openapi-starter-webmvc-ui`, `jjwt-api`/`jjwt-impl`/`jjwt-jackson`
 - [x] Test dependencies: `spring-boot-starter-test`, `spring-security-test`, `testcontainers` (junit-jupiter, postgresql)
 - [x] Create the package tree shown above
 - [x] `application.yml`: shared configuration (app name, port, JSON date format)
-- [x] `application-dev.yml`: local datasource, `spring.jpa.show-sql=true`, Flyway enabled
+- [x] `application-dev.yml`: local datasource, `spring.jpa.show-sql=true`, Flyway enabled, `spring.mail` pointing to MailHog (`localhost:1025`)
 - [x] `application-test.yml`: Testcontainers datasource
-- [x] `application-prod.yml`: datasource via environment variables, JSON logs
+- [x] `application-prod.yml`: datasource via environment variables, JSON logs, `spring.mail` via env vars (`MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`)
 - [x] Flyway script `V1__init_schema.sql` (categories, products, customers, orders tables with FKs)
-- [x] `GlobalExceptionHandler` (`@RestControllerAdvice`): handles `ResourceNotFoundException` (404), `MethodArgumentNotValidException` (400, field details), `BusinessRuleException` (422), generic `Exception` (500)
+- [x] `InvalidTokenException`: custom unchecked exception for expired or invalid tokens (used by `feature/token-management`)
+- [x] `GlobalExceptionHandler` (`@RestControllerAdvice`): handles `ResourceNotFoundException` (404), `MethodArgumentNotValidException` (400, field details), `BusinessRuleException` (422), `InvalidTokenException` (400), `BadCredentialsException` (401), `LockedException` (401), `DisabledException` (401), `AccessDeniedException` (403), `AuthenticationException` (401), `ObjectOptimisticLockingFailureException` (409), generic `Exception` (500)
 - [x] Error payload as a standard RFC 7807 `ProblemDetail` (`org.springframework.http.ProblemDetail`): `type`, `title`, `status`, `detail`, `instance`, plus a `fieldErrors` extension property on validation failures
 - [x] Generic `ApiResponse<T>` (`dto/common/ApiResponse.java`) and `PageResponse<T>` (`dto/common/PageResponse.java`) DTOs, used to wrap every controller response
-- [x] `LoggingAspect` and `ExecutionTimeAspect` (`aspect/`): logging and execution-time measurement via Spring AOP (see [Spring AOP](#spring-aop))
+- [x] `LoggingAspect` and `ExecutionTimeAspect` (`aspect/`): logging and execution-time measurement via Spring AOP (see [Spring AOP](#spring-aop)); `LoggingAspect` uses reflection-based masking to redact fields annotated `@SensitiveField` before logging arguments and return values
 - [x] `OpenApiConfig`: title, description, version, JWT security scheme in Swagger UI
 - [x] Actuator: expose `health`, `info`, `metrics` in dev (plus a custom `appinfo` endpoint, see `AppInfoEndpoint`); `health` only in prod
 - [x] Structured logging (`logback-spring.xml` and Actuator ECS/JSON config, combined)
-- [x] `CorsConfig`: allow `localhost:4200` in dev
-- [x] `JpaAuditingConfig` (`@EnableJpaAuditing`): native Spring Data JPA auditing support, consumed by `Category` on `feature/products`
+- [x] `CorsConfig`: allow `localhost:4200` in dev; allowed methods include `PATCH`
+- [x] `AsyncConfig`: `@EnableAsync` with a dedicated `ThreadPoolTaskExecutor` for email-sending tasks
+- [x] `SchedulingConfig`: `@EnableScheduling` to activate `@Scheduled` tasks (used by `feature/token-management`)
+- [x] `JpaAuditingConfig` (`@EnableJpaAuditing`): native Spring Data JPA auditing support, prepared ahead of `feature/products`
 - [x] `spring-boot-devtools`: automatic restart and other dev-only conveniences, disabled outside local runs
 - [x] Multi-stage `Dockerfile` (Maven build + lightweight JRE image)
-- [x] `docker-compose.yml`: `app` service + `db` service (PostgreSQL 16) with volumes and environment variables
+- [x] `docker-compose.yml`: `app` service + `db` service (PostgreSQL 16) + `mailhog` service (local SMTP for email testing) with volumes and environment variables read from `.env`
+- [x] `.env.example`: template listing all required environment variables including `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`
 - [x] `.github/workflows/ci.yml`: Maven build + tests on every push/PR
 - [x] Branch `README` explaining the configuration choices (see below)
 
@@ -451,14 +461,108 @@ Includes `Category` and `Product`, given their direct link in the model.
 - [x] Integration tests with `spring-security-test` (`@WithMockUser`, allowed/denied access tests)
 - [x] `AuthController` returns `ResponseEntity<ApiResponse<T>>`; `AuthResponse.tokenType` exposed in JSON as `token_type` via `@JsonProperty` (the other auth DTO fields, `username`/`email`/`password`/`token`, are single words already identical in both conventions)
 
+## feature/roles-permissions
+
+Fine-grained access control: replaces the `Role` enum from `feature/auth` with a full JPA entity hierarchy (Role, Permission), CRUD endpoints for both, and method-level security via `@PreAuthorize` + a custom `PermissionEvaluator`.
+
+### Model
+
+- `Permission` entity (`id`, `resource`, `action`) - migration `V5`
+- `Role` entity (`id`, `name`) with a `@ManyToMany` to `Permission`
+- `role_permission` join table
+
+### Endpoints
+
+All endpoints are ADMIN-only (`@PreAuthorize("hasRole('ADMIN')")` at class level).
+
+| Method | URL | Description |
+|---|---|---|
+| GET | `/api/v1/permissions` | Paginated list of permissions |
+| POST | `/api/v1/permissions` | Create a permission |
+| DELETE | `/api/v1/permissions/{id}` | Delete a permission |
+| GET | `/api/v1/roles` | Paginated list of roles (with permissions) |
+| POST | `/api/v1/roles` | Create a role |
+| PUT | `/api/v1/roles/{id}` | Update a role name |
+| DELETE | `/api/v1/roles/{id}` | Delete a role |
+| POST | `/api/v1/roles/{id}/permissions/{permissionId}` | Assign a permission to a role |
+| DELETE | `/api/v1/roles/{id}/permissions/{permissionId}` | Remove a permission from a role |
+
+### Tasks
+
+- [x] `Permission` entity and `PermissionRepository`
+- [x] `Role` entity (JPA, replaces enum) and `RoleRepository` with `@EntityGraph` on paginated `findAll` to avoid N+1 on permissions
+- [x] Migration `V5__roles_permissions.sql`
+- [x] DTOs `PermissionRequest`/`PermissionResponse`, `RoleRequest`/`RoleResponse`
+- [x] `PermissionMapper`, `RoleMapper`
+- [x] `PermissionService` / `PermissionServiceImpl` and `RoleService` / `RoleServiceImpl`
+- [x] `PermissionController` and `RoleController` (ADMIN-only)
+- [x] `MethodSecurityConfig` (`@EnableMethodSecurity`, static `MethodSecurityExpressionHandler` bean to avoid circular dependency)
+- [x] `CustomPermissionEvaluator` (`PermissionEvaluator`): evaluates `hasPermission('RESOURCE', 'ACTION')` against `PERMISSION_RESOURCE:ACTION` authorities stored on the user
+- [x] Service, repository, and controller tests
+
+## feature/token-management
+
+Token lifecycle management for account activation and password reset, plus async email delivery and scheduled cleanup.
+
+### Model
+
+- `ActivationToken` entity (`id`, `user`, `token`, `createdAt`, `expiresAt`, `validatedAt`) - migration `V6`; 24-hour TTL; `validatedAt` marks a used token (not deleted, auditable); `findByToken` carries `PESSIMISTIC_WRITE` lock to prevent double-use races
+- `BlacklistedToken` entity (`id`, `user`, `token`, `jti`, `blacklistedAt`, `createdAt`, `expiresAt`, `validatedAt`) for JWT revocation; revocation check via `existsByJti` (no lock needed, read-only)
+- `PasswordResetToken` entity (`id`, `user`, `token`, `type`, `expiryDate`) - 1-hour TTL; consumed by deletion (single-use: token is deleted before expiry is checked, so it is never reusable even if validation fails)
+
+### Tasks
+
+- [x] `ActivationToken`, `BlacklistedToken`, `PasswordResetToken` entities and repositories (package `entity/token`, `repository`)
+- [x] Migration `V6__init_token_tables.sql` (activation_tokens, password_reset_tokens, blacklisted_tokens with FK to app_users, indexes on user_id)
+- [x] `SecureTokenGenerator` (`@Component`, `SecureRandom`, 32 bytes Base64 URL-safe without padding)
+- [x] `EmailService` interface and `EmailServiceImpl` (`@Async("emailTaskExecutor")` with `JavaMailSender`; uses executor from `AsyncConfig` in `feature/core-architecture`; `app.base-url` property for link generation)
+- [x] `ActivationTokenService`/`ActivationTokenServiceImpl`, `BlacklistedTokenService`/`BlacklistedTokenServiceImpl`, `PasswordResetTokenService`/`PasswordResetTokenServiceImpl`
+- [x] `TokenCleanupScheduler` (`@Scheduled(cron = "0 0 3 * * *")` daily at 3 AM; three separate `@Transactional` methods, one per table; uses `SchedulingConfig` from `feature/core-architecture`)
+- [x] `InvalidTokenException` handler already present in `GlobalExceptionHandler` (wired by `feature/core-architecture`)
+- [x] MailHog service added to `docker-compose.yml`; `application-dev.yml` points to `localhost:1025`; `application-prod.yml` reads `MAIL_HOST`/`MAIL_PORT`/`MAIL_USERNAME`/`MAIL_PASSWORD` from env; `.env.example` updated with `MAIL_*` and `APP_BASE_URL`
+- [x] Unit tests: `ActivationTokenServiceImplTest`, `BlacklistedTokenServiceImplTest`, `PasswordResetTokenServiceImplTest`, `EmailServiceImplTest`, `SecureTokenGeneratorTest`, `TokenCleanupSchedulerTest`
+- [x] Repository tests (Testcontainers): `ActivationTokenRepositoryTest`, `BlacklistedTokenRepositoryTest`, `PasswordResetTokenRepositoryTest`
+- [x] Fixed `@ActiveProfiles("test")` on all three `@SpringBootTest` full-context classes (`RepositoryAuditAspectTest`, `SpringBootTutorialApplicationTests`, `SecurityAuthorizationTest`) so `application-test.yml` (which stubs `spring.mail.host`) is loaded and `JavaMailSender` is auto-configured
+
+## feature/user-management
+
+Admin-facing user management: list, view, activate/deactivate accounts, assign roles; plus account activation and password-reset flows driven by email tokens.
+
+### Model
+
+- `AppUser` gains a `@ManyToMany` with `Role` (entity) via `role_user` join table, migration `V7`
+
+### Endpoints
+
+| Method | URL | Description | Access |
+|---|---|---|---|
+| GET | `/api/v1/users` | Paginated list of users | ADMIN |
+| GET | `/api/v1/users/{id}` | User detail | ADMIN |
+| PUT | `/api/v1/users/{id}/roles` | Assign roles to a user | ADMIN |
+| DELETE | `/api/v1/users/{id}` | Delete a user | ADMIN |
+| POST | `/api/v1/auth/activate` | Activate account with token | Public |
+| POST | `/api/v1/auth/forgot-password` | Request a password-reset email | Public |
+| POST | `/api/v1/auth/reset-password` | Reset password with token | Public |
+
+### Tasks
+
+- [ ] Migration `V7__role_user.sql` (`role_user` join table)
+- [ ] `UserController` (ADMIN-only except activation/reset endpoints)
+- [ ] Account activation flow (register -> activation email -> activate)
+- [ ] Password-reset flow (forgot-password -> email -> reset)
+- [ ] Unit and integration tests
+
 ## Order of work
 
 1. `feature/core-architecture` → Pull Request to `develop`
-2. `feature/products` (depends on `config`) → Pull Request to `develop`
+2. `feature/products` (depends on `core-architecture`) → Pull Request to `develop`
 3. `feature/customers` → Pull Request to `develop`
 4. `feature/orders` (depends on `products` and `customers`) → Pull Request to `develop`
 5. `feature/auth` (secures everything) → Pull Request to `develop`
-6. `develop` → `master` once everything is tested and validated
+6. `feature/roles-permissions` (fine-grained RBAC) → Pull Request to `develop`
+7. `feature/token-management` (token lifecycle, async email, scheduled cleanup) → Pull Request to `develop`
+8. `feature/user-management` (admin user CRUD, activation/reset flows) → Pull Request to `develop`
+9. `develop` → `master` once everything is tested and validated
 
 ## Code conventions
 
@@ -490,6 +594,10 @@ Includes `Category` and `Product`, given their direct link in the model.
 - API documentation (OpenAPI / Swagger UI)
 - Observability (Actuator, including a custom endpoint; structured logging)
 - Security (Spring Security, JWT, role-based authorization)
+- Method-level security (`@PreAuthorize`, `@EnableMethodSecurity`, custom `PermissionEvaluator`)
+- Async processing (`@Async`, `@EnableAsync`, `ThreadPoolTaskExecutor`)
+- Scheduled tasks (`@Scheduled`, `@EnableScheduling`)
+- Email sending (`JavaMailSender`, MailHog for local testing)
 - Testing (unit, integration, Testcontainers)
 - Multi-environment configuration (Spring profiles)
 - `@ConfigurationProperties`
@@ -505,6 +613,8 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 1. Clone the repository and check out `develop`
 2. Create/checkout the `feature/core-architecture` branch and follow its task checklist
-3. Continue with `feature/products`, `feature/customers`, `feature/orders`, `feature/auth` in that order
+3. Continue with `feature/products`, `feature/customers`, `feature/orders`, `feature/auth`, `feature/roles-permissions`, `feature/token-management`, `feature/user-management` in that order
 4. Open a Pull Request to `develop` at the end of each branch
-5. Run the project with `docker-compose up`, then open Swagger UI at `http://localhost:8080/swagger-ui.html`
+5. Copy `.env.example` to `.env` and fill in the required variables
+6. Run the project with `docker-compose up`, then open Swagger UI at `http://localhost:8080/swagger-ui.html`
+7. MailHog UI is available at `http://localhost:8025` to inspect outgoing emails in local dev

@@ -20,12 +20,21 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mailhog:
+        condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: ${DB_URL:-jdbc:postgresql://db:5432/spring_boot_tutorial}
       DB_USERNAME: ${DB_USERNAME:-spring_boot_tutorial}
       DB_PASSWORD: ${DB_PASSWORD:-spring_boot_tutorial}
       JWT_SECRET: ${JWT_SECRET:-docker-compose-demo-jwt-secret-please-override-in-real-prod-987654321}
+      MAIL_HOST: ${MAIL_HOST:-mailhog}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
+      MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-false}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
     ports:
       - "8080:8080"
 

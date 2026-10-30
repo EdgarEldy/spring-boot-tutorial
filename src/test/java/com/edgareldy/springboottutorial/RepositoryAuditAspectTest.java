@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.context.ActiveProfiles;
 
 /**
  * Verifies {@link RepositoryAuditAspect} actually intercepts calls to
@@ -35,6 +36,7 @@ import org.springframework.dao.DataIntegrityViolationException;
  * Date : 7/8/26
  * Project : spring-boot-tutorial
  */
+@ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 class RepositoryAuditAspectTest {
