@@ -1,8 +1,9 @@
 package com.edgareldy.springboottutorial.repository;
 
 import com.edgareldy.springboottutorial.entity.Role;
-import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -17,13 +18,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface RoleRepository extends JpaRepository<Role, Long> {
 
     /**
-     * Overrides the base find-all to eagerly fetch each role's permissions,
-     * avoiding one extra select per row when the controller maps every role
-     * to a {@code RoleResponse} (which reads {@code permissions}).
+     * Overrides the base paginated find-all to eagerly fetch each role's
+     * permissions, avoiding one extra select per row when the controller
+     * maps every role to a {@code RoleResponse} (which reads
+     * {@code permissions}).
      */
     @EntityGraph(attributePaths = "permissions")
     @Override
-    List<Role> findAll();
+    Page<Role> findAll(Pageable pageable);
 
     Optional<Role> findByRoleNameIgnoreCase(String roleName);
 
