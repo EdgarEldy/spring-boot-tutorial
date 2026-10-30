@@ -18,6 +18,7 @@ import com.edgareldy.springboottutorial.dto.product.ProductRequest;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.security.JwtService;
+import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import com.edgareldy.springboottutorial.service.ProductService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -63,6 +64,9 @@ class ProductControllerTest {
 
     @MockitoBean
     private UserDetailsService userDetailsService;
+
+    @MockitoBean
+    private BlacklistedTokenService blacklistedTokenService;
 
     @Test
     void _01_ShouldPassNullCategoryId_WhenNoFilterGiven() throws Exception {

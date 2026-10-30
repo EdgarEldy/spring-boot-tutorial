@@ -20,15 +20,16 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * REST controller exposing registration, login, the current user profile,
- * account activation, and password-reset flows. Delegates every operation to
- * {@link AuthService} (credentials) or {@link UserService} (token flows);
- * no business logic lives here.
+ * REST controller exposing registration, login, logout, the current user
+ * profile, account activation, and password-reset flows. Delegates every
+ * operation to {@link AuthService} (credentials) or {@link UserService}
+ * (token flows); no business logic lives here.
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
  * Author : edgar.muhamyangabo
@@ -39,6 +40,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
+
+    private static final String BEARER_PREFIX = "Bearer ";
 
     private final AuthService authService;
     private final UserService userService;
@@ -63,6 +66,19 @@ public class AuthController {
     })
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(ApiResponse.success(authService.login(request), "Login successful"));
+    }
+
+    @PostMapping("/logout")
+    @Operation(summary = "Invalidate the current JWT (blacklist its jti)")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Logged out successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Authentication required")
+    })
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @RequestHeader("Authorization") String authHeader) {
+        String rawToken = authHeader.substring(BEARER_PREFIX.length());
+        authService.logout(rawToken);
+        return ResponseEntity.ok(ApiResponse.success(null, "Logged out successfully"));
     }
 
     @GetMapping("/me")

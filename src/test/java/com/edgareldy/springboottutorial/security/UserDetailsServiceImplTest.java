@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
+import com.edgareldy.springboottutorial.entity.Permission;
 import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
@@ -36,8 +37,9 @@ class UserDetailsServiceImplTest {
     private UserDetailsServiceImpl userDetailsService;
 
     @Test
-    void _01_ShouldBuildUserDetailsWithRolePrefixedAuthority_WhenUserExists() {
-        Role adminRole = Role.builder().id(1L).roleName("ADMIN").build();
+    void _01_ShouldBuildRoleAndPermissionAuthorities_WhenUserHasRolesWithPermissions() {
+        Permission readPerm = Permission.builder().id(1L).resource("product").action("read").build();
+        Role adminRole = Role.builder().id(1L).roleName("ADMIN").permissions(Set.of(readPerm)).build();
         AppUser appUser = AppUser.builder()
                 .id(1L).username("ada").email("ada@example.com").password("hashed")
                 .enabled(true).roles(Set.of(adminRole)).build();
@@ -49,7 +51,7 @@ class UserDetailsServiceImplTest {
         assertThat(userDetails.getPassword()).isEqualTo("hashed");
         assertThat(userDetails.getAuthorities())
                 .extracting(Object::toString)
-                .containsExactly("ROLE_ADMIN");
+                .containsExactlyInAnyOrder("ROLE_ADMIN", "PERMISSION_PRODUCT:READ");
     }
 
     @Test
@@ -71,5 +73,16 @@ class UserDetailsServiceImplTest {
         assertThatThrownBy(() -> userDetailsService.loadUserByUsername("unknown"))
                 .isInstanceOf(UsernameNotFoundException.class);
     }
-}
 
+    @Test
+    void _04_ShouldBuildLockedUserDetails_WhenUserAccountLocked() {
+        AppUser appUser = AppUser.builder()
+                .id(3L).username("locked").email("locked@example.com").password("hashed")
+                .enabled(true).accountLocked(true).roles(Set.of()).build();
+        when(appUserRepository.findByUsername("locked")).thenReturn(Optional.of(appUser));
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername("locked");
+
+        assertThat(userDetails.isAccountNonLocked()).isFalse();
+    }
+}

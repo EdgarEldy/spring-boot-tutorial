@@ -21,6 +21,7 @@ import com.edgareldy.springboottutorial.dto.product.ProductResponse;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.security.JwtService;
+import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import com.edgareldy.springboottutorial.service.CustomerService;
 import com.edgareldy.springboottutorial.service.OrderService;
 import java.util.List;
@@ -69,6 +70,9 @@ class CustomerControllerTest {
 
     @MockitoBean
     private UserDetailsService userDetailsService;
+
+    @MockitoBean
+    private BlacklistedTokenService blacklistedTokenService;
 
     private static CustomerRequest validRequest() {
         return new CustomerRequest("Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way");
