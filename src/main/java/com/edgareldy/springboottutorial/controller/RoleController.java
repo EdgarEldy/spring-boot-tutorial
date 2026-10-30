@@ -1,13 +1,14 @@
 package com.edgareldy.springboottutorial.controller;
 
 import com.edgareldy.springboottutorial.dto.common.ApiResponse;
+import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.role.RoleRequest;
 import com.edgareldy.springboottutorial.dto.role.RoleResponse;
 import com.edgareldy.springboottutorial.service.RoleService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -41,8 +42,8 @@ public class RoleController {
 
     @GetMapping
     @Operation(summary = "List roles")
-    public ResponseEntity<ApiResponse<List<RoleResponse>>> findAll() {
-        return ResponseEntity.ok(ApiResponse.success(roleService.findAll(), "Roles retrieved successfully"));
+    public ResponseEntity<ApiResponse<PageResponse<RoleResponse>>> findAll(Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.success(roleService.findAll(pageable), "Roles retrieved successfully"));
     }
 
     @PostMapping
