@@ -523,6 +523,12 @@ Token lifecycle management for account activation and password reset, plus async
 - [x] Unit tests: `ActivationTokenServiceImplTest`, `BlacklistedTokenServiceImplTest`, `PasswordResetTokenServiceImplTest`, `EmailServiceImplTest`, `SecureTokenGeneratorTest`, `TokenCleanupSchedulerTest`
 - [x] Repository tests (Testcontainers): `ActivationTokenRepositoryTest`, `BlacklistedTokenRepositoryTest`, `PasswordResetTokenRepositoryTest`
 - [x] Fixed `@ActiveProfiles("test")` on all three `@SpringBootTest` full-context classes (`RepositoryAuditAspectTest`, `SpringBootTutorialApplicationTests`, `SecurityAuthorizationTest`) so `application-test.yml` (which stubs `spring.mail.host`) is loaded and `JavaMailSender` is auto-configured
+- [x] `JwtService`: added `jti` claim (random UUID per token via `.id(UUID.randomUUID().toString())`), `extractJti(String token)`, and `extractExpiration(String token)`; removed `isTokenValid()` (replaced by `JwtException` in filter + blacklist check)
+- [x] `AuthService.logout(String rawToken)` contract added to the interface
+- [x] `AuthServiceImpl.logout()`: extracts jti/username/expiration from token, loads `AppUser`, delegates to `BlacklistedTokenService.blacklist()`
+- [x] `AuthController`: `POST /api/v1/auth/logout` strips `Authorization: Bearer <token>` header and calls `authService.logout()`
+- [x] `JwtAuthFilter`: injects `BlacklistedTokenService`; checks `isBlacklisted(jti)` before populating the `SecurityContext`; catches `DataAccessException` alongside `JwtException` for fail-open behaviour on DB outages
+- [x] Tests: `JwtServiceTest` rewritten for jti model; `AuthServiceImplTest` extended with `@Mock BlacklistedTokenService` + two `logout()` tests; `AuthControllerTest` gains `_08_`/`_09_` for `POST /logout`; `SecurityAuthorizationTest._16_` exercises the full blacklist lifecycle (login -> GET 200 -> logout -> GET 401); all `@WebMvcTest` slices updated with `@MockitoBean BlacklistedTokenService`
 
 ## feature/user-management
 
