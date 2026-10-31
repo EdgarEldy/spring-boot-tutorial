@@ -144,8 +144,8 @@ class AuthServiceImplTest {
 
     @Test
     void _04_ShouldReturnToken_WhenCredentialsValid() {
-        LoginRequest request = new LoginRequest("ada", "password123");
-        when(appUserRepository.findByUsername("ada")).thenReturn(Optional.of(appUser));
+        LoginRequest request = new LoginRequest("ada@example.com", "password123");
+        when(appUserRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(appUser));
         when(jwtService.generateToken(appUser)).thenReturn("signed-token");
 
         AuthResponse response = authService.login(request);
@@ -156,13 +156,26 @@ class AuthServiceImplTest {
 
     @Test
     void _05_ShouldThrowAuthenticationException_WhenCredentialsInvalid() {
-        LoginRequest request = new LoginRequest("ada", "wrong-password");
+        LoginRequest request = new LoginRequest("ada@example.com", "wrong-password");
+        when(appUserRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(appUser));
         when(authenticationManager.authenticate(any())).thenThrow(new BadCredentialsException("Bad credentials"));
 
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(BadCredentialsException.class);
 
         verify(jwtService, never()).generateToken(any(AppUser.class));
+    }
+
+    @Test
+    void _10_ShouldThrowBadCredentials_WhenEmailNotFound() {
+        LoginRequest request = new LoginRequest("unknown@example.com", "password123");
+        when(appUserRepository.findByEmailIgnoreCase("unknown@example.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(BadCredentialsException.class);
+
+        verify(authenticationManager, never()).authenticate(any());
+        verify(jwtService, never()).generateToken(any());
     }
 
     @Test

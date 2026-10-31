@@ -8,6 +8,7 @@ import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
+import org.springframework.security.authentication.BadCredentialsException;
 import com.edgareldy.springboottutorial.mapper.AppUserMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.repository.RoleRepository;
@@ -78,12 +79,16 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
+        // The client sends their email; Spring Security's AuthenticationManager
+        // delegates to UserDetailsServiceImpl.loadUserByUsername() which looks
+        // up accounts by username, not email. We resolve the username first so
+        // the authenticate() call works without changing UserDetailsServiceImpl.
+        AppUser appUser = appUserRepository.findByEmailIgnoreCase(request.email())
+                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.username(), request.password()));
-        AppUser appUser = appUserRepository.findByUsername(request.username())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with username " + request.username()));
+                new UsernamePasswordAuthenticationToken(appUser.getUsername(), request.password()));
         String token = jwtService.generateToken(appUser);
-        return new AuthResponse(token, BEARER_TOKEN_TYPE, request.username());
+        return new AuthResponse(token, BEARER_TOKEN_TYPE, appUser.getUsername());
     }
 
     @Override

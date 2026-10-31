@@ -165,7 +165,7 @@ class SecurityAuthorizationTest {
             appUserRepository.saveAndFlush(u);
         });
 
-        LoginRequest login = new LoginRequest("hopper", "password123");
+        LoginRequest login = new LoginRequest("hopper@example.com", "password123");
         MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(login)))
@@ -203,7 +203,7 @@ class SecurityAuthorizationTest {
                         .content(objectMapper.writeValueAsString(register)))
                 .andExpect(status().isCreated());
 
-        LoginRequest wrongPassword = new LoginRequest("babbage", "not-the-password");
+        LoginRequest wrongPassword = new LoginRequest("babbage@example.com", "not-the-password");
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(wrongPassword)))
@@ -225,7 +225,7 @@ class SecurityAuthorizationTest {
 
         MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LoginRequest("wozniak", "password123"))))
+                        .content(objectMapper.writeValueAsString(new LoginRequest("wozniak@example.com", "password123"))))
                 .andExpect(status().isOk())
                 .andReturn();
         String token = objectMapper.readTree(loginResult.getResponse().getContentAsString())
@@ -263,7 +263,7 @@ class SecurityAuthorizationTest {
 
         MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LoginRequest("lovelace", "password123"))))
+                        .content(objectMapper.writeValueAsString(new LoginRequest("lovelace@example.com", "password123"))))
                 .andExpect(status().isOk())
                 .andReturn();
         String token = objectMapper.readTree(loginResult.getResponse().getContentAsString())
