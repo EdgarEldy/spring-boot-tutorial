@@ -27,9 +27,9 @@ class AuthDtoMaskingTest {
 
     @Test
     void _02_ShouldMaskPassword_WhenLoginRequestPrinted() {
-        String result = new LoginRequest("ada", "s3cr3tPassword").toString();
+        String result = new LoginRequest("ada@example.com", "s3cr3tPassword").toString();
 
-        assertThat(result).contains("ada").doesNotContain("s3cr3tPassword");
+        assertThat(result).contains("ada@example.com").doesNotContain("s3cr3tPassword");
     }
 
     @Test

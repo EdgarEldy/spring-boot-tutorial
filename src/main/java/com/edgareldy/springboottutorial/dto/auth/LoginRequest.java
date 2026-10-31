@@ -1,9 +1,14 @@
 package com.edgareldy.springboottutorial.dto.auth;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 /**
  * Payload accepted by {@code POST /api/v1/auth/login}.
+ * <p>
+ * Clients identify themselves with their email address, not their username.
+ * The Angular front-end was built against SST which used email as the login
+ * identifier, so SBT must match that contract.
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
  * Author : edgar.muhamyangabo
@@ -12,8 +17,9 @@ import jakarta.validation.constraints.NotBlank;
  */
 public record LoginRequest(
 
-        @NotBlank(message = "username must not be blank")
-        String username,
+        @NotBlank(message = "email must not be blank")
+        @Email(message = "email must be a valid email address")
+        String email,
 
         @NotBlank(message = "password must not be blank")
         String password
@@ -25,6 +31,6 @@ public record LoginRequest(
     // in the application logs.
     @Override
     public String toString() {
-        return "LoginRequest[username=%s, password=***]".formatted(username);
+        return "LoginRequest[email=%s, password=***]".formatted(email);
     }
 }

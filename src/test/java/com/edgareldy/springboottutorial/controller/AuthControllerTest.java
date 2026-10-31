@@ -120,7 +120,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LoginRequest("ada", "password123"))))
+                        .content(objectMapper.writeValueAsString(new LoginRequest("ada@example.com", "password123"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.token").value("signed-token"))
                 .andExpect(jsonPath("$.data.token_type").value("Bearer"));
@@ -132,8 +132,17 @@ class AuthControllerTest {
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LoginRequest("ada", "wrong-password"))))
+                        .content(objectMapper.writeValueAsString(new LoginRequest("ada@example.com", "wrong-password"))))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void _08_ShouldReturn400_WhenLoginEmailInvalid() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequest("not-an-email", "password123"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
