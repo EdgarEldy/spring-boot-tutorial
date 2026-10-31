@@ -18,6 +18,8 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     @EntityGraph(attributePaths = {"roles", "roles.permissions"})
     Optional<AppUser> findByUsername(String username);
 
+    // Used by AuthServiceImpl.login() to resolve the Spring Security username
+    // from the email the client supplies at login time.
     Optional<AppUser> findByEmailIgnoreCase(String email);
 
     boolean existsByUsername(String username);
