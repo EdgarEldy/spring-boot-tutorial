@@ -9,8 +9,10 @@ import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.repository.CategoryRepository;
 import com.edgareldy.springboottutorial.repository.ProductRepository;
 import com.edgareldy.springboottutorial.repository.RoleRepository;
+import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,6 +37,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @RequiredArgsConstructor
 public class DataSeeder {
 
+    static final String DEMO_PASSWORD = "Admin1234!";
+
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final AppUserRepository appUserRepository;
@@ -42,7 +46,8 @@ public class DataSeeder {
     private final PasswordEncoder passwordEncoder;
 
     @Bean
-    public CommandLineRunner seedDemoData() {
+    public CommandLineRunner seedDemoData(
+            @Value("${app.seed.reset-user-passwords:false}") boolean resetUserPasswords) {
         return args -> {
             if (categoryRepository.count() == 0) {
                 Category electronics = categoryRepository.save(Category.builder().categoryName("Electronics").build());
@@ -62,11 +67,18 @@ public class DataSeeder {
                 AppUser admin = AppUser.builder()
                         .username("admin")
                         .email("admin@example.com")
-                        .password(passwordEncoder.encode("Admin1234!"))
+                        .password(passwordEncoder.encode(DEMO_PASSWORD))
                         .enabled(true)
                         .roles(Set.of(adminRole))
                         .build();
                 appUserRepository.save(admin);
+            }
+
+            if (resetUserPasswords) {
+                String encodedPassword = passwordEncoder.encode(DEMO_PASSWORD);
+                List<AppUser> users = appUserRepository.findAll();
+                users.forEach(user -> user.setPassword(encodedPassword));
+                appUserRepository.saveAll(users);
             }
         };
     }

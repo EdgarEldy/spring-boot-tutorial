@@ -64,7 +64,7 @@ class DataSeederTest {
         when(roleRepository.findByRoleNameIgnoreCase("ADMIN")).thenReturn(Optional.of(adminRole));
         when(passwordEncoder.encode(any())).thenReturn("hashed");
 
-        dataSeeder.seedDemoData().run();
+        dataSeeder.seedDemoData(false).run();
 
         verify(categoryRepository, times(2)).save(any(Category.class));
         verify(productRepository, times(3)).save(any(Product.class));
@@ -76,7 +76,7 @@ class DataSeederTest {
         when(categoryRepository.count()).thenReturn(1L);
         when(appUserRepository.count()).thenReturn(1L);
 
-        dataSeeder.seedDemoData().run();
+        dataSeeder.seedDemoData(false).run();
 
         verify(categoryRepository, never()).save(any());
         verify(productRepository, never()).save(any());
