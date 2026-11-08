@@ -6,8 +6,6 @@ import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.user.AssignRolesRequest;
 import com.edgareldy.springboottutorial.dto.user.UpdateProfileRequest;
 import com.edgareldy.springboottutorial.service.UserService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -46,11 +44,6 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    @Operation(summary = "List all users (paginated)")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Users retrieved successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "ADMIN role required")
-    })
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> findAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -61,25 +54,11 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get a user by ID")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User retrieved successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "ADMIN role required"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
-    })
     public ResponseEntity<ApiResponse<UserResponse>> findById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(userService.findById(id), "User retrieved successfully"));
     }
 
     @PutMapping("/{id}/roles")
-    @Operation(summary = "Assign roles to a user")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Roles assigned successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation failed"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "ADMIN role required"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User or role not found"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "Invalid role ID in request")
-    })
     public ResponseEntity<ApiResponse<UserResponse>> assignRoles(
             @PathVariable Long id,
             @Valid @RequestBody AssignRolesRequest request) {
@@ -87,25 +66,12 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a user account")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User deleted successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "ADMIN role required"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
-    })
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         userService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "User deleted successfully"));
     }
 
     @PatchMapping("/{id}/lock")
-    @Operation(summary = "Lock a user account (admin cannot lock their own account)")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Account locked successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "ADMIN role required"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "Admin cannot lock their own account")
-    })
     public ResponseEntity<ApiResponse<UserResponse>> lock(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -114,26 +80,12 @@ public class UserController {
     }
 
     @PatchMapping("/{id}/unlock")
-    @Operation(summary = "Unlock a user account")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Account unlocked successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "ADMIN role required"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
-    })
     public ResponseEntity<ApiResponse<UserResponse>> unlock(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(
                 userService.unlock(id), "Account unlocked successfully"));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update a user's username or email")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User updated successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation failed"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "ADMIN role required"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "Username or email already in use")
-    })
     public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
             @PathVariable Long id,
             @Valid @RequestBody UpdateProfileRequest request) {
