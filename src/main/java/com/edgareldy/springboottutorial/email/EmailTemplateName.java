@@ -1,4 +1,4 @@
-package com.edgareldy.springboottutorial.service;
+package com.edgareldy.springboottutorial.email;
 
 import lombok.Getter;
 

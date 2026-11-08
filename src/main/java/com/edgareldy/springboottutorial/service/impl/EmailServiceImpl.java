@@ -2,7 +2,7 @@ package com.edgareldy.springboottutorial.service.impl;
 
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.service.EmailService;
-import com.edgareldy.springboottutorial.service.EmailTemplateName;
+import com.edgareldy.springboottutorial.email.EmailTemplateName;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
