@@ -1,17 +1,22 @@
 package com.edgareldy.springboottutorial.validation.unique;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * {@link ConstraintValidator} implementation for {@link Unique}. Uses
  * {@link EntityManager} and JPQL to query the database generically without
  * depending on a specific repository. Spring's {@code SpringConstraintValidatorFactory}
  * (auto-configured by {@code spring-boot-starter-validation}) manages this
- * class as a Spring bean, so {@code @PersistenceContext} injection works here
- * exactly as it does in any service or repository class.
+ * class as a Spring bean, so {@code @Autowired} injection of the
+ * {@code EntityManager} works here exactly as it does in any service class.
+ * {@code required = false} prevents a {@code BeanCreationException} in test
+ * slices that have no JPA context (such as {@code @WebMvcTest}); the
+ * {@code isValid} method guards against a null {@code EntityManager} and
+ * returns {@code true} in that case, letting the database {@code UNIQUE}
+ * constraint serve as the final guard.
  * <p>
  * Created edgar.muhamyangabo on 11/8/26
  * Author : edgar.muhamyangabo
@@ -20,7 +25,7 @@ import jakarta.validation.ConstraintValidatorContext;
  */
 public class UniqueValidator implements ConstraintValidator<Unique, String> {
 
-    @PersistenceContext
+    @Autowired(required = false)
     private EntityManager entityManager;
 
     private Class<?> entityClass;
