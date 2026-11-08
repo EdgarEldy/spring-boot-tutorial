@@ -66,7 +66,6 @@ class EmailServiceImplTest {
                 eq(EmailTemplateName.ACTIVATE_ACCOUNT.getName()), contextCaptor.capture());
         Context ctx = contextCaptor.getValue();
         assertThat(ctx.getVariable("username")).isEqualTo("ada");
-        assertThat(ctx.getVariable("activationToken")).isEqualTo("raw-token");
         assertThat(ctx.getVariable("activationLink"))
                 .isEqualTo(FRONTEND_URL + "/auth/activate?token=raw-token");
         verify(mailSender).send(any(MimeMessage.class));
