@@ -38,6 +38,7 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 class EmailServiceImplTest {
 
     private static final String FRONTEND_URL = "http://localhost:4200";
+    private static final String FROM_ADDRESS = "noreply@spring-boot-tutorial.com";
 
     @Mock
     private JavaMailSender mailSender;
@@ -50,7 +51,7 @@ class EmailServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        emailService = new EmailServiceImpl(mailSender, templateEngine, FRONTEND_URL);
+        emailService = new EmailServiceImpl(mailSender, templateEngine, FRONTEND_URL, FROM_ADDRESS);
         user = AppUser.builder().id(1L).username("ada").email("ada@example.com").build();
     }
 
