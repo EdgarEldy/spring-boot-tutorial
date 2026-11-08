@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.edgareldy.springboottutorial.dto.auth.RegisterRequest;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
-import com.edgareldy.springboottutorial.entity.user.Role;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -72,7 +71,7 @@ class UniqueValidatorTest {
         appUserRepository.save(AppUser.builder()
                 .firstName("Existing").lastName("User")
                 .username("taken_user").email("taken_user@example.com")
-                .password("hashed").role(Role.USER).build());
+                .password("hashed").build());
 
         RegisterRequest request = new RegisterRequest(
                 "Ada", "Lovelace", "taken_user", "new@example.com", "Password1@", "Password1@");
@@ -90,7 +89,7 @@ class UniqueValidatorTest {
         appUserRepository.save(AppUser.builder()
                 .firstName("Existing").lastName("User")
                 .username("other_user").email("TAKEN@EXAMPLE.COM")
-                .password("hashed").role(Role.USER).build());
+                .password("hashed").build());
 
         // Different case but same email - @Unique(caseSensitive=false) should catch it
         RegisterRequest request = new RegisterRequest(
