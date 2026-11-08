@@ -115,7 +115,7 @@ class SecurityAuthorizationTest {
 
     @Test
     void _09_ShouldAllowAccess_WhenRegisteringAnonymously() throws Exception {
-        RegisterRequest request = new RegisterRequest("turing", "turing@example.com", "password123");
+        RegisterRequest request = new RegisterRequest("Alan", "Turing", "turing", "turing@example.com", "Password1@", "Password1@");
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -146,13 +146,13 @@ class SecurityAuthorizationTest {
 
     @Test
     void _14_ShouldAuthenticateSubsequentRequests_WhenLoginIssuesToken() throws Exception {
-        RegisterRequest register = new RegisterRequest("hopper", "hopper@example.com", "password123");
+        RegisterRequest register = new RegisterRequest("Grace", "Hopper", "hopper", "hopper@example.com", "Password1@", "Password1@");
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(register)))
                 .andExpect(status().isCreated());
 
-        LoginRequest login = new LoginRequest("hopper", "password123");
+        LoginRequest login = new LoginRequest("hopper@example.com", "Password1@");
         MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(login)))
@@ -167,13 +167,13 @@ class SecurityAuthorizationTest {
 
     @Test
     void _15_ShouldRejectLogin_WhenPasswordIsWrong() throws Exception {
-        RegisterRequest register = new RegisterRequest("babbage", "babbage@example.com", "password123");
+        RegisterRequest register = new RegisterRequest("Charles", "Babbage", "babbage", "babbage@example.com", "Password1@", "Password1@");
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(register)))
                 .andExpect(status().isCreated());
 
-        LoginRequest wrongPassword = new LoginRequest("babbage", "not-the-password");
+        LoginRequest wrongPassword = new LoginRequest("babbage@example.com", "not-the-password");
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(wrongPassword)))

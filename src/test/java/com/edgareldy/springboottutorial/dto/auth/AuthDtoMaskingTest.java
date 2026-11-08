@@ -20,9 +20,11 @@ class AuthDtoMaskingTest {
 
     @Test
     void _01_ShouldMaskPassword_WhenRegisterRequestPrinted() {
-        String result = new RegisterRequest("ada", "ada@example.com", "s3cr3tPassword").toString();
+        String result = new RegisterRequest("Ada", "Lovelace", "ada", "ada@example.com", "s3cr3tPassword", "s3cr3tPassword").toString();
 
-        assertThat(result).contains("ada", "ada@example.com").doesNotContain("s3cr3tPassword");
+        assertThat(result)
+                .contains("Ada", "Lovelace", "ada", "ada@example.com")
+                .doesNotContain("s3cr3tPassword");
     }
 
     @Test
