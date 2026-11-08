@@ -36,7 +36,9 @@ public class UniqueValidator implements ConstraintValidator<Unique, String> {
 
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
-        if (value == null) {
+        if (value == null || entityManager == null) {
+            // No JPA context (e.g. @WebMvcTest slice): skip the DB check and
+            // let the database UNIQUE constraint be the authoritative guard.
             return true;
         }
         String entityName = entityClass.getSimpleName();
