@@ -7,8 +7,6 @@ import com.edgareldy.springboottutorial.dto.customer.CustomerResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
 import com.edgareldy.springboottutorial.service.CustomerService;
 import com.edgareldy.springboottutorial.service.OrderService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -42,10 +40,6 @@ public class CustomerController {
     private final OrderService orderService;
 
     @GetMapping
-    @Operation(summary = "List customers, paginated and optionally searched by name")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Customers retrieved successfully")
-    })
     public ResponseEntity<ApiResponse<PageResponse<CustomerResponse>>> findAll(
             @RequestParam(required = false) String search, Pageable pageable) {
         return ResponseEntity.ok(
@@ -53,36 +47,18 @@ public class CustomerController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get a customer by id")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Customer retrieved successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Customer not found")
-    })
     public ResponseEntity<ApiResponse<CustomerResponse>> findById(@PathVariable Long id) {
         return ResponseEntity.ok(
                 ApiResponse.success(customerService.findById(id), "Customer retrieved successfully"));
     }
 
     @PostMapping
-    @Operation(summary = "Create a customer")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Customer created successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation failed"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "Email already in use")
-    })
     public ResponseEntity<ApiResponse<CustomerResponse>> create(@Valid @RequestBody CustomerRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(customerService.create(request), "Customer created successfully"));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update a customer")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Customer updated successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation failed"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Customer not found"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "Email already in use")
-    })
     public ResponseEntity<ApiResponse<CustomerResponse>> update(
             @PathVariable Long id, @Valid @RequestBody CustomerRequest request) {
         return ResponseEntity.ok(
@@ -90,22 +66,12 @@ public class CustomerController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a customer")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Customer deleted successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Customer not found")
-    })
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         customerService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Customer deleted successfully"));
     }
 
     @GetMapping("/{id}/orders")
-    @Operation(summary = "List orders for a given customer")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Customer orders retrieved successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Customer not found")
-    })
     public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> findOrders(
             @PathVariable Long id, Pageable pageable) {
         customerService.findById(id);
