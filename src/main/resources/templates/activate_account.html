@@ -37,17 +37,6 @@
             color: #6B7280;
             line-height: 1.6;
         }
-        .activation-code {
-            font-size: 36px;
-            font-weight: bold;
-            text-align: center;
-            letter-spacing: 8px;
-            color: #4F46E5;
-            margin: 24px 0;
-            padding: 16px;
-            background-color: #EEF2FF;
-            border-radius: 8px;
-        }
         .activation-link {
             display: block;
             text-align: center;
@@ -91,9 +80,6 @@
     <p class="message">
         Thank you for signing up! Please activate your account by clicking the button below.
     </p>
-    <div class="activation-code">
-        <span th:text="${activationToken}">000000</span>
-    </div>
     <div class="activation-link">
         <a th:href="${activationLink}" target="_blank">Activate my account</a>
     </div>
