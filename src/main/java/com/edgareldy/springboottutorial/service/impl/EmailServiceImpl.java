@@ -44,13 +44,16 @@ public class EmailServiceImpl implements EmailService {
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
     private final String frontendUrl;
+    private final String fromAddress;
 
     public EmailServiceImpl(JavaMailSender mailSender,
                             SpringTemplateEngine templateEngine,
-                            @Value("${app.frontend-url}") String frontendUrl) {
+                            @Value("${app.frontend-url}") String frontendUrl,
+                            @Value("${app.mail.from}") String fromAddress) {
         this.mailSender = mailSender;
         this.templateEngine = templateEngine;
         this.frontendUrl = frontendUrl;
+        this.fromAddress = fromAddress;
     }
 
     @Override
@@ -84,6 +87,7 @@ public class EmailServiceImpl implements EmailService {
                     MULTIPART_MODE_MIXED,
                     UTF_8.name()
             );
+            helper.setFrom(fromAddress);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(html, true);
