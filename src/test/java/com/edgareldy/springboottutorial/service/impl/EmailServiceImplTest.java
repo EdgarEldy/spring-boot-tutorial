@@ -52,12 +52,12 @@ class EmailServiceImplTest {
     void setUp() {
         emailService = new EmailServiceImpl(mailSender, templateEngine, FRONTEND_URL);
         user = AppUser.builder().id(1L).username("ada").email("ada@example.com").build();
-        given(mailSender.createMimeMessage()).willReturn(new MimeMessage((Session) null));
-        given(templateEngine.process(anyString(), any(IContext.class))).willReturn("<html>test</html>");
     }
 
     @Test
     void _01_ShouldPassFrontendActivationLink_WhenActivationEmailIsSent() {
+        given(mailSender.createMimeMessage()).willReturn(new MimeMessage((Session) null));
+        given(templateEngine.process(anyString(), any(IContext.class))).willReturn("<html>test</html>");
         emailService.sendActivationEmail(user, "raw-token");
 
         ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
@@ -73,6 +73,8 @@ class EmailServiceImplTest {
 
     @Test
     void _02_ShouldPassFrontendResetLink_WhenPasswordResetEmailIsSent() {
+        given(mailSender.createMimeMessage()).willReturn(new MimeMessage((Session) null));
+        given(templateEngine.process(anyString(), any(IContext.class))).willReturn("<html>test</html>");
         emailService.sendPasswordResetEmail(user, "reset-token");
 
         ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
