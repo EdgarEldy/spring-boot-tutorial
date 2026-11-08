@@ -65,6 +65,8 @@ public class DataSeeder {
                 Role adminRole = roleRepository.findByRoleNameIgnoreCase("ADMIN")
                         .orElseThrow(() -> new ResourceNotFoundException("Bootstrap role ADMIN not found"));
                 AppUser admin = AppUser.builder()
+                        .firstName("Admin")
+                        .lastName("User")
                         .username("admin")
                         .email("admin@example.com")
                         .password(passwordEncoder.encode(DEMO_PASSWORD))
