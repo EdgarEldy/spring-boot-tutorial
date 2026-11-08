@@ -50,11 +50,6 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "Invalidate the current JWT (blacklist its jti)")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Logged out successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Authentication required")
-    })
     public ResponseEntity<ApiResponse<Void>> logout(
             @RequestHeader("Authorization") String authHeader) {
         String rawToken = authHeader.substring(BEARER_PREFIX.length());
