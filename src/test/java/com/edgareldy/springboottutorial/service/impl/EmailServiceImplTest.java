@@ -1,22 +1,33 @@
 package com.edgareldy.springboottutorial.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 import com.edgareldy.springboottutorial.entity.user.AppUser;
+import com.edgareldy.springboottutorial.email.EmailTemplateName;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.context.IContext;
+import org.thymeleaf.spring6.SpringTemplateEngine;
 
 /**
- * Unit tests for {@link EmailServiceImpl}, with {@link JavaMailSender} mocked.
- * Runs the {@code @Async} methods synchronously (no Spring context involved),
- * asserting on the message content built before the actual send.
+ * Unit tests for {@link EmailServiceImpl}, with {@link JavaMailSender} and
+ * {@link SpringTemplateEngine} mocked. Verifies that the correct template name
+ * (via {@link EmailTemplateName}), context variables, and frontend URLs are
+ * used for each email type, and that the resulting HTML is dispatched via
+ * {@link JavaMailSender}.
  * <p>
  * Created edgar.muhamyangabo on 10/30/26
  * Author : edgar.muhamyangabo
@@ -26,42 +37,54 @@ import org.springframework.mail.javamail.JavaMailSender;
 @ExtendWith(MockitoExtension.class)
 class EmailServiceImplTest {
 
-    private static final String BASE_URL = "http://localhost:8080";
+    private static final String FRONTEND_URL = "http://localhost:4200";
+    private static final String FROM_ADDRESS = "noreply@spring-boot-tutorial.com";
 
     @Mock
     private JavaMailSender mailSender;
+
+    @Mock
+    private SpringTemplateEngine templateEngine;
 
     private EmailServiceImpl emailService;
     private AppUser user;
 
     @BeforeEach
     void setUp() {
-        emailService = new EmailServiceImpl(mailSender, BASE_URL);
+        emailService = new EmailServiceImpl(mailSender, templateEngine, FRONTEND_URL, FROM_ADDRESS);
         user = AppUser.builder().id(1L).username("ada").email("ada@example.com").build();
     }
 
     @Test
-    void _01_ShouldIncludeTokenLink_WhenActivationEmailIsSent() {
+    void _01_ShouldPassFrontendActivationLink_WhenActivationEmailIsSent() {
+        given(mailSender.createMimeMessage()).willReturn(new MimeMessage((Session) null));
+        given(templateEngine.process(anyString(), any(IContext.class))).willReturn("<html>test</html>");
         emailService.sendActivationEmail(user, "raw-token");
 
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
-        verify(mailSender).send(captor.capture());
-        SimpleMailMessage message = captor.getValue();
-        assertThat(message.getTo()).containsExactly("ada@example.com");
-        assertThat(message.getSubject()).isEqualTo("Activate your account");
-        assertThat(message.getText()).contains(BASE_URL + "/api/v1/auth/activate?token=raw-token");
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        verify(templateEngine).process(
+                eq(EmailTemplateName.ACTIVATE_ACCOUNT.getName()), contextCaptor.capture());
+        Context ctx = contextCaptor.getValue();
+        assertThat(ctx.getVariable("username")).isEqualTo("ada");
+        assertThat(ctx.getVariable("activationLink"))
+                .isEqualTo(FRONTEND_URL + "/auth/activate?token=raw-token");
+        verify(mailSender).send(any(MimeMessage.class));
     }
 
     @Test
-    void _02_ShouldIncludeTokenLink_WhenPasswordResetEmailIsSent() {
+    void _02_ShouldPassFrontendResetLink_WhenPasswordResetEmailIsSent() {
+        given(mailSender.createMimeMessage()).willReturn(new MimeMessage((Session) null));
+        given(templateEngine.process(anyString(), any(IContext.class))).willReturn("<html>test</html>");
         emailService.sendPasswordResetEmail(user, "reset-token");
 
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
-        verify(mailSender).send(captor.capture());
-        SimpleMailMessage message = captor.getValue();
-        assertThat(message.getTo()).containsExactly("ada@example.com");
-        assertThat(message.getSubject()).isEqualTo("Reset your password");
-        assertThat(message.getText()).contains(BASE_URL + "/api/v1/auth/reset-password?token=reset-token");
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        verify(templateEngine).process(
+                eq(EmailTemplateName.RESET_PASSWORD.getName()), contextCaptor.capture());
+        Context ctx = contextCaptor.getValue();
+        assertThat(ctx.getVariable("username")).isEqualTo("ada");
+        assertThat(ctx.getVariable("resetLink"))
+                .isEqualTo(FRONTEND_URL + "/auth/reset-password?token=reset-token");
+        verify(mailSender).send(any(MimeMessage.class));
     }
 
     @Test

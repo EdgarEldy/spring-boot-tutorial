@@ -9,8 +9,6 @@ import com.edgareldy.springboottutorial.dto.auth.UserResponse;
 import com.edgareldy.springboottutorial.dto.common.ApiResponse;
 import com.edgareldy.springboottutorial.service.AuthService;
 import com.edgareldy.springboottutorial.service.UserService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -47,33 +45,17 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/register")
-    @Operation(summary = "Register a new user account")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Account created successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation failed"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "Username or email already in use")
-    })
     public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(authService.register(request), "Account created successfully"));
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Sign in and obtain a JWT")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Login successful"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Invalid username or password")
-    })
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(ApiResponse.success(authService.login(request), "Login successful"));
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "Invalidate the current JWT (blacklist its jti)")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Logged out successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Authentication required")
-    })
     public ResponseEntity<ApiResponse<Void>> logout(
             @RequestHeader("Authorization") String authHeader) {
         String rawToken = authHeader.substring(BEARER_PREFIX.length());
@@ -82,42 +64,22 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    @Operation(summary = "Get the currently authenticated user's profile")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Profile retrieved successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Authentication required")
-    })
     public ResponseEntity<ApiResponse<UserResponse>> me(@AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(ApiResponse.success(authService.me(userDetails.getUsername()), "Profile retrieved successfully"));
     }
 
     @GetMapping("/activate")
-    @Operation(summary = "Activate a newly registered account")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Account activated successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Token missing, expired, or already used")
-    })
     public ResponseEntity<ApiResponse<UserResponse>> activate(@RequestParam String token) {
         return ResponseEntity.ok(ApiResponse.success(userService.activate(token), "Account activated successfully"));
     }
 
     @PostMapping("/forgot-password")
-    @Operation(summary = "Request a password-reset email")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "If the email is registered a reset link has been sent"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation failed")
-    })
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         userService.forgotPassword(request.email());
         return ResponseEntity.ok(ApiResponse.success(null, "If the email is registered a reset link has been sent"));
     }
 
     @PostMapping("/reset-password")
-    @Operation(summary = "Reset password using a one-time token")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Password reset successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Token missing, expired, or already used")
-    })
     public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         userService.resetPassword(request.token(), request.newPassword());
         return ResponseEntity.ok(ApiResponse.success(null, "Password reset successfully"));

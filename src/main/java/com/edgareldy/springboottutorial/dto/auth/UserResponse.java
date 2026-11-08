@@ -15,6 +15,8 @@ import java.util.List;
  */
 public record UserResponse(
         Long id,
+        @JsonProperty("first_name") String firstName,
+        @JsonProperty("last_name") String lastName,
         String username,
         String email,
         boolean enabled,
