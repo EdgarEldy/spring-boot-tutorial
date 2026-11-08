@@ -62,7 +62,6 @@ public class EmailServiceImpl implements EmailService {
         String link = frontendUrl + "/auth/activate?token=" + token;
         Context context = new Context(Locale.ENGLISH);
         context.setVariable("username", user.getUsername());
-        context.setVariable("activationToken", token);
         context.setVariable("activationLink", link);
         String html = templateEngine.process(EmailTemplateName.ACTIVATE_ACCOUNT.getName(), context);
         sendEmail(user.getEmail(), "Activate your account", html);
