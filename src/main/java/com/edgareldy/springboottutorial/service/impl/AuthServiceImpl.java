@@ -6,7 +6,6 @@ import com.edgareldy.springboottutorial.dto.auth.RegisterRequest;
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.entity.user.Role;
-import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import org.springframework.security.authentication.BadCredentialsException;
 import com.edgareldy.springboottutorial.mapper.AppUserMapper;
@@ -45,13 +44,9 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public UserResponse register(RegisterRequest request) {
-        if (appUserRepository.existsByUsername(request.username())) {
-            throw new BusinessRuleException("Username " + request.username() + " is already in use");
-        }
-        if (appUserRepository.existsByEmailIgnoreCase(request.email())) {
-            throw new BusinessRuleException("Email " + request.email() + " is already in use");
-        }
         AppUser appUser = AppUser.builder()
+                .firstName(request.firstName())
+                .lastName(request.lastName())
                 .username(request.username())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
