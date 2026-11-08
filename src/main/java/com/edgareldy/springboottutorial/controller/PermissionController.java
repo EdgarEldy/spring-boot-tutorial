@@ -5,7 +5,6 @@ import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.permission.PermissionRequest;
 import com.edgareldy.springboottutorial.dto.permission.PermissionResponse;
 import com.edgareldy.springboottutorial.service.PermissionService;
-import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -40,21 +39,18 @@ public class PermissionController {
     private final PermissionService permissionService;
 
     @GetMapping
-    @Operation(summary = "List permissions")
     public ResponseEntity<ApiResponse<PageResponse<PermissionResponse>>> findAll(Pageable pageable) {
         return ResponseEntity.ok(
                 ApiResponse.success(permissionService.findAll(pageable), "Permissions retrieved successfully"));
     }
 
     @PostMapping
-    @Operation(summary = "Create a permission")
     public ResponseEntity<ApiResponse<PermissionResponse>> create(@Valid @RequestBody PermissionRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(permissionService.create(request), "Permission created successfully"));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a permission")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         permissionService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Permission deleted successfully"));

@@ -5,7 +5,6 @@ import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.role.RoleRequest;
 import com.edgareldy.springboottutorial.dto.role.RoleResponse;
 import com.edgareldy.springboottutorial.service.RoleService;
-import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -41,34 +40,29 @@ public class RoleController {
     private final RoleService roleService;
 
     @GetMapping
-    @Operation(summary = "List roles")
     public ResponseEntity<ApiResponse<PageResponse<RoleResponse>>> findAll(Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(roleService.findAll(pageable), "Roles retrieved successfully"));
     }
 
     @PostMapping
-    @Operation(summary = "Create a role")
     public ResponseEntity<ApiResponse<RoleResponse>> create(@Valid @RequestBody RoleRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(roleService.create(request), "Role created successfully"));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update a role")
     public ResponseEntity<ApiResponse<RoleResponse>> update(
             @PathVariable Long id, @Valid @RequestBody RoleRequest request) {
         return ResponseEntity.ok(ApiResponse.success(roleService.update(id, request), "Role updated successfully"));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a role")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         roleService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Role deleted successfully"));
     }
 
     @PostMapping("/{roleId}/permissions/{permissionId}")
-    @Operation(summary = "Assign a permission to a role")
     public ResponseEntity<ApiResponse<RoleResponse>> assignPermission(
             @PathVariable Long roleId, @PathVariable Long permissionId) {
         return ResponseEntity.ok(ApiResponse.success(
@@ -76,7 +70,6 @@ public class RoleController {
     }
 
     @DeleteMapping("/{roleId}/permissions/{permissionId}")
-    @Operation(summary = "Remove a permission from a role")
     public ResponseEntity<ApiResponse<RoleResponse>> removePermission(
             @PathVariable Long roleId, @PathVariable Long permissionId) {
         return ResponseEntity.ok(ApiResponse.success(

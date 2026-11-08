@@ -304,7 +304,7 @@ Technical foundation shared by the whole project, to be merged first into `devel
 - [x] `CorsConfig`: allow `localhost:4200` in dev; allowed methods include `PATCH`
 - [x] `AsyncConfig`: `@EnableAsync` with a dedicated `ThreadPoolTaskExecutor` for email-sending tasks
 - [x] `SchedulingConfig`: `@EnableScheduling` to activate `@Scheduled` tasks (used by `feature/token-management`)
-- [x] `JpaAuditingConfig` (`@EnableJpaAuditing`): native Spring Data JPA auditing support, prepared ahead of `feature/products`
+- [x] `JpaAuditingConfig` (`@EnableJpaAuditing`): native Spring Data JPA auditing support, consumed by `Category` on `feature/products`
 - [x] `spring-boot-devtools`: automatic restart and other dev-only conveniences, disabled outside local runs
 - [x] Multi-stage `Dockerfile` (Maven build + lightweight JRE image)
 - [x] `docker-compose.yml`: `app` service + `db` service (PostgreSQL 16) + `mailhog` service (local SMTP for email testing) with volumes and environment variables read from `.env`

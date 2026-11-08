@@ -1,6 +1,7 @@
 package com.edgareldy.springboottutorial.config;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -14,6 +15,7 @@ import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.repository.CategoryRepository;
 import com.edgareldy.springboottutorial.repository.ProductRepository;
 import com.edgareldy.springboottutorial.repository.RoleRepository;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,8 +26,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
  * Unit tests for {@link DataSeeder}, with all repositories and
- * {@link PasswordEncoder} mocked. Two independent idempotence guards are
- * exercised: the category/product block and the admin-user block.
+ * {@link PasswordEncoder} mocked. Three scenarios: full seed from empty DB,
+ * idempotence guards, and password-reset via the resetUserPasswords flag.
  * <p>
  * Created edgar.muhamyangabo on 7/4/26
  * Author : edgar.muhamyangabo
@@ -64,7 +66,7 @@ class DataSeederTest {
         when(roleRepository.findByRoleNameIgnoreCase("ADMIN")).thenReturn(Optional.of(adminRole));
         when(passwordEncoder.encode(any())).thenReturn("hashed");
 
-        dataSeeder.seedDemoData().run();
+        dataSeeder.seedDemoData(false).run();
 
         verify(categoryRepository, times(2)).save(any(Category.class));
         verify(productRepository, times(3)).save(any(Product.class));
@@ -76,10 +78,27 @@ class DataSeederTest {
         when(categoryRepository.count()).thenReturn(1L);
         when(appUserRepository.count()).thenReturn(1L);
 
-        dataSeeder.seedDemoData().run();
+        dataSeeder.seedDemoData(false).run();
 
         verify(categoryRepository, never()).save(any());
         verify(productRepository, never()).save(any());
         verify(appUserRepository, never()).save(any());
+        verify(appUserRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void _03_ShouldResetAllExistingUserPasswords_WhenExplicitlyEnabled() throws Exception {
+        AppUser admin = AppUser.builder().username("admin").password("old-admin-hash").build();
+        AppUser user = AppUser.builder().username("user1").password("old-user-hash").build();
+        when(categoryRepository.count()).thenReturn(1L);
+        when(appUserRepository.count()).thenReturn(2L);
+        when(passwordEncoder.encode(DataSeeder.DEMO_PASSWORD)).thenReturn("encoded-demo-password");
+        when(appUserRepository.findAll()).thenReturn(List.of(admin, user));
+
+        dataSeeder.seedDemoData(true).run();
+
+        verify(appUserRepository).saveAll(List.of(admin, user));
+        org.junit.jupiter.api.Assertions.assertEquals("encoded-demo-password", admin.getPassword());
+        org.junit.jupiter.api.Assertions.assertEquals("encoded-demo-password", user.getPassword());
     }
 }

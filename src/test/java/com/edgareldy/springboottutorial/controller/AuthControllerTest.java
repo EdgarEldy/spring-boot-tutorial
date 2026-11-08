@@ -18,7 +18,6 @@ import com.edgareldy.springboottutorial.dto.auth.RegisterRequest;
 import com.edgareldy.springboottutorial.dto.auth.ResetPasswordRequest;
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
 import com.edgareldy.springboottutorial.dto.role.RoleResponse;
-import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.InvalidTokenException;
 import com.edgareldy.springboottutorial.security.JwtAccessDeniedHandler;
 import com.edgareldy.springboottutorial.security.JwtAuthenticationEntryPoint;
@@ -81,37 +80,39 @@ class AuthControllerTest {
 
     @Test
     void _01_ShouldReturn201_WhenRegisterRequestValid() throws Exception {
-        UserResponse response = new UserResponse(1L, "ada", "ada@example.com", false, false,
+        UserResponse response = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", false, false,
                 List.of(new RoleResponse(1L, "USER", List.of())));
         when(authService.register(any())).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new RegisterRequest("ada", "ada@example.com", "password123"))))
+                                new RegisterRequest("Ada", "Lovelace", "ada", "ada@example.com", "Password1@", "Password1@"))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.username").value("ada"));
+                .andExpect(jsonPath("$.data.username").value("ada"))
+                .andExpect(jsonPath("$.data.first_name").value("Ada"))
+                .andExpect(jsonPath("$.data.last_name").value("Lovelace"));
     }
 
     @Test
-    void _02_ShouldReturn400_WhenPasswordTooShort() throws Exception {
+    void _02_ShouldReturn400_WhenPasswordFailsComplexityRules() throws Exception {
+        // "simple" has no uppercase, no digit, no special char - rejected by @ValidPassword
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new RegisterRequest("ada", "ada@example.com", "short"))))
+                                new RegisterRequest("Ada", "Lovelace", "ada", "ada@example.com", "simple", "simple"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
-    void _03_ShouldReturn422_WhenUsernameAlreadyUsed() throws Exception {
-        when(authService.register(any())).thenThrow(new BusinessRuleException("Username ada is already in use"));
-
+    void _03_ShouldReturn400_WhenFirstNameBlank() throws Exception {
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new RegisterRequest("ada", "ada@example.com", "password123"))))
-                .andExpect(status().isUnprocessableEntity());
+                                new RegisterRequest("", "Lovelace", "ada", "ada@example.com", "Password1@", "Password1@"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
@@ -147,7 +148,7 @@ class AuthControllerTest {
 
     @Test
     void _06_ShouldReturnCallerProfile_WhenAuthenticated() throws Exception {
-        when(authService.me("ada")).thenReturn(new UserResponse(1L, "ada", "ada@example.com", true, false,
+        when(authService.me("ada")).thenReturn(new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", true, false,
                 List.of(new RoleResponse(1L, "USER", List.of()))));
 
         mockMvc.perform(get("/api/v1/auth/me").with(user("ada").roles("USER")))
@@ -163,7 +164,7 @@ class AuthControllerTest {
 
     @Test
     void _08_ShouldReturn200_WhenActivationTokenValid() throws Exception {
-        UserResponse activated = new UserResponse(1L, "ada", "ada@example.com", true, false,
+        UserResponse activated = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", true, false,
                 List.of(new RoleResponse(1L, "USER", List.of())));
         when(userService.activate("valid-token")).thenReturn(activated);
 
