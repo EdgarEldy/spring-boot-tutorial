@@ -1,5 +1,6 @@
 package com.edgareldy.springboottutorial.dto.auth;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.edgareldy.springboottutorial.entity.user.Role;
 
 /**
@@ -13,6 +14,8 @@ import com.edgareldy.springboottutorial.entity.user.Role;
  */
 public record UserResponse(
         Long id,
+        @JsonProperty("first_name") String firstName,
+        @JsonProperty("last_name") String lastName,
         String username,
         String email,
         Role role
