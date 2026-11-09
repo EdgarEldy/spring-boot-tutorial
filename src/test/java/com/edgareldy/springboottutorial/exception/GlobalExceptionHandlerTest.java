@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.edgareldy.springboottutorial.dto.common.ApiResponse;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.Map;
@@ -103,27 +104,27 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void _06_ShouldReturn401_WhenAccountIsLocked() {
+    void _06_ShouldReturn423_WhenAccountIsLocked() {
         HttpServletRequest request = mockRequest("/api/v1/auth/login");
 
         ResponseEntity<ApiResponse<ProblemDetail>> response =
                 handler.handleLocked(new LockedException("Account is locked"), request);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getStatusCode().value()).isEqualTo(423);
         assertThat(response.getBody().message()).isEqualTo("Account is locked");
-        assertThat(response.getBody().data().getStatus()).isEqualTo(401);
+        assertThat(response.getBody().data().getStatus()).isEqualTo(423);
     }
 
     @Test
-    void _07_ShouldReturn401_WhenAccountIsDisabled() {
+    void _07_ShouldReturn403_WhenAccountIsDisabled() {
         HttpServletRequest request = mockRequest("/api/v1/auth/login");
 
         ResponseEntity<ApiResponse<ProblemDetail>> response =
                 handler.handleDisabled(new DisabledException("Account is not activated"), request);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(response.getBody().message()).isEqualTo("Account is not activated");
-        assertThat(response.getBody().data().getStatus()).isEqualTo(401);
+        assertThat(response.getBody().data().getStatus()).isEqualTo(403);
     }
 
     @Test
@@ -175,6 +176,18 @@ class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody().data().getStatus()).isEqualTo(500);
+    }
+
+    @Test
+    void _12_ShouldReturn401_WhenJwtTokenExpired() {
+        HttpServletRequest request = mockRequest("/api/v1/auth/token-info");
+
+        ResponseEntity<ApiResponse<ProblemDetail>> response =
+                handler.handleExpiredJwt(mock(ExpiredJwtException.class), request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody().data().getStatus()).isEqualTo(401);
+        assertThat(response.getBody().message()).isEqualTo("JWT token has expired");
     }
 
     private HttpServletRequest mockRequest(String uri) {

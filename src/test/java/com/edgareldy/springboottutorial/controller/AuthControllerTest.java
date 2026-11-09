@@ -1,6 +1,7 @@
 package com.edgareldy.springboottutorial.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -19,6 +20,7 @@ import com.edgareldy.springboottutorial.security.JwtAccessDeniedHandler;
 import com.edgareldy.springboottutorial.security.JwtAuthenticationEntryPoint;
 import com.edgareldy.springboottutorial.security.JwtService;
 import com.edgareldy.springboottutorial.service.AuthService;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -143,6 +145,24 @@ class AuthControllerTest {
     @Test
     void _07_ShouldReturn401_WhenNotAuthenticated() throws Exception {
         mockMvc.perform(get("/api/v1/auth/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void _09_ShouldReturnClaims_WhenAuthenticatedWithValidToken() throws Exception {
+        when(jwtService.extractAllClaims(anyString())).thenReturn(Map.of("sub", "ada", "token_type", "access"));
+
+        mockMvc.perform(get("/api/v1/auth/token-info")
+                        .header("Authorization", "Bearer fake-token")
+                        .with(user("ada").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.sub").value("ada"))
+                .andExpect(jsonPath("$.data.token_type").value("access"));
+    }
+
+    @Test
+    void _10_ShouldReturn401_WhenTokenInfoCalledUnauthenticated() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/token-info"))
                 .andExpect(status().isUnauthorized());
     }
 }

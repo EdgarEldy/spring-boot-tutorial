@@ -5,8 +5,10 @@ import com.edgareldy.springboottutorial.dto.auth.LoginRequest;
 import com.edgareldy.springboottutorial.dto.auth.RegisterRequest;
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
 import com.edgareldy.springboottutorial.dto.common.ApiResponse;
+import com.edgareldy.springboottutorial.security.JwtService;
 import com.edgareldy.springboottutorial.service.AuthService;
 import jakarta.validation.Valid;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,7 +36,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
+    private static final String BEARER_PREFIX = "Bearer ";
+
     private final AuthService authService;
+    private final JwtService jwtService;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody RegisterRequest request) {
@@ -49,5 +55,20 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> me(@AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(ApiResponse.success(authService.me(userDetails.getUsername()), "Profile retrieved successfully"));
+    }
+
+    @GetMapping("/token-info")
+    @Operation(summary = "Inspect the claims of the current bearer token")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Token claims returned"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Authentication required or token expired")
+    })
+    public ResponseEntity<ApiResponse<Map<String, Object>>> tokenInfo(
+            @RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.startsWith(BEARER_PREFIX)
+                ? authHeader.substring(BEARER_PREFIX.length())
+                : authHeader;
+        Map<String, Object> claims = jwtService.extractAllClaims(token);
+        return ResponseEntity.ok(ApiResponse.success(claims, "Token claims retrieved successfully"));
     }
 }
