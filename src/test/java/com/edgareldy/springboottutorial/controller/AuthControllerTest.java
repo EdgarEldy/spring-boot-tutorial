@@ -19,8 +19,11 @@ import com.edgareldy.springboottutorial.entity.user.Role;
 import com.edgareldy.springboottutorial.security.JwtAccessDeniedHandler;
 import com.edgareldy.springboottutorial.security.JwtAuthenticationEntryPoint;
 import com.edgareldy.springboottutorial.security.JwtService;
+import com.edgareldy.springboottutorial.dto.auth.ForgotPasswordRequest;
+import com.edgareldy.springboottutorial.dto.auth.ResetPasswordRequest;
 import com.edgareldy.springboottutorial.service.AuthService;
 import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
+import com.edgareldy.springboottutorial.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -57,6 +60,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private AuthService authService;
+
+    @MockitoBean
+    private UserService userService;
 
     // Unused directly: JwtAuthFilter/SecurityConfig need these to construct,
     // even though no request in this class carries a JWT.
@@ -168,5 +174,68 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/logout")
                         .header("Authorization", "Bearer signed-token"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void _10_ShouldReturn200_WhenActivateTokenValid() throws Exception {
+        UserResponse response = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", Role.USER);
+        when(userService.activate("valid-token")).thenReturn(response);
+
+        mockMvc.perform(get("/api/v1/auth/activate").param("token", "valid-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.username").value("ada"))
+                .andExpect(jsonPath("$.message").value("Account activated successfully"));
+    }
+
+    @Test
+    void _11_ShouldReturn200_WhenForgotPasswordEmailValid() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ForgotPasswordRequest("ada@example.com"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        verify(userService).forgotPassword("ada@example.com");
+    }
+
+    @Test
+    void _12_ShouldReturn400_WhenForgotPasswordEmailInvalid() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ForgotPasswordRequest("not-an-email"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void _13_ShouldReturn200_WhenResetPasswordRequestValid() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .param("token", "reset-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ResetPasswordRequest("Password1@", "Password1@"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Password reset successfully"));
+
+        verify(userService).resetPassword("reset-token", "Password1@");
+    }
+
+    @Test
+    void _14_ShouldReturn400_WhenResetPasswordNewPasswordFailsComplexity() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .param("token", "reset-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ResetPasswordRequest("simple", "simple"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void _15_ShouldReturn400_WhenResetPasswordConfirmDoesNotMatch() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .param("token", "reset-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ResetPasswordRequest("Password1@", "Different1@"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
     }
 }
