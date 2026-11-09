@@ -3,6 +3,7 @@ package com.edgareldy.springboottutorial.scheduler;
 import com.edgareldy.springboottutorial.repository.ActivationTokenRepository;
 import com.edgareldy.springboottutorial.repository.BlacklistedTokenRepository;
 import com.edgareldy.springboottutorial.repository.PasswordResetTokenRepository;
+import com.edgareldy.springboottutorial.repository.RefreshTokenRepository;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -32,6 +33,7 @@ public class TokenCleanupScheduler {
     private final ActivationTokenRepository activationTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Scheduled(cron = DAILY_AT_3AM)
     @Transactional
@@ -52,5 +54,12 @@ public class TokenCleanupScheduler {
     public void purgeExpiredBlacklistedTokens() {
         blacklistedTokenRepository.deleteAllByExpiresAtBefore(Instant.now());
         log.info("Purged expired blacklisted tokens");
+    }
+
+    @Scheduled(cron = DAILY_AT_3AM)
+    @Transactional
+    public void purgeExpiredRefreshTokens() {
+        refreshTokenRepository.deleteAllByExpiresAtBefore(Instant.now());
+        log.info("Purged expired refresh tokens");
     }
 }
