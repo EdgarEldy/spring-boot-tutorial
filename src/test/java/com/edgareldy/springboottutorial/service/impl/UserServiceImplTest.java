@@ -24,6 +24,7 @@ import com.edgareldy.springboottutorial.repository.RoleRepository;
 import com.edgareldy.springboottutorial.service.ActivationTokenService;
 import com.edgareldy.springboottutorial.service.EmailService;
 import com.edgareldy.springboottutorial.service.PasswordResetTokenService;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -142,6 +143,34 @@ class UserServiceImplTest {
         when(roleRepository.findAllById(Set.of(1L, 99L))).thenReturn(List.of(userRole));
 
         assertThatThrownBy(() -> userService.assignRoles(1L, request))
+                .isInstanceOf(BusinessRuleException.class);
+
+        verify(appUserRepository, never()).save(any());
+    }
+
+    @Test
+    void _05b_ShouldRemoveRole_WhenUserHasIt() {
+        AppUser userWithRole = AppUser.builder()
+                .id(1L).username("ada").email("ada@example.com").password("hashed")
+                .enabled(true).roles(new HashSet<>(Set.of(userRole))).build();
+        UserResponse updatedResponse = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", true, false,
+                List.of());
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(userWithRole));
+        when(appUserRepository.save(userWithRole)).thenReturn(userWithRole);
+        when(appUserMapper.toResponse(userWithRole)).thenReturn(updatedResponse);
+
+        assertThat(userService.removeRoleFromUser(1L, 1L)).isEqualTo(updatedResponse);
+        assertThat(userWithRole.getRoles()).isEmpty();
+    }
+
+    @Test
+    void _05c_ShouldThrowBusinessRule_WhenUserDoesNotHaveRole() {
+        AppUser userWithRole = AppUser.builder()
+                .id(1L).username("ada").email("ada@example.com").password("hashed")
+                .enabled(true).roles(new HashSet<>(Set.of(userRole))).build();
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(userWithRole));
+
+        assertThatThrownBy(() -> userService.removeRoleFromUser(1L, 99L))
                 .isInstanceOf(BusinessRuleException.class);
 
         verify(appUserRepository, never()).save(any());
