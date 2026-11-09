@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.edgareldy.springboottutorial.entity.token.ActivationToken;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.InvalidTokenException;
+import com.edgareldy.springboottutorial.exception.TokenExpiredException;
 import com.edgareldy.springboottutorial.repository.ActivationTokenRepository;
 import com.edgareldy.springboottutorial.security.SecureTokenGenerator;
 import java.time.Instant;
@@ -52,12 +53,13 @@ class ActivationTokenServiceImplTest {
     }
 
     @Test
-    void _01_ShouldSaveTokenAndReturnRawValue_WhenTokenIsGenerated() {
+    void _01_ShouldPurgePreviousTokensThenSave_WhenTokenIsGenerated() {
         when(secureTokenGenerator.generate()).thenReturn("raw-token");
 
         String result = activationTokenService.generate(user);
 
         assertThat(result).isEqualTo("raw-token");
+        verify(activationTokenRepository).deleteByUser(user);
         ArgumentCaptor<ActivationToken> captor = ArgumentCaptor.forClass(ActivationToken.class);
         verify(activationTokenRepository).save(captor.capture());
         assertThat(captor.getValue().getUser()).isEqualTo(user);
@@ -105,7 +107,7 @@ class ActivationTokenServiceImplTest {
     }
 
     @Test
-    void _05_ShouldThrowException_WhenTokenIsExpired() {
+    void _05_ShouldThrowTokenExpiredException_WhenTokenIsExpired() {
         ActivationToken activationToken = ActivationToken.builder()
                 .id(1L).user(user).token("raw-token")
                 .createdAt(Instant.now().minus(2, ChronoUnit.DAYS))
@@ -114,6 +116,6 @@ class ActivationTokenServiceImplTest {
         when(activationTokenRepository.findByToken("raw-token")).thenReturn(Optional.of(activationToken));
 
         assertThatThrownBy(() -> activationTokenService.validate("raw-token"))
-                .isInstanceOf(InvalidTokenException.class);
+                .isInstanceOf(TokenExpiredException.class);
     }
 }
