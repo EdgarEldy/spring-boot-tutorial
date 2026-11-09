@@ -17,7 +17,9 @@ import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.mapper.AppUserMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.security.JwtService;
+import com.edgareldy.springboottutorial.service.ActivationTokenService;
 import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
+import com.edgareldy.springboottutorial.service.EmailService;
 import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,6 +65,12 @@ class AuthServiceImplTest {
     @Mock
     private BlacklistedTokenService blacklistedTokenService;
 
+    @Mock
+    private ActivationTokenService activationTokenService;
+
+    @Mock
+    private EmailService emailService;
+
     @InjectMocks
     private AuthServiceImpl authService;
 
@@ -84,6 +92,7 @@ class AuthServiceImplTest {
         when(passwordEncoder.encode("Password1@")).thenReturn("hashed");
         when(appUserRepository.save(any(AppUser.class))).thenReturn(appUser);
         when(appUserMapper.toResponse(appUser)).thenReturn(userResponse);
+        when(activationTokenService.generate(appUser)).thenReturn("activation-tok");
 
         assertThat(authService.register(request)).isEqualTo(userResponse);
 
@@ -93,6 +102,8 @@ class AuthServiceImplTest {
         assertThat(savedUserCaptor.getValue().getLastName()).isEqualTo("Lovelace");
         assertThat(savedUserCaptor.getValue().getPassword()).isEqualTo("hashed");
         assertThat(savedUserCaptor.getValue().getRole()).isEqualTo(Role.USER);
+        assertThat(savedUserCaptor.getValue().isEnabled()).isFalse();
+        verify(emailService).sendActivationEmail(appUser, "activation-tok");
     }
 
     @Test
