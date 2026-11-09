@@ -23,6 +23,8 @@ public interface UserService {
 
     UserResponse assignRoles(Long userId, AssignRolesRequest request);
 
+    UserResponse removeRoleFromUser(Long userId, Long roleId);
+
     void delete(Long id);
 
     UserResponse lock(Long id, String currentUsername);
