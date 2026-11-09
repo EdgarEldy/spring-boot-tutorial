@@ -72,7 +72,8 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login",
-                                "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password")
+                                "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password",
+                                "/api/v1/auth/refresh-token")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/activate")
                         .permitAll()
