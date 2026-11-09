@@ -38,6 +38,7 @@ public class PasswordResetTokenServiceImpl implements PasswordResetTokenService 
     @Override
     @Transactional
     public String generate(AppUser user) {
+        passwordResetTokenRepository.deleteByUser(user);
         String rawToken = secureTokenGenerator.generate();
         Instant now = Instant.now();
         PasswordResetToken passwordResetToken = PasswordResetToken.builder()
