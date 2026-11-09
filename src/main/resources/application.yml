@@ -15,3 +15,4 @@ app:
 jwt:
   secret: ${JWT_SECRET:dev-only-jwt-secret-please-override-in-production-0123456789}
   expiration-ms: 3600000
+  refresh-expiration-ms: 604800000

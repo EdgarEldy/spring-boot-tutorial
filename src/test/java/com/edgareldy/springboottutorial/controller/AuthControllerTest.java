@@ -1,6 +1,7 @@
 package com.edgareldy.springboottutorial.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -24,6 +25,7 @@ import com.edgareldy.springboottutorial.dto.auth.ResetPasswordRequest;
 import com.edgareldy.springboottutorial.service.AuthService;
 import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import com.edgareldy.springboottutorial.service.UserService;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -237,5 +239,23 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(new ResetPasswordRequest("Password1@", "Different1@"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void _16_ShouldReturnClaims_WhenAuthenticatedWithValidToken() throws Exception {
+        when(jwtService.extractAllClaims(anyString())).thenReturn(Map.of("sub", "ada", "token_type", "access"));
+
+        mockMvc.perform(get("/api/v1/auth/token-info")
+                        .header("Authorization", "Bearer fake-token")
+                        .with(user("ada").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.sub").value("ada"))
+                .andExpect(jsonPath("$.data.token_type").value("access"));
+    }
+
+    @Test
+    void _17_ShouldReturn401_WhenTokenInfoCalledUnauthenticated() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/token-info"))
+                .andExpect(status().isUnauthorized());
     }
 }
