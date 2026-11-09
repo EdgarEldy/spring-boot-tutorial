@@ -46,6 +46,15 @@ public class AuthController {
     private final UserService userService;
     private final JwtService jwtService;
 
+    @PostMapping("/refresh-token")
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
+            @RequestHeader("Authorization") String authHeader) {
+        String rawToken = authHeader.startsWith(BEARER_PREFIX)
+                ? authHeader.substring(BEARER_PREFIX.length())
+                : authHeader;
+        return ResponseEntity.ok(ApiResponse.success(authService.refresh(rawToken), "Token refreshed successfully"));
+    }
+
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
