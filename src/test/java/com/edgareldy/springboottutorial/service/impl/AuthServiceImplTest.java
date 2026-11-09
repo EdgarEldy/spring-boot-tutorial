@@ -118,11 +118,12 @@ class AuthServiceImplTest {
                 .token("refresh-token").build();
         when(appUserRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(appUser));
         when(jwtService.generateToken("ada")).thenReturn("signed-token");
+        when(jwtService.getExpirationMs()).thenReturn(3600000L);
         when(refreshTokenService.generate(appUser)).thenReturn(fakeRefreshToken);
 
         AuthResponse response = authService.login(request);
 
-        assertThat(response).isEqualTo(new AuthResponse("signed-token", "Bearer", "refresh-token"));
+        assertThat(response).isEqualTo(new AuthResponse("signed-token", "Bearer", "refresh-token", 3600L));
         verify(authenticationManager).authenticate(new UsernamePasswordAuthenticationToken("ada", "password123"));
         verify(refreshTokenService).generate(appUser);
     }
