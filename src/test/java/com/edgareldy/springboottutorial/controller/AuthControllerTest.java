@@ -121,14 +121,15 @@ class AuthControllerTest {
 
     @Test
     void _04_ShouldReturn200_WhenCredentialsValid() throws Exception {
-        when(authService.login(any())).thenReturn(new AuthResponse("signed-token", "Bearer", "refresh-token"));
+        when(authService.login(any())).thenReturn(new AuthResponse("signed-token", "Bearer", "refresh-token", 3600L));
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new LoginRequest("ada@example.com", "password123"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.access_token").value("signed-token"))
-                .andExpect(jsonPath("$.data.token_type").value("Bearer"));
+                .andExpect(jsonPath("$.data.token_type").value("Bearer"))
+                .andExpect(jsonPath("$.data.expires_in").value(3600));
     }
 
     @Test
@@ -267,7 +268,7 @@ class AuthControllerTest {
     @Test
     void _18_ShouldReturn200_WhenRefreshTokenValid() throws Exception {
         when(authService.refresh("refresh-token"))
-                .thenReturn(new AuthResponse("new-access-token", "Bearer", "new-refresh-token"));
+                .thenReturn(new AuthResponse("new-access-token", "Bearer", "new-refresh-token", 3600L));
 
         mockMvc.perform(post("/api/v1/auth/refresh-token")
                         .header("Authorization", "Bearer refresh-token"))
