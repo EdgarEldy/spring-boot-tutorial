@@ -33,6 +33,7 @@ public class ActivationTokenServiceImpl implements ActivationTokenService {
     @Override
     @Transactional
     public String generate(AppUser user) {
+        activationTokenRepository.deleteByUser(user);
         String rawToken = secureTokenGenerator.generate();
         Instant now = Instant.now();
         ActivationToken activationToken = ActivationToken.builder()
