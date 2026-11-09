@@ -17,9 +17,11 @@ import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.mapper.AppUserMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.security.JwtService;
+import com.edgareldy.springboottutorial.entity.token.RefreshToken;
 import com.edgareldy.springboottutorial.service.ActivationTokenService;
 import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import com.edgareldy.springboottutorial.service.EmailService;
+import com.edgareldy.springboottutorial.service.RefreshTokenService;
 import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,6 +73,9 @@ class AuthServiceImplTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
     @InjectMocks
     private AuthServiceImpl authService;
 
@@ -109,13 +114,17 @@ class AuthServiceImplTest {
     @Test
     void _04_ShouldReturnToken_WhenCredentialsValid() {
         LoginRequest request = new LoginRequest("ada@example.com", "password123");
+        RefreshToken fakeRefreshToken = RefreshToken.builder()
+                .token("refresh-token").build();
         when(appUserRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(appUser));
         when(jwtService.generateToken("ada")).thenReturn("signed-token");
+        when(refreshTokenService.generate(appUser)).thenReturn(fakeRefreshToken);
 
         AuthResponse response = authService.login(request);
 
-        assertThat(response).isEqualTo(new AuthResponse("signed-token", "Bearer", "ada"));
+        assertThat(response).isEqualTo(new AuthResponse("signed-token", "Bearer", "ada", "refresh-token"));
         verify(authenticationManager).authenticate(new UsernamePasswordAuthenticationToken("ada", "password123"));
+        verify(refreshTokenService).generate(appUser);
     }
 
     @Test
@@ -159,7 +168,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void _08_ShouldBlacklistToken_WhenLogoutCalled() {
+    void _08_ShouldBlacklistTokenAndDeleteRefreshToken_WhenLogoutCalled() {
         String rawToken = "signed-token";
         String jti = "jti-123";
         Instant expiresAt = Instant.now().plusSeconds(3600);
@@ -171,6 +180,7 @@ class AuthServiceImplTest {
         authService.logout(rawToken);
 
         verify(blacklistedTokenService).blacklist(appUser, rawToken, jti, expiresAt);
+        verify(refreshTokenService).deleteByUser(appUser);
     }
 
     @Test
