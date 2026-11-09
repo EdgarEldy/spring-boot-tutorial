@@ -118,4 +118,23 @@ class ActivationTokenServiceImplTest {
         assertThatThrownBy(() -> activationTokenService.validate("raw-token"))
                 .isInstanceOf(TokenExpiredException.class);
     }
+
+    @Test
+    void _06_ShouldReturnUser_WhenGetUserByTokenCalled() {
+        ActivationToken activationToken = ActivationToken.builder()
+                .id(1L).user(user).token("raw-token")
+                .createdAt(Instant.now()).expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
+                .build();
+        when(activationTokenRepository.findByToken("raw-token")).thenReturn(Optional.of(activationToken));
+
+        assertThat(activationTokenService.getUserByToken("raw-token")).isEqualTo(user);
+    }
+
+    @Test
+    void _07_ShouldThrowInvalidTokenException_WhenGetUserByTokenCalledWithMissingToken() {
+        when(activationTokenRepository.findByToken("missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> activationTokenService.getUserByToken("missing"))
+                .isInstanceOf(InvalidTokenException.class);
+    }
 }
