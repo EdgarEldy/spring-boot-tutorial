@@ -39,11 +39,13 @@ public class PasswordResetTokenServiceImpl implements PasswordResetTokenService 
     @Transactional
     public String generate(AppUser user) {
         String rawToken = secureTokenGenerator.generate();
+        Instant now = Instant.now();
         PasswordResetToken passwordResetToken = PasswordResetToken.builder()
                 .user(user)
                 .token(rawToken)
+                .createdAt(now)
                 .type(TYPE_PASSWORD_RESET)
-                .expiryDate(Instant.now().plus(EXPIRATION))
+                .expiryDate(now.plus(EXPIRATION))
                 .build();
         passwordResetTokenRepository.save(passwordResetToken);
         return rawToken;
