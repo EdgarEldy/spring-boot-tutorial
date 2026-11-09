@@ -69,7 +69,7 @@ public class UserServiceImpl implements UserService {
         if (roles.size() != request.roleIds().size()) {
             throw new BusinessRuleException("One or more role IDs are invalid");
         }
-        user.setRoles(roles);
+        user.getRoles().addAll(roles);
         return appUserMapper.toResponse(appUserRepository.save(user));
     }
 
