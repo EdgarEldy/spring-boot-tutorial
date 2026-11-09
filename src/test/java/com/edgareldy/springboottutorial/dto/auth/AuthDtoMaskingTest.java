@@ -36,8 +36,10 @@ class AuthDtoMaskingTest {
 
     @Test
     void _03_ShouldMaskToken_WhenAuthResponsePrinted() {
-        String result = new AuthResponse("signed.jwt.token", "Bearer", "ada").toString();
+        String result = new AuthResponse("signed.jwt.token", "Bearer", "refresh.jwt.token", 3600L).toString();
 
-        assertThat(result).contains("Bearer", "ada").doesNotContain("signed.jwt.token");
+        assertThat(result)
+                .contains("Bearer", "3600")
+                .doesNotContain("signed.jwt.token", "refresh.jwt.token");
     }
 }

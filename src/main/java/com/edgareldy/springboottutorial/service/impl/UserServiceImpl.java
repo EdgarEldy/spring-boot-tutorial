@@ -8,6 +8,7 @@ import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
+import com.edgareldy.springboottutorial.exception.TokenExpiredException;
 import com.edgareldy.springboottutorial.mapper.AppUserMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.repository.RoleRepository;
@@ -68,7 +69,18 @@ public class UserServiceImpl implements UserService {
         if (roles.size() != request.roleIds().size()) {
             throw new BusinessRuleException("One or more role IDs are invalid");
         }
-        user.setRoles(roles);
+        user.getRoles().addAll(roles);
+        return appUserMapper.toResponse(appUserRepository.save(user));
+    }
+
+    @Override
+    @Transactional
+    public UserResponse removeRoleFromUser(Long userId, Long roleId) {
+        AppUser user = getUserOrThrow(userId);
+        boolean removed = user.getRoles().removeIf(r -> r.getId().equals(roleId));
+        if (!removed) {
+            throw new BusinessRuleException("User does not have role with id " + roleId);
+        }
         return appUserMapper.toResponse(appUserRepository.save(user));
     }
 
@@ -120,15 +132,28 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse activate(String token) {
-        AppUser user = activationTokenService.validate(token);
-        user.setEnabled(true);
-        return appUserMapper.toResponse(appUserRepository.save(user));
+        try {
+            AppUser user = activationTokenService.validate(token);
+            user.setEnabled(true);
+            return appUserMapper.toResponse(appUserRepository.save(user));
+        } catch (TokenExpiredException e) {
+            // Token expired: generate a fresh one and re-send the email, then
+            // rethrow so the caller still gets an error response (the user must
+            // click the new link before they can log in).
+            AppUser user = activationTokenService.getUserByToken(token);
+            String newToken = activationTokenService.generate(user);
+            emailService.sendActivationEmail(user, newToken);
+            throw e;
+        }
     }
 
     @Override
     @Transactional
     public void forgotPassword(String email) {
         appUserRepository.findByEmailIgnoreCase(email).ifPresent(user -> {
+            if (!user.isEnabled() || user.isAccountLocked()) {
+                return;
+            }
             String token = passwordResetTokenService.generate(user);
             emailService.sendPasswordResetEmail(user, token);
         });

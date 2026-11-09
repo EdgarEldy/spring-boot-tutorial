@@ -17,12 +17,14 @@ import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
+import com.edgareldy.springboottutorial.exception.TokenExpiredException;
 import com.edgareldy.springboottutorial.mapper.AppUserMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.repository.RoleRepository;
 import com.edgareldy.springboottutorial.service.ActivationTokenService;
 import com.edgareldy.springboottutorial.service.EmailService;
 import com.edgareldy.springboottutorial.service.PasswordResetTokenService;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -83,7 +85,8 @@ class UserServiceImplTest {
         userRole = Role.builder().id(1L).roleName("USER").build();
         appUser = AppUser.builder()
                 .id(1L).username("ada").email("ada@example.com").password("hashed")
-                .enabled(false).roles(Set.of(userRole)).build();
+                .enabled(false).build();
+        appUser.getRoles().add(userRole);
         userResponse = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", false, false,
                 List.of(new RoleResponse(1L, "USER", List.of())));
     }
@@ -135,12 +138,55 @@ class UserServiceImplTest {
     }
 
     @Test
+    void _04b_ShouldPreserveExistingRoles_WhenAssigningNewOnes() {
+        Role adminRole = Role.builder().id(2L).roleName("ADMIN").build();
+        AssignRolesRequest request = new AssignRolesRequest(Set.of(2L));
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
+        when(roleRepository.findAllById(Set.of(2L))).thenReturn(List.of(adminRole));
+        when(appUserRepository.save(appUser)).thenReturn(appUser);
+        when(appUserMapper.toResponse(appUser)).thenReturn(userResponse);
+
+        userService.assignRoles(1L, request);
+
+        // existing userRole (id=1) must still be present alongside the newly added ADMIN
+        assertThat(appUser.getRoles()).contains(userRole, adminRole);
+    }
+
+    @Test
     void _05_ShouldThrowBusinessRule_WhenSomeRoleIdsInvalid() {
         AssignRolesRequest request = new AssignRolesRequest(Set.of(1L, 99L));
         when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
         when(roleRepository.findAllById(Set.of(1L, 99L))).thenReturn(List.of(userRole));
 
         assertThatThrownBy(() -> userService.assignRoles(1L, request))
+                .isInstanceOf(BusinessRuleException.class);
+
+        verify(appUserRepository, never()).save(any());
+    }
+
+    @Test
+    void _05b_ShouldRemoveRole_WhenUserHasIt() {
+        AppUser userWithRole = AppUser.builder()
+                .id(1L).username("ada").email("ada@example.com").password("hashed")
+                .enabled(true).roles(new HashSet<>(Set.of(userRole))).build();
+        UserResponse updatedResponse = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", true, false,
+                List.of());
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(userWithRole));
+        when(appUserRepository.save(userWithRole)).thenReturn(userWithRole);
+        when(appUserMapper.toResponse(userWithRole)).thenReturn(updatedResponse);
+
+        assertThat(userService.removeRoleFromUser(1L, 1L)).isEqualTo(updatedResponse);
+        assertThat(userWithRole.getRoles()).isEmpty();
+    }
+
+    @Test
+    void _05c_ShouldThrowBusinessRule_WhenUserDoesNotHaveRole() {
+        AppUser userWithRole = AppUser.builder()
+                .id(1L).username("ada").email("ada@example.com").password("hashed")
+                .enabled(true).roles(new HashSet<>(Set.of(userRole))).build();
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(userWithRole));
+
+        assertThatThrownBy(() -> userService.removeRoleFromUser(1L, 99L))
                 .isInstanceOf(BusinessRuleException.class);
 
         verify(appUserRepository, never()).save(any());
@@ -181,7 +227,23 @@ class UserServiceImplTest {
     }
 
     @Test
+    void _08b_ShouldResendActivationEmailAndRethrow_WhenTokenExpired() {
+        when(activationTokenService.validate("expired-tok"))
+                .thenThrow(new TokenExpiredException("Activation token expired"));
+        when(activationTokenService.getUserByToken("expired-tok")).thenReturn(appUser);
+        when(activationTokenService.generate(appUser)).thenReturn("new-tok");
+
+        assertThatThrownBy(() -> userService.activate("expired-tok"))
+                .isInstanceOf(TokenExpiredException.class);
+
+        verify(activationTokenService).getUserByToken("expired-tok");
+        verify(activationTokenService).generate(appUser);
+        verify(emailService).sendActivationEmail(appUser, "new-tok");
+    }
+
+    @Test
     void _09_ShouldSendResetEmail_WhenEmailExists() {
+        appUser.setEnabled(true);
         when(appUserRepository.findByEmailIgnoreCase("ada@example.com"))
                 .thenReturn(Optional.of(appUser));
         when(passwordResetTokenService.generate(appUser)).thenReturn("reset-token");
@@ -197,6 +259,34 @@ class UserServiceImplTest {
                 .thenReturn(Optional.empty());
 
         userService.forgotPassword("unknown@example.com");
+
+        verify(passwordResetTokenService, never()).generate(any());
+        verify(emailService, never()).sendPasswordResetEmail(any(), any());
+    }
+
+    @Test
+    void _10b_ShouldSkipResetEmail_WhenAccountNotEnabled() {
+        AppUser disabled = AppUser.builder()
+                .id(2L).username("dis").email("dis@example.com").password("hashed")
+                .enabled(false).accountLocked(false).roles(Set.of(userRole)).build();
+        when(appUserRepository.findByEmailIgnoreCase("dis@example.com"))
+                .thenReturn(Optional.of(disabled));
+
+        userService.forgotPassword("dis@example.com");
+
+        verify(passwordResetTokenService, never()).generate(any());
+        verify(emailService, never()).sendPasswordResetEmail(any(), any());
+    }
+
+    @Test
+    void _10c_ShouldSkipResetEmail_WhenAccountLocked() {
+        AppUser locked = AppUser.builder()
+                .id(3L).username("lck").email("lck@example.com").password("hashed")
+                .enabled(true).accountLocked(true).roles(Set.of(userRole)).build();
+        when(appUserRepository.findByEmailIgnoreCase("lck@example.com"))
+                .thenReturn(Optional.of(locked));
+
+        userService.forgotPassword("lck@example.com");
 
         verify(passwordResetTokenService, never()).generate(any());
         verify(emailService, never()).sendPasswordResetEmail(any(), any());

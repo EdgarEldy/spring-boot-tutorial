@@ -4,12 +4,14 @@ import com.edgareldy.springboottutorial.entity.Permission;
 import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import javax.crypto.SecretKey;
 import org.springframework.stereotype.Component;
@@ -31,12 +33,18 @@ import org.springframework.stereotype.Component;
 @Component
 public class JwtService {
 
+    private static final String TOKEN_TYPE_CLAIM = "token_type";
+    private static final String ACCESS_TOKEN_TYPE = "access";
+    private static final String REFRESH_TOKEN_TYPE = "refresh";
+
     private final SecretKey signingKey;
     private final long expirationMs;
+    private final long refreshExpirationMs;
 
     public JwtService(JwtProperties jwtProperties) {
         this.signingKey = Keys.hmacShaKeyFor(jwtProperties.secret().getBytes());
         this.expirationMs = jwtProperties.expirationMs();
+        this.refreshExpirationMs = jwtProperties.refreshExpirationMs();
     }
 
     public String generateToken(AppUser user) {
@@ -72,6 +80,35 @@ public class JwtService {
 
     public Instant extractExpiration(String token) {
         return parseClaims(token).getExpiration().toInstant();
+    }
+
+    public String generateRefreshToken(String username) {
+        Date now = new Date();
+        Date expiresAt = new Date(now.getTime() + refreshExpirationMs);
+        return Jwts.builder()
+                .subject(username)
+                .claim(TOKEN_TYPE_CLAIM, REFRESH_TOKEN_TYPE)
+                .issuedAt(now)
+                .expiration(expiresAt)
+                .signWith(signingKey)
+                .compact();
+    }
+
+    public boolean isRefreshToken(String token) {
+        try {
+            Claims claims = parseClaims(token);
+            return REFRESH_TOKEN_TYPE.equals(claims.get(TOKEN_TYPE_CLAIM, String.class));
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    public long getExpirationMs() {
+        return expirationMs;
+    }
+
+    public Map<String, Object> extractAllClaims(String token) {
+        return parseClaims(token);
     }
 
     private Claims parseClaims(String token) {

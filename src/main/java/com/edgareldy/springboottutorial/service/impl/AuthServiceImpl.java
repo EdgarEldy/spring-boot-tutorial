@@ -12,10 +12,12 @@ import com.edgareldy.springboottutorial.mapper.AppUserMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.repository.RoleRepository;
 import com.edgareldy.springboottutorial.security.JwtService;
+import com.edgareldy.springboottutorial.entity.token.RefreshToken;
 import com.edgareldy.springboottutorial.service.ActivationTokenService;
 import com.edgareldy.springboottutorial.service.AuthService;
 import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import com.edgareldy.springboottutorial.service.EmailService;
+import com.edgareldy.springboottutorial.service.RefreshTokenService;
 import java.time.Instant;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +52,7 @@ public class AuthServiceImpl implements AuthService {
     private final ActivationTokenService activationTokenService;
     private final EmailService emailService;
     private final BlacklistedTokenService blacklistedTokenService;
+    private final RefreshTokenService refreshTokenService;
 
     @Override
     @Transactional
@@ -72,7 +75,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         // The client sends their email; Spring Security's AuthenticationManager
         // delegates to UserDetailsServiceImpl.loadUserByUsername() which looks
@@ -82,8 +85,21 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(appUser.getUsername(), request.password()));
-        String token = jwtService.generateToken(appUser);
-        return new AuthResponse(token, BEARER_TOKEN_TYPE, appUser.getUsername());
+        String accessToken = jwtService.generateToken(appUser);
+        RefreshToken refreshToken = refreshTokenService.generate(appUser);
+        long expiresIn = jwtService.getExpirationMs() / 1000;
+        return new AuthResponse(accessToken, BEARER_TOKEN_TYPE, refreshToken.getToken(), expiresIn);
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse refresh(String rawRefreshToken) {
+        RefreshToken refreshToken = refreshTokenService.validate(rawRefreshToken);
+        AppUser appUser = refreshToken.getUser();
+        String newAccessToken = jwtService.generateToken(appUser);
+        RefreshToken newRefreshToken = refreshTokenService.generate(appUser);
+        long expiresIn = jwtService.getExpirationMs() / 1000;
+        return new AuthResponse(newAccessToken, BEARER_TOKEN_TYPE, newRefreshToken.getToken(), expiresIn);
     }
 
     @Override
@@ -95,6 +111,7 @@ public class AuthServiceImpl implements AuthService {
         AppUser user = appUserRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username " + username));
         blacklistedTokenService.blacklist(user, rawToken, jti, expiresAt);
+        refreshTokenService.deleteByUser(user);
     }
 
     @Override

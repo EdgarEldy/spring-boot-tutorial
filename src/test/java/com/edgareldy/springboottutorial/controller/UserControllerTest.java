@@ -133,6 +133,26 @@ class UserControllerTest {
     }
 
     @Test
+    void _06b_ShouldReturn200_WhenRemovingRoleFromUser() throws Exception {
+        UserResponse updated = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", true, false,
+                List.of());
+        when(userService.removeRoleFromUser(1L, 1L)).thenReturn(updated);
+
+        mockMvc.perform(delete("/api/v1/users/1/roles/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void _06c_ShouldReturn422_WhenRoleNotAssignedToUser() throws Exception {
+        when(userService.removeRoleFromUser(1L, 99L))
+                .thenThrow(new BusinessRuleException("User does not have role with id 99"));
+
+        mockMvc.perform(delete("/api/v1/users/1/roles/99"))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
     void _07_ShouldReturn200_WhenDeletingUser() throws Exception {
         mockMvc.perform(delete("/api/v1/users/1"))
                 .andExpect(status().isOk())
