@@ -48,6 +48,14 @@ public class ActivationTokenServiceImpl implements ActivationTokenService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public AppUser getUserByToken(String token) {
+        return activationTokenRepository.findByToken(token)
+                .orElseThrow(() -> new InvalidTokenException("Invalid activation token"))
+                .getUser();
+    }
+
+    @Override
     @Transactional
     public AppUser validate(String token) {
         ActivationToken activationToken = activationTokenRepository.findByToken(token)
