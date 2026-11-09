@@ -3,6 +3,7 @@ package com.edgareldy.springboottutorial.service.impl;
 import com.edgareldy.springboottutorial.entity.token.ActivationToken;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.InvalidTokenException;
+import com.edgareldy.springboottutorial.exception.TokenExpiredException;
 import com.edgareldy.springboottutorial.repository.ActivationTokenRepository;
 import com.edgareldy.springboottutorial.security.SecureTokenGenerator;
 import com.edgareldy.springboottutorial.service.ActivationTokenService;
@@ -33,6 +34,7 @@ public class ActivationTokenServiceImpl implements ActivationTokenService {
     @Override
     @Transactional
     public String generate(AppUser user) {
+        activationTokenRepository.deleteByUser(user);
         String rawToken = secureTokenGenerator.generate();
         Instant now = Instant.now();
         ActivationToken activationToken = ActivationToken.builder()
@@ -55,7 +57,7 @@ public class ActivationTokenServiceImpl implements ActivationTokenService {
         }
         if (activationToken.getExpiresAt() != null
                 && activationToken.getExpiresAt().isBefore(Instant.now())) {
-            throw new InvalidTokenException("Activation token expired");
+            throw new TokenExpiredException("Activation token expired");
         }
         activationToken.setValidatedAt(Instant.now());
         activationTokenRepository.save(activationToken);

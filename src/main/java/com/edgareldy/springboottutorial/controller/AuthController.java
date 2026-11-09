@@ -7,9 +7,11 @@ import com.edgareldy.springboottutorial.dto.auth.RegisterRequest;
 import com.edgareldy.springboottutorial.dto.auth.ResetPasswordRequest;
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
 import com.edgareldy.springboottutorial.dto.common.ApiResponse;
+import com.edgareldy.springboottutorial.security.JwtService;
 import com.edgareldy.springboottutorial.service.AuthService;
 import com.edgareldy.springboottutorial.service.UserService;
 import jakarta.validation.Valid;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +45,16 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserService userService;
+    private final JwtService jwtService;
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
+            @RequestHeader("Authorization") String authHeader) {
+        String rawToken = authHeader.startsWith(BEARER_PREFIX)
+                ? authHeader.substring(BEARER_PREFIX.length())
+                : authHeader;
+        return ResponseEntity.ok(ApiResponse.success(authService.refresh(rawToken), "Token refreshed successfully"));
+    }
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody RegisterRequest request) {
@@ -66,6 +78,16 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> me(@AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(ApiResponse.success(authService.me(userDetails.getUsername()), "Profile retrieved successfully"));
+    }
+
+    @GetMapping("/token-info")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> tokenInfo(
+            @RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.startsWith(BEARER_PREFIX)
+                ? authHeader.substring(BEARER_PREFIX.length())
+                : authHeader;
+        Map<String, Object> claims = jwtService.extractAllClaims(token);
+        return ResponseEntity.ok(ApiResponse.success(claims, "Token claims retrieved successfully"));
     }
 
     @GetMapping("/activate")

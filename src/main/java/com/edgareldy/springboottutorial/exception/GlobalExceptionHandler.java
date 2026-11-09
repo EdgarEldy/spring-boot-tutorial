@@ -1,6 +1,7 @@
 package com.edgareldy.springboottutorial.exception;
 
 import com.edgareldy.springboottutorial.dto.common.ApiResponse;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.time.Instant;
@@ -51,7 +52,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<ApiResponse<ProblemDetail>> handleBusinessRule(
             BusinessRuleException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request, null);
+        return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request);
     }
 
     @ExceptionHandler(InvalidTokenException.class)
@@ -69,13 +70,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<ApiResponse<ProblemDetail>> handleLocked(
             LockedException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Account is locked", request);
+        return buildResponse(HttpStatus.LOCKED, "Account is locked", request);
     }
 
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<ApiResponse<ProblemDetail>> handleDisabled(
             DisabledException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Account is not activated", request);
+        return buildResponse(HttpStatus.FORBIDDEN, "Account is not activated", request);
+    }
+
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<ApiResponse<ProblemDetail>> handleExpiredJwt(
+            ExpiredJwtException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, "JWT token has expired", request);
     }
 
     @ExceptionHandler(AccessDeniedException.class)

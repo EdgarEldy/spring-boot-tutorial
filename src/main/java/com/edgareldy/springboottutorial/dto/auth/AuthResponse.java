@@ -20,7 +20,10 @@ public record AuthResponse(
         @JsonProperty("token_type")
         String tokenType,
 
-        String username
+        String username,
+
+        @JsonProperty("refresh_token")
+        String refreshToken
 ) {
 
     // Overrides the compiler-generated toString(): LoggingAspect logs every
@@ -29,6 +32,7 @@ public record AuthResponse(
     // a live bearer credential, in the application logs.
     @Override
     public String toString() {
-        return "AuthResponse[token=***, tokenType=%s, username=%s]".formatted(tokenType, username);
+        return "AuthResponse[token=***, tokenType=%s, username=%s, refreshToken=***]"
+                .formatted(tokenType, username);
     }
 }
