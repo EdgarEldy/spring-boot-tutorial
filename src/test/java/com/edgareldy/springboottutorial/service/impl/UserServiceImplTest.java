@@ -203,6 +203,34 @@ class UserServiceImplTest {
     }
 
     @Test
+    void _10b_ShouldSkipResetEmail_WhenAccountNotEnabled() {
+        AppUser disabled = AppUser.builder()
+                .id(2L).username("dis").email("dis@example.com").password("hashed")
+                .enabled(false).accountLocked(false).roles(Set.of(userRole)).build();
+        when(appUserRepository.findByEmailIgnoreCase("dis@example.com"))
+                .thenReturn(Optional.of(disabled));
+
+        userService.forgotPassword("dis@example.com");
+
+        verify(passwordResetTokenService, never()).generate(any());
+        verify(emailService, never()).sendPasswordResetEmail(any(), any());
+    }
+
+    @Test
+    void _10c_ShouldSkipResetEmail_WhenAccountLocked() {
+        AppUser locked = AppUser.builder()
+                .id(3L).username("lck").email("lck@example.com").password("hashed")
+                .enabled(true).accountLocked(true).roles(Set.of(userRole)).build();
+        when(appUserRepository.findByEmailIgnoreCase("lck@example.com"))
+                .thenReturn(Optional.of(locked));
+
+        userService.forgotPassword("lck@example.com");
+
+        verify(passwordResetTokenService, never()).generate(any());
+        verify(emailService, never()).sendPasswordResetEmail(any(), any());
+    }
+
+    @Test
     void _11_ShouldReHashPassword_WhenResetTokenValid() {
         when(passwordResetTokenService.validateAndConsume("reset-tok")).thenReturn(appUser);
         when(passwordEncoder.encode("new-password")).thenReturn("new-hashed");
