@@ -189,7 +189,7 @@ class AuthControllerTest {
         UserResponse response = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", Role.USER);
         when(userService.activate("valid-token")).thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/auth/activate").param("token", "valid-token"))
+        mockMvc.perform(get("/api/v1/auth/activate-account").param("token", "valid-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.username").value("ada"))
                 .andExpect(jsonPath("$.message").value("Account activated successfully"));
