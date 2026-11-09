@@ -172,7 +172,7 @@ class SecurityAuthorizationTest {
                 .andExpect(status().isOk())
                 .andReturn();
         String token = objectMapper.readTree(loginResult.getResponse().getContentAsString())
-                .path("data").path("token").asText();
+                .path("data").path("access_token").asText();
 
         mockMvc.perform(get("/api/v1/customers").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
@@ -272,7 +272,7 @@ class SecurityAuthorizationTest {
                 .andExpect(status().isOk())
                 .andReturn();
         String token = objectMapper.readTree(loginResult.getResponse().getContentAsString())
-                .path("data").path("token").asText();
+                .path("data").path("access_token").asText();
 
         mockMvc.perform(get("/api/v1/customers").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());

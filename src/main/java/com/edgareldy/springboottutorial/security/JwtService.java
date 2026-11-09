@@ -103,6 +103,10 @@ public class JwtService {
         }
     }
 
+    public long getExpirationMs() {
+        return expirationMs;
+    }
+
     public Map<String, Object> extractAllClaims(String token) {
         return parseClaims(token);
     }

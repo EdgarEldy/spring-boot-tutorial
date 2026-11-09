@@ -3,11 +3,14 @@ package com.edgareldy.springboottutorial.dto.auth;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Payload returned by {@code POST /api/v1/auth/login}: the JWT to send back
- * as a {@code Bearer} token on subsequent requests, plus enough profile
- * information for the client to avoid an extra call to {@code /auth/me}.
- * The JSON contract is snake_case, decoupled from the Java field's own
- * camelCase name via an explicit {@link JsonProperty} annotation.
+ * Payload returned by {@code POST /api/v1/auth/login} and
+ * {@code POST /api/v1/auth/refresh-token}. Fields follow the OAuth 2.0
+ * naming convention: {@code access_token}, {@code token_type},
+ * {@code refresh_token}, and {@code expires_in} (access token lifetime in
+ * seconds). The client uses {@code expires_in} to schedule a proactive
+ * refresh before the access token expires, avoiding a failed request.
+ * {@code username} is omitted since it is already the {@code sub} claim
+ * inside the JWT itself.
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
  * Author : edgar.muhamyangabo
@@ -15,15 +18,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * Project : spring-boot-tutorial
  */
 public record AuthResponse(
-        String token,
+        @JsonProperty("access_token")
+        String accessToken,
 
         @JsonProperty("token_type")
         String tokenType,
 
-        String username,
-
         @JsonProperty("refresh_token")
-        String refreshToken
+        String refreshToken,
+
+        @JsonProperty("expires_in")
+        long expiresIn
 ) {
 
     // Overrides the compiler-generated toString(): LoggingAspect logs every
@@ -32,7 +37,7 @@ public record AuthResponse(
     // a live bearer credential, in the application logs.
     @Override
     public String toString() {
-        return "AuthResponse[token=***, tokenType=%s, username=%s, refreshToken=***]"
-                .formatted(tokenType, username);
+        return "AuthResponse[accessToken=***, tokenType=%s, refreshToken=***, expiresIn=%d]"
+                .formatted(tokenType, expiresIn);
     }
 }

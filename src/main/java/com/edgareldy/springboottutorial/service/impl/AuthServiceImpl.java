@@ -85,9 +85,10 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(appUser.getUsername(), request.password()));
-        String token = jwtService.generateToken(appUser);
+        String accessToken = jwtService.generateToken(appUser);
         RefreshToken refreshToken = refreshTokenService.generate(appUser);
-        return new AuthResponse(token, BEARER_TOKEN_TYPE, appUser.getUsername(), refreshToken.getToken());
+        long expiresIn = jwtService.getExpirationMs() / 1000;
+        return new AuthResponse(accessToken, BEARER_TOKEN_TYPE, refreshToken.getToken(), expiresIn);
     }
 
     @Override
@@ -97,7 +98,8 @@ public class AuthServiceImpl implements AuthService {
         AppUser appUser = refreshToken.getUser();
         String newAccessToken = jwtService.generateToken(appUser);
         RefreshToken newRefreshToken = refreshTokenService.generate(appUser);
-        return new AuthResponse(newAccessToken, BEARER_TOKEN_TYPE, appUser.getUsername(), newRefreshToken.getToken());
+        long expiresIn = jwtService.getExpirationMs() / 1000;
+        return new AuthResponse(newAccessToken, BEARER_TOKEN_TYPE, newRefreshToken.getToken(), expiresIn);
     }
 
     @Override
