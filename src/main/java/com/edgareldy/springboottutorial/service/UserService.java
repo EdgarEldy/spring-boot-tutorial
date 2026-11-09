@@ -31,6 +31,7 @@ public interface UserService {
 
     UserResponse updateProfile(Long id, UpdateProfileRequest request);
 
+
     UserResponse activate(String token);
 
     void forgotPassword(String email);

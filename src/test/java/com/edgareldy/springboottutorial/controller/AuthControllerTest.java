@@ -190,6 +190,8 @@ class AuthControllerTest {
                                 new ForgotPasswordRequest("ada@example.com"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+
+        verify(userService).forgotPassword("ada@example.com");
     }
 
     @Test
@@ -203,22 +205,24 @@ class AuthControllerTest {
     @Test
     void _12_ShouldReturn200_WhenResetPasswordRequestValid() throws Exception {
         mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .param("token", "reset-token")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                new ResetPasswordRequest("valid-token", "newpassword"))))
+                        .content(objectMapper.writeValueAsString(new ResetPasswordRequest("Password1@", "Password1@"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.message").value("Password reset successfully"));
+
+        verify(userService).resetPassword("reset-token", "Password1@");
     }
 
     @Test
     void _13_ShouldReturn400_WhenResetPasswordTokenInvalid() throws Exception {
         org.mockito.Mockito.doThrow(new InvalidTokenException("Invalid password reset token"))
-                .when(userService).resetPassword("bad-token", "newpassword");
+                .when(userService).resetPassword("bad-token", "Password1@");
 
         mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .param("token", "bad-token")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                new ResetPasswordRequest("bad-token", "newpassword"))))
+                        .content(objectMapper.writeValueAsString(new ResetPasswordRequest("Password1@", "Password1@"))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -238,5 +242,25 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/logout")
                         .header("Authorization", "Bearer signed-token"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void _16_ShouldReturn400_WhenResetPasswordNewPasswordFailsComplexity() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .param("token", "reset-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ResetPasswordRequest("simple", "simple"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void _17_ShouldReturn400_WhenResetPasswordConfirmDoesNotMatch() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .param("token", "reset-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ResetPasswordRequest("Password1@", "Different1@"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
     }
 }
