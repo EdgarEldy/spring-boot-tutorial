@@ -1,6 +1,7 @@
 package com.edgareldy.springboottutorial.repository;
 
 import com.edgareldy.springboottutorial.entity.token.ActivationToken;
+import com.edgareldy.springboottutorial.entity.user.AppUser;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.Optional;
@@ -26,4 +27,6 @@ public interface ActivationTokenRepository extends JpaRepository<ActivationToken
     Optional<ActivationToken> findByToken(String token);
 
     void deleteAllByExpiresAtBefore(Instant instant);
+
+    void deleteByUser(AppUser user);
 }
