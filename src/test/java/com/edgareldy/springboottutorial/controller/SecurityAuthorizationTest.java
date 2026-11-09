@@ -172,7 +172,7 @@ class SecurityAuthorizationTest {
                 .andExpect(status().isOk())
                 .andReturn();
         String token = objectMapper.readTree(loginResult.getResponse().getContentAsString())
-                .path("data").path("token").asText();
+                .path("data").path("access_token").asText();
 
         mockMvc.perform(get("/api/v1/customers").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
@@ -203,6 +203,11 @@ class SecurityAuthorizationTest {
                         .content(objectMapper.writeValueAsString(register)))
                 .andExpect(status().isCreated());
 
+        appUserRepository.findByUsername("babbage").ifPresent(u -> {
+            u.setEnabled(true);
+            appUserRepository.saveAndFlush(u);
+        });
+
         LoginRequest wrongPassword = new LoginRequest("babbage@example.com", "not-the-password");
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -229,7 +234,7 @@ class SecurityAuthorizationTest {
                 .andExpect(status().isOk())
                 .andReturn();
         String token = objectMapper.readTree(loginResult.getResponse().getContentAsString())
-                .path("data").path("token").asText();
+                .path("data").path("access_token").asText();
 
         // Account is now accessible with the token.
         mockMvc.perform(get("/api/v1/customers").header("Authorization", "Bearer " + token))
@@ -267,7 +272,7 @@ class SecurityAuthorizationTest {
                 .andExpect(status().isOk())
                 .andReturn();
         String token = objectMapper.readTree(loginResult.getResponse().getContentAsString())
-                .path("data").path("token").asText();
+                .path("data").path("access_token").asText();
 
         mockMvc.perform(get("/api/v1/customers").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());

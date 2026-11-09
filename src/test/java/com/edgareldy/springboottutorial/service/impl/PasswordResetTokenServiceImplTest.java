@@ -53,12 +53,13 @@ class PasswordResetTokenServiceImplTest {
     }
 
     @Test
-    void _01_ShouldSaveTokenAndReturnRawValue_WhenTokenIsGenerated() {
+    void _01_ShouldPurgePreviousTokensThenSave_WhenTokenIsGenerated() {
         when(secureTokenGenerator.generate()).thenReturn("raw-token");
 
         String result = passwordResetTokenService.generate(user);
 
         assertThat(result).isEqualTo("raw-token");
+        verify(passwordResetTokenRepository).deleteByUser(user);
         ArgumentCaptor<PasswordResetToken> captor = ArgumentCaptor.forClass(PasswordResetToken.class);
         verify(passwordResetTokenRepository).save(captor.capture());
         assertThat(captor.getValue().getUser()).isEqualTo(user);

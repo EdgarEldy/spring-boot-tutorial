@@ -20,6 +20,8 @@ public interface AuthService {
 
     AuthResponse login(LoginRequest request);
 
+    AuthResponse refresh(String refreshToken);
+
     void logout(String rawToken);
 
     UserResponse me(String username);

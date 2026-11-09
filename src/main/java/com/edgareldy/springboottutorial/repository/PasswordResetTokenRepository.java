@@ -1,6 +1,7 @@
 package com.edgareldy.springboottutorial.repository;
 
 import com.edgareldy.springboottutorial.entity.token.PasswordResetToken;
+import com.edgareldy.springboottutorial.entity.user.AppUser;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.Optional;
@@ -26,4 +27,6 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     Optional<PasswordResetToken> findByToken(String token);
 
     void deleteAllByExpiryDateBefore(Instant instant);
+
+    void deleteByUser(AppUser user);
 }

@@ -1,6 +1,7 @@
 package com.edgareldy.springboottutorial.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -24,8 +25,10 @@ import com.edgareldy.springboottutorial.security.JwtAuthenticationEntryPoint;
 import com.edgareldy.springboottutorial.security.JwtService;
 import com.edgareldy.springboottutorial.service.AuthService;
 import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
+import com.edgareldy.springboottutorial.service.RefreshTokenService;
 import com.edgareldy.springboottutorial.service.UserService;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -78,6 +81,10 @@ class AuthControllerTest {
     @MockitoBean
     private BlacklistedTokenService blacklistedTokenService;
 
+    // AuthServiceImpl needs RefreshTokenService; mocked so the slice can construct.
+    @MockitoBean
+    private RefreshTokenService refreshTokenService;
+
     @Test
     void _01_ShouldReturn201_WhenRegisterRequestValid() throws Exception {
         UserResponse response = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", false, false,
@@ -117,14 +124,15 @@ class AuthControllerTest {
 
     @Test
     void _04_ShouldReturn200_WhenCredentialsValid() throws Exception {
-        when(authService.login(any())).thenReturn(new AuthResponse("signed-token", "Bearer", "ada"));
+        when(authService.login(any())).thenReturn(new AuthResponse("signed-token", "Bearer", "refresh-token", 3600L));
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new LoginRequest("ada@example.com", "password123"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.token").value("signed-token"))
-                .andExpect(jsonPath("$.data.token_type").value("Bearer"));
+                .andExpect(jsonPath("$.data.access_token").value("signed-token"))
+                .andExpect(jsonPath("$.data.token_type").value("Bearer"))
+                .andExpect(jsonPath("$.data.expires_in").value(3600));
     }
 
     @Test
@@ -190,6 +198,8 @@ class AuthControllerTest {
                                 new ForgotPasswordRequest("ada@example.com"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+
+        verify(userService).forgotPassword("ada@example.com");
     }
 
     @Test
@@ -203,22 +213,24 @@ class AuthControllerTest {
     @Test
     void _12_ShouldReturn200_WhenResetPasswordRequestValid() throws Exception {
         mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .param("token", "reset-token")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                new ResetPasswordRequest("valid-token", "newpassword"))))
+                        .content(objectMapper.writeValueAsString(new ResetPasswordRequest("Password1@", "Password1@"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.message").value("Password reset successfully"));
+
+        verify(userService).resetPassword("reset-token", "Password1@");
     }
 
     @Test
     void _13_ShouldReturn400_WhenResetPasswordTokenInvalid() throws Exception {
         org.mockito.Mockito.doThrow(new InvalidTokenException("Invalid password reset token"))
-                .when(userService).resetPassword("bad-token", "newpassword");
+                .when(userService).resetPassword("bad-token", "Password1@");
 
         mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .param("token", "bad-token")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                new ResetPasswordRequest("bad-token", "newpassword"))))
+                        .content(objectMapper.writeValueAsString(new ResetPasswordRequest("Password1@", "Password1@"))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -238,5 +250,56 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/logout")
                         .header("Authorization", "Bearer signed-token"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void _16_ShouldReturn400_WhenResetPasswordNewPasswordFailsComplexity() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .param("token", "reset-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ResetPasswordRequest("simple", "simple"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void _17_ShouldReturn400_WhenResetPasswordConfirmDoesNotMatch() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .param("token", "reset-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ResetPasswordRequest("Password1@", "Different1@"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void _16_ShouldReturnClaims_WhenAuthenticatedWithValidToken() throws Exception {
+        when(jwtService.extractAllClaims(anyString())).thenReturn(Map.of("sub", "ada", "token_type", "access"));
+
+        mockMvc.perform(get("/api/v1/auth/token-info")
+                        .header("Authorization", "Bearer fake-token")
+                        .with(user("ada").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.sub").value("ada"))
+                .andExpect(jsonPath("$.data.token_type").value("access"));
+    }
+
+    @Test
+    void _17_ShouldReturn401_WhenTokenInfoCalledUnauthenticated() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/token-info"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void _18_ShouldReturn200_WhenRefreshTokenValid() throws Exception {
+        when(authService.refresh("refresh-token"))
+                .thenReturn(new AuthResponse("new-access-token", "Bearer", "new-refresh-token", 3600L));
+
+        mockMvc.perform(post("/api/v1/auth/refresh-token")
+                        .header("Authorization", "Bearer refresh-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.access_token").value("new-access-token"))
+                .andExpect(jsonPath("$.data.refresh_token").value("new-refresh-token"))
+                .andExpect(jsonPath("$.message").value("Token refreshed successfully"));
     }
 }

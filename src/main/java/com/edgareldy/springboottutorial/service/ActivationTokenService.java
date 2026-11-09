@@ -18,4 +18,6 @@ public interface ActivationTokenService {
     String generate(AppUser user);
 
     AppUser validate(String token);
+
+    AppUser getUserByToken(String token);
 }
