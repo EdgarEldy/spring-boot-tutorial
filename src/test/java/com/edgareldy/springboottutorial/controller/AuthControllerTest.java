@@ -121,13 +121,13 @@ class AuthControllerTest {
 
     @Test
     void _04_ShouldReturn200_WhenCredentialsValid() throws Exception {
-        when(authService.login(any())).thenReturn(new AuthResponse("signed-token", "Bearer", "ada", "refresh-token"));
+        when(authService.login(any())).thenReturn(new AuthResponse("signed-token", "Bearer", "refresh-token"));
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new LoginRequest("ada@example.com", "password123"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.token").value("signed-token"))
+                .andExpect(jsonPath("$.data.access_token").value("signed-token"))
                 .andExpect(jsonPath("$.data.token_type").value("Bearer"));
     }
 
@@ -267,12 +267,12 @@ class AuthControllerTest {
     @Test
     void _18_ShouldReturn200_WhenRefreshTokenValid() throws Exception {
         when(authService.refresh("refresh-token"))
-                .thenReturn(new AuthResponse("new-access-token", "Bearer", "ada", "new-refresh-token"));
+                .thenReturn(new AuthResponse("new-access-token", "Bearer", "new-refresh-token"));
 
         mockMvc.perform(post("/api/v1/auth/refresh-token")
                         .header("Authorization", "Bearer refresh-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.token").value("new-access-token"))
+                .andExpect(jsonPath("$.data.access_token").value("new-access-token"))
                 .andExpect(jsonPath("$.data.refresh_token").value("new-refresh-token"))
                 .andExpect(jsonPath("$.message").value("Token refreshed successfully"));
     }

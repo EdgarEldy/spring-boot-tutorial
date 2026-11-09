@@ -81,8 +81,7 @@ public class AuthServiceImpl implements AuthService {
                 new UsernamePasswordAuthenticationToken(appUser.getUsername(), request.password()));
         String accessToken = jwtService.generateToken(appUser.getUsername());
         RefreshToken refreshToken = refreshTokenService.generate(appUser);
-        return new AuthResponse(accessToken, BEARER_TOKEN_TYPE, appUser.getUsername(),
-                refreshToken.getToken());
+        return new AuthResponse(accessToken, BEARER_TOKEN_TYPE, refreshToken.getToken());
     }
 
     @Override
@@ -92,8 +91,7 @@ public class AuthServiceImpl implements AuthService {
         AppUser appUser = refreshToken.getUser();
         String newAccessToken = jwtService.generateToken(appUser.getUsername());
         RefreshToken newRefreshToken = refreshTokenService.generate(appUser);
-        return new AuthResponse(newAccessToken, BEARER_TOKEN_TYPE, appUser.getUsername(),
-                newRefreshToken.getToken());
+        return new AuthResponse(newAccessToken, BEARER_TOKEN_TYPE, newRefreshToken.getToken());
     }
 
     @Override

@@ -122,7 +122,7 @@ class AuthServiceImplTest {
 
         AuthResponse response = authService.login(request);
 
-        assertThat(response).isEqualTo(new AuthResponse("signed-token", "Bearer", "ada", "refresh-token"));
+        assertThat(response).isEqualTo(new AuthResponse("signed-token", "Bearer", "refresh-token"));
         verify(authenticationManager).authenticate(new UsernamePasswordAuthenticationToken("ada", "password123"));
         verify(refreshTokenService).generate(appUser);
     }
