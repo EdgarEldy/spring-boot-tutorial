@@ -65,6 +65,14 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(userService.assignRoles(id, request), "Roles assigned successfully"));
     }
 
+    @DeleteMapping("/{id}/roles/{roleId}")
+    public ResponseEntity<ApiResponse<UserResponse>> removeRole(
+            @PathVariable Long id,
+            @PathVariable Long roleId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                userService.removeRoleFromUser(id, roleId), "Role removed successfully"));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         userService.delete(id);
