@@ -3,11 +3,12 @@ package com.edgareldy.springboottutorial.dto.auth;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Payload returned by {@code POST /api/v1/auth/login}: the JWT to send back
- * as a {@code Bearer} token on subsequent requests, plus enough profile
- * information for the client to avoid an extra call to {@code /auth/me}.
- * The JSON contract is snake_case, decoupled from the Java field's own
- * camelCase name via an explicit {@link JsonProperty} annotation.
+ * Payload returned by {@code POST /api/v1/auth/login}. The JSON field is
+ * {@code access_token} (via {@link JsonProperty}) to distinguish it clearly
+ * from the refresh token added in a later iteration, and to follow the
+ * OAuth 2.0 naming convention. The {@code username} field is omitted: it is
+ * already embedded as the {@code sub} claim inside the JWT itself, so the
+ * client can decode the token rather than carry a redundant field.
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
  * Author : edgar.muhamyangabo
@@ -15,12 +16,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * Project : spring-boot-tutorial
  */
 public record AuthResponse(
-        String token,
+        @JsonProperty("access_token")
+        String accessToken,
 
         @JsonProperty("token_type")
-        String tokenType,
-
-        String username
+        String tokenType
 ) {
 
     // Overrides the compiler-generated toString(): LoggingAspect logs every
@@ -29,6 +29,6 @@ public record AuthResponse(
     // a live bearer credential, in the application logs.
     @Override
     public String toString() {
-        return "AuthResponse[token=***, tokenType=%s, username=%s]".formatted(tokenType, username);
+        return "AuthResponse[accessToken=***, tokenType=%s]".formatted(tokenType);
     }
 }
