@@ -91,8 +91,8 @@ Started SpringBootTutorialApplication in X.XXX seconds
 | Field | Value |
 |---|---|
 | Username | `admin` |
-| Email | `admin@spring-boot-tutorial.com` |
-| Password | `Admin1@sbt` |
+| Email | `admin@example.com` |
+| Password | `Admin1234!` |
 | Role | ADMIN |
 
 Use this account to access ADMIN-only endpoints directly in Swagger UI without going through the registration flow.
