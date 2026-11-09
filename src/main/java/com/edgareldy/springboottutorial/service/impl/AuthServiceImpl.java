@@ -81,7 +81,8 @@ public class AuthServiceImpl implements AuthService {
                 new UsernamePasswordAuthenticationToken(appUser.getUsername(), request.password()));
         String accessToken = jwtService.generateToken(appUser.getUsername());
         RefreshToken refreshToken = refreshTokenService.generate(appUser);
-        return new AuthResponse(accessToken, BEARER_TOKEN_TYPE, refreshToken.getToken());
+        long expiresIn = jwtService.getExpirationMs() / 1000;
+        return new AuthResponse(accessToken, BEARER_TOKEN_TYPE, refreshToken.getToken(), expiresIn);
     }
 
     @Override
@@ -91,7 +92,8 @@ public class AuthServiceImpl implements AuthService {
         AppUser appUser = refreshToken.getUser();
         String newAccessToken = jwtService.generateToken(appUser.getUsername());
         RefreshToken newRefreshToken = refreshTokenService.generate(appUser);
-        return new AuthResponse(newAccessToken, BEARER_TOKEN_TYPE, newRefreshToken.getToken());
+        long expiresIn = jwtService.getExpirationMs() / 1000;
+        return new AuthResponse(newAccessToken, BEARER_TOKEN_TYPE, newRefreshToken.getToken(), expiresIn);
     }
 
     @Override
