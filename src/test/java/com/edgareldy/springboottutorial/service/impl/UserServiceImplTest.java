@@ -243,6 +243,7 @@ class UserServiceImplTest {
 
     @Test
     void _09_ShouldSendResetEmail_WhenEmailExists() {
+        appUser.setEnabled(true);
         when(appUserRepository.findByEmailIgnoreCase("ada@example.com"))
                 .thenReturn(Optional.of(appUser));
         when(passwordResetTokenService.generate(appUser)).thenReturn("reset-token");
