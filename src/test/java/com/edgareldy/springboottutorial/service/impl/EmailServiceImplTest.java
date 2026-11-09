@@ -67,7 +67,7 @@ class EmailServiceImplTest {
         assertThat(ctx.getVariable("username")).isEqualTo("ada");
         assertThat(ctx.getVariable("activationToken")).isEqualTo("raw-token");
         assertThat(ctx.getVariable("activationLink"))
-                .isEqualTo(FRONTEND_URL + "/auth/activate?token=raw-token");
+                .isEqualTo(FRONTEND_URL + "/auth/activate-account?token=raw-token");
         verify(mailSender).send(any(MimeMessage.class));
     }
 
