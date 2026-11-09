@@ -203,6 +203,8 @@ class SecurityAuthorizationTest {
                         .content(objectMapper.writeValueAsString(register)))
                 .andExpect(status().isCreated());
 
+        enableUser("babbage");
+
         LoginRequest wrongPassword = new LoginRequest("babbage@example.com", "not-the-password");
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
