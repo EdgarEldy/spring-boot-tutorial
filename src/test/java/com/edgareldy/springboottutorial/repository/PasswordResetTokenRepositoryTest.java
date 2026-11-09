@@ -47,6 +47,7 @@ class PasswordResetTokenRepositoryTest {
     void _01_ShouldReturnMatchingToken_WhenFindingByToken() {
         passwordResetTokenRepository.save(PasswordResetToken.builder()
                 .user(user).token("reset-token").type("PASSWORD_RESET")
+                .createdAt(Instant.now())
                 .expiryDate(Instant.now().plus(1, ChronoUnit.HOURS))
                 .build());
 
@@ -66,10 +67,12 @@ class PasswordResetTokenRepositoryTest {
     void _03_ShouldRemoveOnlyExpiredTokens_WhenDeletingByExpiryDateBefore() {
         PasswordResetToken expired = passwordResetTokenRepository.save(PasswordResetToken.builder()
                 .user(user).token("expired-token").type("PASSWORD_RESET")
+                .createdAt(Instant.now())
                 .expiryDate(Instant.now().minus(1, ChronoUnit.HOURS))
                 .build());
         PasswordResetToken active = passwordResetTokenRepository.save(PasswordResetToken.builder()
                 .user(user).token("active-token").type("PASSWORD_RESET")
+                .createdAt(Instant.now())
                 .expiryDate(Instant.now().plus(1, ChronoUnit.HOURS))
                 .build());
 
