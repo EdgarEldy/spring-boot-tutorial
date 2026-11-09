@@ -1,6 +1,7 @@
 package com.edgareldy.springboottutorial.exception;
 
 import com.edgareldy.springboottutorial.dto.common.ApiResponse;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.time.Instant;
@@ -12,6 +13,8 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -48,6 +51,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<ProblemDetail>> handleBusinessRule(
             BusinessRuleException ex, HttpServletRequest request) {
         return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<ApiResponse<ProblemDetail>> handleLocked(
+            LockedException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.LOCKED, "Account is locked", request, null);
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ApiResponse<ProblemDetail>> handleDisabled(
+            DisabledException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, "Account is not activated", request, null);
+    }
+
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<ApiResponse<ProblemDetail>> handleExpiredJwt(
+            ExpiredJwtException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, "JWT token has expired", request, null);
     }
 
     @ExceptionHandler(AuthenticationException.class)
