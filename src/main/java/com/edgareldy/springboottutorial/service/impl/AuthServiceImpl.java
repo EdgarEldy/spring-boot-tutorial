@@ -11,8 +11,10 @@ import org.springframework.security.authentication.BadCredentialsException;
 import com.edgareldy.springboottutorial.mapper.AppUserMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.security.JwtService;
+import com.edgareldy.springboottutorial.service.ActivationTokenService;
 import com.edgareldy.springboottutorial.service.AuthService;
 import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
+import com.edgareldy.springboottutorial.service.EmailService;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -43,6 +45,8 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final BlacklistedTokenService blacklistedTokenService;
+    private final ActivationTokenService activationTokenService;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -54,8 +58,12 @@ public class AuthServiceImpl implements AuthService {
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
                 .role(Role.USER)
+                .enabled(false)
                 .build();
-        return appUserMapper.toResponse(appUserRepository.save(appUser));
+        AppUser saved = appUserRepository.save(appUser);
+        String token = activationTokenService.generate(saved);
+        emailService.sendActivationEmail(saved, token);
+        return appUserMapper.toResponse(saved);
     }
 
     @Override
