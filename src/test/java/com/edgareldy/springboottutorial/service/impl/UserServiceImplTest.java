@@ -85,7 +85,8 @@ class UserServiceImplTest {
         userRole = Role.builder().id(1L).roleName("USER").build();
         appUser = AppUser.builder()
                 .id(1L).username("ada").email("ada@example.com").password("hashed")
-                .enabled(false).roles(Set.of(userRole)).build();
+                .enabled(false).build();
+        appUser.getRoles().add(userRole);
         userResponse = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", false, false,
                 List.of(new RoleResponse(1L, "USER", List.of())));
     }
