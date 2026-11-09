@@ -3,12 +3,14 @@ package com.edgareldy.springboottutorial.dto.auth;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Payload returned by {@code POST /api/v1/auth/login}. The JSON field is
- * {@code access_token} (via {@link JsonProperty}) to distinguish it clearly
- * from the refresh token added in a later iteration, and to follow the
- * OAuth 2.0 naming convention. The {@code username} field is omitted: it is
- * already embedded as the {@code sub} claim inside the JWT itself, so the
- * client can decode the token rather than carry a redundant field.
+ * Payload returned by {@code POST /api/v1/auth/login} and
+ * {@code POST /api/v1/auth/refresh-token}. Fields follow the OAuth 2.0
+ * naming convention: {@code access_token}, {@code token_type},
+ * {@code refresh_token}, and {@code expires_in} (access token lifetime in
+ * seconds). The client uses {@code expires_in} to schedule a proactive
+ * refresh before the access token expires, avoiding a failed request.
+ * {@code username} is omitted since it is already the {@code sub} claim
+ * inside the JWT itself.
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
  * Author : edgar.muhamyangabo
@@ -23,7 +25,10 @@ public record AuthResponse(
         String tokenType,
 
         @JsonProperty("refresh_token")
-        String refreshToken
+        String refreshToken,
+
+        @JsonProperty("expires_in")
+        long expiresIn
 ) {
 
     // Overrides the compiler-generated toString(): LoggingAspect logs every
@@ -32,7 +37,7 @@ public record AuthResponse(
     // a live bearer credential, in the application logs.
     @Override
     public String toString() {
-        return "AuthResponse[accessToken=***, tokenType=%s, refreshToken=***]"
-                .formatted(tokenType);
+        return "AuthResponse[accessToken=***, tokenType=%s, refreshToken=***, expiresIn=%d]"
+                .formatted(tokenType, expiresIn);
     }
 }
