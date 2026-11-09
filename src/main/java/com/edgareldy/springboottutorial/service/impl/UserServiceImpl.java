@@ -75,6 +75,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    public UserResponse removeRoleFromUser(Long userId, Long roleId) {
+        AppUser user = getUserOrThrow(userId);
+        boolean removed = user.getRoles().removeIf(r -> r.getId().equals(roleId));
+        if (!removed) {
+            throw new BusinessRuleException("User does not have role with id " + roleId);
+        }
+        return appUserMapper.toResponse(appUserRepository.save(user));
+    }
+
+    @Override
+    @Transactional
     public void delete(Long id) {
         AppUser user = getUserOrThrow(id);
         appUserRepository.delete(user);
