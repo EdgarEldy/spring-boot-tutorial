@@ -10,6 +10,7 @@ import com.edgareldy.springboottutorial.dto.auth.LoginRequest;
 import com.edgareldy.springboottutorial.dto.auth.RegisterRequest;
 import com.edgareldy.springboottutorial.dto.category.CategoryRequest;
 import com.edgareldy.springboottutorial.dto.customer.CustomerRequest;
+import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -48,6 +49,16 @@ class SecurityAuthorizationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private AppUserRepository appUserRepository;
+
+    private void enableUser(String username) {
+        appUserRepository.findByUsername(username).ifPresent(u -> {
+            u.setEnabled(true);
+            appUserRepository.save(u);
+        });
+    }
 
     @Test
     void _01_ShouldAllowAccess_WhenListingCategoriesAnonymously() throws Exception {
@@ -154,6 +165,8 @@ class SecurityAuthorizationTest {
                         .content(objectMapper.writeValueAsString(register)))
                 .andExpect(status().isCreated());
 
+        enableUser("hopper");
+
         LoginRequest login = new LoginRequest("hopper@example.com", "Password1@");
         MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -189,6 +202,8 @@ class SecurityAuthorizationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(register)))
                 .andExpect(status().isCreated());
+
+        enableUser("lovelace");
 
         MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
