@@ -17,6 +17,7 @@ import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
+import com.edgareldy.springboottutorial.exception.TokenExpiredException;
 import com.edgareldy.springboottutorial.mapper.AppUserMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.repository.RoleRepository;
@@ -178,6 +179,21 @@ class UserServiceImplTest {
 
         assertThat(userService.activate("tok")).isEqualTo(enabledResponse);
         assertThat(appUser.isEnabled()).isTrue();
+    }
+
+    @Test
+    void _08b_ShouldResendActivationEmailAndRethrow_WhenTokenExpired() {
+        when(activationTokenService.validate("expired-tok"))
+                .thenThrow(new TokenExpiredException("Activation token expired"));
+        when(activationTokenService.getUserByToken("expired-tok")).thenReturn(appUser);
+        when(activationTokenService.generate(appUser)).thenReturn("new-tok");
+
+        assertThatThrownBy(() -> userService.activate("expired-tok"))
+                .isInstanceOf(TokenExpiredException.class);
+
+        verify(activationTokenService).getUserByToken("expired-tok");
+        verify(activationTokenService).generate(appUser);
+        verify(emailService).sendActivationEmail(appUser, "new-tok");
     }
 
     @Test
