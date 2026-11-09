@@ -76,7 +76,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password",
                                 "/api/v1/auth/refresh-token")
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/activate")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/activate-account")
                         .permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/actuator/health")
                         .permitAll()
