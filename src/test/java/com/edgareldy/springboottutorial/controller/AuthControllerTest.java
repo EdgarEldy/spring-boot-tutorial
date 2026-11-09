@@ -24,6 +24,7 @@ import com.edgareldy.springboottutorial.dto.auth.ForgotPasswordRequest;
 import com.edgareldy.springboottutorial.dto.auth.ResetPasswordRequest;
 import com.edgareldy.springboottutorial.service.AuthService;
 import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
+import com.edgareldy.springboottutorial.service.RefreshTokenService;
 import com.edgareldy.springboottutorial.service.UserService;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -78,6 +79,10 @@ class AuthControllerTest {
     @MockitoBean
     private BlacklistedTokenService blacklistedTokenService;
 
+    // AuthServiceImpl needs RefreshTokenService; mocked so the slice can construct.
+    @MockitoBean
+    private RefreshTokenService refreshTokenService;
+
     @Test
     void _01_ShouldReturn201_WhenRegisterRequestValid() throws Exception {
         UserResponse response = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", Role.USER);
@@ -116,7 +121,7 @@ class AuthControllerTest {
 
     @Test
     void _04_ShouldReturn200_WhenCredentialsValid() throws Exception {
-        when(authService.login(any())).thenReturn(new AuthResponse("signed-token", "Bearer", "ada"));
+        when(authService.login(any())).thenReturn(new AuthResponse("signed-token", "Bearer", "ada", "refresh-token"));
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -257,5 +262,18 @@ class AuthControllerTest {
     void _17_ShouldReturn401_WhenTokenInfoCalledUnauthenticated() throws Exception {
         mockMvc.perform(get("/api/v1/auth/token-info"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void _18_ShouldReturn200_WhenRefreshTokenValid() throws Exception {
+        when(authService.refresh("refresh-token"))
+                .thenReturn(new AuthResponse("new-access-token", "Bearer", "ada", "new-refresh-token"));
+
+        mockMvc.perform(post("/api/v1/auth/refresh-token")
+                        .header("Authorization", "Bearer refresh-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.token").value("new-access-token"))
+                .andExpect(jsonPath("$.data.refresh_token").value("new-refresh-token"))
+                .andExpect(jsonPath("$.message").value("Token refreshed successfully"));
     }
 }
