@@ -138,6 +138,21 @@ class UserServiceImplTest {
     }
 
     @Test
+    void _04b_ShouldPreserveExistingRoles_WhenAssigningNewOnes() {
+        Role adminRole = Role.builder().id(2L).roleName("ADMIN").build();
+        AssignRolesRequest request = new AssignRolesRequest(Set.of(2L));
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
+        when(roleRepository.findAllById(Set.of(2L))).thenReturn(List.of(adminRole));
+        when(appUserRepository.save(appUser)).thenReturn(appUser);
+        when(appUserMapper.toResponse(appUser)).thenReturn(userResponse);
+
+        userService.assignRoles(1L, request);
+
+        // existing userRole (id=1) must still be present alongside the newly added ADMIN
+        assertThat(appUser.getRoles()).contains(userRole, adminRole);
+    }
+
+    @Test
     void _05_ShouldThrowBusinessRule_WhenSomeRoleIdsInvalid() {
         AssignRolesRequest request = new AssignRolesRequest(Set.of(1L, 99L));
         when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
