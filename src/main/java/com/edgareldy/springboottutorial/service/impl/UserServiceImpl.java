@@ -8,6 +8,7 @@ import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
+import com.edgareldy.springboottutorial.exception.TokenExpiredException;
 import com.edgareldy.springboottutorial.mapper.AppUserMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.repository.RoleRepository;
@@ -120,9 +121,19 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse activate(String token) {
-        AppUser user = activationTokenService.validate(token);
-        user.setEnabled(true);
-        return appUserMapper.toResponse(appUserRepository.save(user));
+        try {
+            AppUser user = activationTokenService.validate(token);
+            user.setEnabled(true);
+            return appUserMapper.toResponse(appUserRepository.save(user));
+        } catch (TokenExpiredException e) {
+            // Token expired: generate a fresh one and re-send the email, then
+            // rethrow so the caller still gets an error response (the user must
+            // click the new link before they can log in).
+            AppUser user = activationTokenService.getUserByToken(token);
+            String newToken = activationTokenService.generate(user);
+            emailService.sendActivationEmail(user, newToken);
+            throw e;
+        }
     }
 
     @Override
