@@ -176,7 +176,7 @@ class AuthControllerTest {
                 List.of(new RoleResponse(1L, "USER", List.of())));
         when(userService.activate("valid-token")).thenReturn(activated);
 
-        mockMvc.perform(get("/api/v1/auth/activate").param("token", "valid-token"))
+        mockMvc.perform(get("/api/v1/auth/activate-account").param("token", "valid-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.enabled").value(true));
     }
@@ -186,7 +186,7 @@ class AuthControllerTest {
         when(userService.activate("bad-token"))
                 .thenThrow(new InvalidTokenException("Invalid activation token"));
 
-        mockMvc.perform(get("/api/v1/auth/activate").param("token", "bad-token"))
+        mockMvc.perform(get("/api/v1/auth/activate-account").param("token", "bad-token"))
                 .andExpect(status().isBadRequest());
     }
 
