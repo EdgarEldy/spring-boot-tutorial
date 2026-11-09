@@ -129,6 +129,9 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void forgotPassword(String email) {
         appUserRepository.findByEmailIgnoreCase(email).ifPresent(user -> {
+            if (!user.isEnabled() || user.isAccountLocked()) {
+                return;
+            }
             String token = passwordResetTokenService.generate(user);
             emailService.sendPasswordResetEmail(user, token);
         });
