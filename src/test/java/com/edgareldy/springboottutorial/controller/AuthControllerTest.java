@@ -186,7 +186,7 @@ class AuthControllerTest {
         when(userService.activate("bad-token"))
                 .thenThrow(new InvalidTokenException("Invalid activation token"));
 
-        mockMvc.perform(get("/api/v1/auth/activate").param("token", "bad-token"))
+        mockMvc.perform(get("/api/v1/auth/activate-account").param("token", "bad-token"))
                 .andExpect(status().isBadRequest());
     }
 
