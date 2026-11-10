@@ -1,0 +1,1256 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: spring-boot-tutorial
+meta:
+  id: wrk_91154cbeaef145e5a5fe8048dd848fbd
+  created: 1794156611030
+  modified: 1794156611030
+  description: ""
+collection:
+  - name: Auth
+    meta:
+      id: fld_12acb912d9ba406ea851edf1b18816bf
+      created: 1788200000000
+      modified: 1794156679667
+      sortKey: -1788200700006.25
+      description: ""
+    children:
+      - url: "{{ baseUrl }}/api/v1/auth/register"
+        name: Register
+        meta:
+          id: req_0f95803a590f424eb1a9dde47a5dc3da
+          created: 1788200000000
+          modified: 1794204130827
+          isPrivate: false
+          description: ""
+          sortKey: -1788200000000
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"first_name": "John",
+            	"last_name": "Doe",
+              "username": "johndoe3",
+              "email": "johndoe3@example.com",
+              "password": "Password123!",
+            	"confirm_password": "Password123!"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/auth/forgot-password"
+        name: Forgot password
+        meta:
+          id: req_3440039b9291460e9af7093647bf35e9
+          created: 1788200000000
+          modified: 1794157358269
+          isPrivate: false
+          description: ""
+          sortKey: -1788200500000
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "email": "admin@example.com"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/auth/me"
+        name: Me (current user)
+        meta:
+          id: req_3fb483820d824e3c86f0a7e3ef9e754d
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200300000
+        method: GET
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/auth/login"
+        name: Login
+        meta:
+          id: req_4d9cc7ccbf9d48d2bd3b2023e4b57560
+          created: 1788200000000
+          modified: 1794156992894
+          isPrivate: false
+          description: ""
+          sortKey: -1788200100000
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "email": "admin@example.com",
+              "password": "Admin1234!"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/auth/activate-account"
+        name: Activate account
+        meta:
+          id: req_7506a0e8d0194f4a9e590e60d31e5416
+          created: 1788200000000
+          modified: 1794204173784
+          isPrivate: false
+          description: ""
+          sortKey: -1788200400000
+        method: GET
+        parameters:
+          - name: token
+            value: _dM4yacMy7E-_b5XrD_dFly2ZP4tc_bENe7GayTkbQw
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/auth/reset-password"
+        name: Reset password
+        meta:
+          id: req_8f5428497cfe4bf39b1de9b0bce53ed9
+          created: 1788200000000
+          modified: 1794204262953
+          isPrivate: false
+          description: ""
+          sortKey: -1788200600000
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "token": "9YXhI96GilinBxVkv-yuAOknDAFD_1VOfpqSLO_5Fzo",
+              "new_password": "newpassword123"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/auth/logout"
+        name: Logout
+        meta:
+          id: req_f2b6b48e86ce4ed091e75db099e0dcde
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200200000
+        method: POST
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Products
+    meta:
+      id: fld_159acef090784c0c811d20157a628342
+      created: 1788200000000
+      modified: 1794156669840
+      sortKey: -1788200700050
+      description: ""
+    children:
+      - url: "{{ baseUrl }}/api/v1/products"
+        name: List products
+        meta:
+          id: req_2b9e064e900a4977bf831cd2daa6c2eb
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200000000
+        method: GET
+        parameters:
+          - name: page
+            value: "0"
+          - name: size
+            value: "10"
+          - name: sort
+            value: id,asc
+          - name: categoryId
+            value: ""
+            disabled: true
+          - name: productName
+            value: ""
+            disabled: true
+          - name: minPrice
+            value: ""
+            disabled: true
+          - name: maxPrice
+            value: ""
+            disabled: true
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/products/1"
+        name: Delete product
+        meta:
+          id: req_37346935b96f47759654862da11f6c81
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200400000
+        method: DELETE
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/products/1"
+        name: Get product by id
+        meta:
+          id: req_55f525b4e460420fba41e8916621c84c
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200100000
+        method: GET
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/products/1"
+        name: Update product
+        meta:
+          id: req_8d57f94332044faaab8c1f44a1be0828
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200300000
+        method: PUT
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "category_id": 1,
+              "product_name": "Laptop Pro 15 (updated)",
+              "unit_price": 1199.99
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/products"
+        name: Create product
+        meta:
+          id: req_92d744e26bab4e4f8fe3e20e270a4ea2
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200200000
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "category_id": 1,
+              "product_name": "Laptop Pro 15",
+              "unit_price": 1299.99
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Users (ADMIN only)
+    meta:
+      id: fld_55a0bb4cb68f41be8f2d3ec4f37f9bac
+      created: 1788200000000
+      modified: 1788200000000
+      sortKey: -1788200700000
+      description: ""
+    children:
+      - url: "{{ baseUrl }}/api/v1/users/1"
+        name: Update user profile
+        meta:
+          id: req_1896e7eef39f436cab968dba2afc45cb
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200300000
+        method: PUT
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "username": "johndoe_new",
+              "email": "johndoe.new@example.com"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/users/2/unlock"
+        name: Unlock user account
+        meta:
+          id: req_64b52ea74d6d46589d2b81f6b81301af
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200500000
+        method: PATCH
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/users"
+        name: List users
+        meta:
+          id: req_71d554b236fe4af684f00565154c5bb9
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200000000
+        method: GET
+        parameters:
+          - name: page
+            value: "0"
+          - name: size
+            value: "20"
+          - name: sort
+            value: id
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/users/2/lock"
+        name: Lock user account
+        meta:
+          id: req_92824579b7e94d5ea0e6770eb95249b8
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200400000
+        method: PATCH
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/users/1/roles"
+        name: Assign roles to user
+        meta:
+          id: req_bcf401d6087f4915ad6fbcc7a47069c7
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200200000
+        method: PUT
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "role_ids": [1, 2]
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/users/2"
+        name: Delete user
+        meta:
+          id: req_e0585519091443adba2d7481f7c11262
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200600000
+        method: DELETE
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/users/1"
+        name: Get user by id
+        meta:
+          id: req_e5605b943c4b4e0d8862179440d24f47
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200100000
+        method: GET
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Roles (ADMIN only)
+    meta:
+      id: fld_6413fc2109684e2a9ba94602c665b1e4
+      created: 1788200000000
+      modified: 1788200000000
+      sortKey: -1788200500000
+      description: ""
+    children:
+      - url: "{{ baseUrl }}/api/v1/roles/1"
+        name: Delete role
+        meta:
+          id: req_36b068bca440409d99388d0f088117aa
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200300000
+        method: DELETE
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/roles/1"
+        name: Update role
+        meta:
+          id: req_54475f3f3f9e4bf4adccfebc8346208b
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200200000
+        method: PUT
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "role_name": "SENIOR_MANAGER"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/roles"
+        name: Create role
+        meta:
+          id: req_63c5a2816a484d1989d1a2c4ba6be39d
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200100000
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "role_name": "MANAGER"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/roles/1/permissions/1"
+        name: Assign permission to role
+        meta:
+          id: req_791082b4487b452480a66aec0faf179b
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200400000
+        method: POST
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/roles/1/permissions/1"
+        name: Remove permission from role
+        meta:
+          id: req_a0652c13e5184086bfacfa1f32c17b83
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200500000
+        method: DELETE
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/roles"
+        name: List roles
+        meta:
+          id: req_e2a9d7acbc4b445080065767ff7b435f
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200000000
+        method: GET
+        parameters:
+          - name: page
+            value: "0"
+          - name: size
+            value: "10"
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Categories
+    meta:
+      id: fld_6bfc493a8d2146b6862b2e7f40bf19cb
+      created: 1788200000000
+      modified: 1794156666646
+      sortKey: -1788200700100
+      description: ""
+    children:
+      - url: "{{ baseUrl }}/api/v1/categories/1"
+        name: Update category
+        meta:
+          id: req_430d0c2da87f4e2eb8574a40541d29e1
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200300000
+        method: PUT
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "category_name": "Electronics & Gadgets"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/categories/1"
+        name: Get category by id
+        meta:
+          id: req_6a91c7d8d00545b1a86901023eb4f1de
+          created: 1788200000000
+          modified: 1794157268726
+          isPrivate: false
+          description: ""
+          sortKey: -1788200100000
+        method: GET
+        body:
+          mimeType: application/json
+          text: ""
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/categories"
+        name: List categories
+        meta:
+          id: req_8fdf77d2e37440d483442fec41f0ff91
+          created: 1788200000000
+          modified: 1794157264080
+          isPrivate: false
+          description: ""
+          sortKey: -1788200000000
+        method: GET
+        parameters:
+          - name: page
+            value: "0"
+          - name: size
+            value: "10"
+          - name: sort
+            value: id,asc
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/categories"
+        name: Create category
+        meta:
+          id: req_b116495246d14bcc82cbfedc9ee14636
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200200000
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "category_name": "Electronics"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/categories/7"
+        name: Delete category
+        meta:
+          id: req_f23e62d5dadb40b2bc392a7419cc2d2b
+          created: 1788200000000
+          modified: 1794203988112
+          isPrivate: false
+          description: ""
+          sortKey: -1788200400000
+        method: DELETE
+        authentication:
+          type: bearer
+          token: "{{token}}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Orders
+    meta:
+      id: fld_b42da7265f5d4f459ccb4e873ff2acbc
+      created: 1788200000000
+      modified: 1794156675295
+      sortKey: -1788200700012.5
+      description: ""
+    children:
+      - url: "{{ baseUrl }}/api/v1/orders/1"
+        name: Update order
+        meta:
+          id: req_39d87d02b347424db8cd00eabffc0f88
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200300000
+        method: PUT
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "customer_id": 1,
+              "product_id": 1,
+              "quantity": 5
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/orders"
+        name: List orders
+        meta:
+          id: req_5aa99878756b4ea8961886ffa7707561
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200000000
+        method: GET
+        parameters:
+          - name: page
+            value: "0"
+          - name: size
+            value: "10"
+          - name: sort
+            value: id,asc
+          - name: customerId
+            value: ""
+            disabled: true
+          - name: productId
+            value: ""
+            disabled: true
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/orders/1"
+        name: Get order by id
+        meta:
+          id: req_73e90e7bef9b4c789375b0656fa875be
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200100000
+        method: GET
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/orders"
+        name: Create order
+        meta:
+          id: req_77eaf5a0b286425e93df0e2018a71dd8
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200200000
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "customer_id": 1,
+              "product_id": 1,
+              "quantity": 2
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/orders/1"
+        name: Delete order
+        meta:
+          id: req_b027a79bd640408a9e4419134d8fbbd0
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200400000
+        method: DELETE
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Customers
+    meta:
+      id: fld_b97520db2abf41dc8a6309997fec9413
+      created: 1788200000000
+      modified: 1794156672747
+      sortKey: -1788200700025
+      description: ""
+    children:
+      - url: "{{ baseUrl }}/api/v1/customers/1"
+        name: Delete customer
+        meta:
+          id: req_03b9d8c2cc1f4c11826289308c9a2d87
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200400000
+        method: DELETE
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/customers/1"
+        name: Update customer
+        meta:
+          id: req_14260f63098e4fd0b73aaa1dd5a5b707
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200300000
+        method: PUT
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "first_name": "Alice",
+              "last_name": "Martin",
+              "telephone": "+33612345678",
+              "email": "alice.martin@example.com",
+              "address": "20 avenue des Champs, Paris"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/customers"
+        name: Create customer
+        meta:
+          id: req_3298d51c3f344907ad4afe5aea7bb6e3
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200200000
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "first_name": "Alice",
+              "last_name": "Dupont",
+              "telephone": "+33612345678",
+              "email": "alice.dupont@example.com",
+              "address": "10 rue de la Paix, Paris"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/customers"
+        name: List customers
+        meta:
+          id: req_5ddec2a5d20a4fbc842200623f1c10e1
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200000000
+        method: GET
+        parameters:
+          - name: page
+            value: "0"
+          - name: size
+            value: "10"
+          - name: sort
+            value: id,asc
+          - name: search
+            value: ""
+            disabled: true
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/customers/1/orders"
+        name: List orders for a customer
+        meta:
+          id: req_c39a44bb666648409482fea30e5c2702
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200500000
+        method: GET
+        parameters:
+          - name: page
+            value: "0"
+          - name: size
+            value: "10"
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/customers/1"
+        name: Get customer by id
+        meta:
+          id: req_ca47a6a68c4046b38cb14c3c961eaa64
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200100000
+        method: GET
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Permissions (ADMIN only)
+    meta:
+      id: fld_f12ae16ea31845498eaa8fa50fad748d
+      created: 1788200000000
+      modified: 1788200000000
+      sortKey: -1788200600000
+      description: ""
+    children:
+      - url: "{{ baseUrl }}/api/v1/permissions"
+        name: Create permission
+        meta:
+          id: req_06817b24f46747089f74eb1c0874dbae
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200100000
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "resource": "products",
+              "action": "READ"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/permissions"
+        name: List permissions
+        meta:
+          id: req_92052a3b6f444acea222e2634fcf544a
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200000000
+        method: GET
+        parameters:
+          - name: page
+            value: "0"
+          - name: size
+            value: "10"
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/permissions/1"
+        name: Delete permission
+        meta:
+          id: req_e449b405567f4b40b6eb1b44ba40200e
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200200000
+        method: DELETE
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_62ce6b9feeac430fabf92a076c42b208
+    created: 1788200000000
+    modified: 1788200000000
+environments:
+  name: Base Environment
+  meta:
+    id: env_6152024238bb45ce84465ae0634e2e52
+    created: 1788200000000
+    modified: 1794203902006
+    isPrivate: false
+  data:
+    baseUrl: http://localhost:8080
+    token: ""
