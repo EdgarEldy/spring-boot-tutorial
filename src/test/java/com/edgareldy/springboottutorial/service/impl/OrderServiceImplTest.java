@@ -8,7 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
-import com.edgareldy.springboottutorial.dto.customer.CustomerResponse;
+import com.edgareldy.springboottutorial.dto.order.CustomerOrdersResponse;
+import com.edgareldy.springboottutorial.dto.order.OrderCustomerResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderRequest;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
@@ -80,8 +81,8 @@ class OrderServiceImplTest {
         Category category = Category.builder().id(1L).categoryName("Electronics").build();
         product = Product.builder().id(1L).category(category).productName("Keyboard").unitPrice(50.0f).build();
         order = Order.builder().id(1L).customer(customer).product(product).quantity(2).total(100.0).build();
-        CustomerResponse customerResponse = new CustomerResponse(
-                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way", List.of());
+        OrderCustomerResponse customerResponse = new OrderCustomerResponse(
+                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way");
         ProductResponse productResponse = new ProductResponse(1L, "Keyboard", 50.0f, 1L, "Electronics");
         orderResponse = new OrderResponse(1L, customerResponse, productResponse, 2, 100.0);
     }
@@ -99,6 +100,49 @@ class OrderServiceImplTest {
         PageResponse<OrderResponse> result = orderService.findAll(null, null, pageable);
 
         assertThat(result.content()).containsExactly(orderResponse);
+    }
+
+    @Test
+    void _01b_ShouldGroupOrdersAndSumTotals_WhenListingByCustomer() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Customer grace = Customer.builder().id(2L).firstName("Grace").lastName("Hopper")
+                .telephone("+1 202-555-0101").email("grace@example.com").address("2 Compiler Street").build();
+        OrderProjection adaKeyboard = new OrderProjection(
+                1L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
+                1L, "Keyboard", 19.99f, 1L, "Electronics", 1, 19.99);
+        OrderProjection adaDesk = new OrderProjection(
+                2L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
+                2L, "Desk", 0.1f, 1L, "Electronics", 2, 0.2);
+        OrderProjection graceDesk = new OrderProjection(
+                3L, 2L, "Grace", "Hopper", "+1 202-555-0101", "grace@example.com", "2 Compiler Street",
+                2L, "Desk", 200.0f, 1L, "Electronics", 1, 200.0);
+        CustomerOrdersResponse adaEntry = new CustomerOrdersResponse(null, List.of(), 20.19);
+        CustomerOrdersResponse graceEntry = new CustomerOrdersResponse(null, List.of(), 200.0);
+        when(orderRepository.findCustomersWithOrders(null, null, pageable))
+                .thenReturn(new PageImpl<>(List.of(customer, grace), pageable, 2));
+        when(orderRepository.findAllProjectedByCustomerIds(List.of(1L, 2L), null))
+                .thenReturn(List.of(adaKeyboard, adaDesk, graceDesk));
+        // 19.99 + 0.2 is 20.189999999999998 in double arithmetic: the service must round it to 20.19.
+        when(orderMapper.toCustomerOrdersResponse(customer, List.of(adaKeyboard, adaDesk), 20.19))
+                .thenReturn(adaEntry);
+        when(orderMapper.toCustomerOrdersResponse(grace, List.of(graceDesk), 200.0)).thenReturn(graceEntry);
+
+        PageResponse<CustomerOrdersResponse> result = orderService.findAllGroupedByCustomer(null, null, pageable);
+
+        assertThat(result.content()).containsExactly(adaEntry, graceEntry);
+        assertThat(result.totalElements()).isEqualTo(2);
+    }
+
+    @Test
+    void _01c_ShouldSkipOrderQuery_WhenNoCustomerMatches() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(orderRepository.findCustomersWithOrders(99L, null, pageable))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        PageResponse<CustomerOrdersResponse> result = orderService.findAllGroupedByCustomer(99L, null, pageable);
+
+        assertThat(result.content()).isEmpty();
+        verify(orderRepository, never()).findAllProjectedByCustomerIds(any(), any());
     }
 
     @Test
