@@ -5,6 +5,7 @@ import com.edgareldy.springboottutorial.entity.Product;
 import com.edgareldy.springboottutorial.repository.CategoryRepository;
 import com.edgareldy.springboottutorial.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,25 +29,26 @@ import org.springframework.context.annotation.Profile;
 @RequiredArgsConstructor
 public class DataSeeder {
 
+    static final String DEMO_PASSWORD = "Admin1234!";
+
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
 
     @Bean
-    public CommandLineRunner seedDemoData() {
+    public CommandLineRunner seedDemoData(
+            @Value("${app.seed.reset-user-passwords:false}") boolean resetUserPasswords) {
         return args -> {
-            if (categoryRepository.count() > 0) {
-                return;
+            if (categoryRepository.count() == 0) {
+                Category electronics = categoryRepository.save(Category.builder().categoryName("Electronics").build());
+                Category books = categoryRepository.save(Category.builder().categoryName("Books").build());
+
+                productRepository.save(Product.builder()
+                        .category(electronics).productName("Mechanical Keyboard").unitPrice(79.99f).build());
+                productRepository.save(Product.builder()
+                        .category(electronics).productName("Wireless Mouse").unitPrice(29.99f).build());
+                productRepository.save(Product.builder()
+                        .category(books).productName("Effective Java").unitPrice(45.50f).build());
             }
-
-            Category electronics = categoryRepository.save(Category.builder().categoryName("Electronics").build());
-            Category books = categoryRepository.save(Category.builder().categoryName("Books").build());
-
-            productRepository.save(Product.builder()
-                    .category(electronics).productName("Mechanical Keyboard").unitPrice(79.99f).build());
-            productRepository.save(Product.builder()
-                    .category(electronics).productName("Wireless Mouse").unitPrice(29.99f).build());
-            productRepository.save(Product.builder()
-                    .category(books).productName("Effective Java").unitPrice(45.50f).build());
         };
     }
 }
