@@ -457,7 +457,7 @@ collection:
             store: true
           rebuildPath: true
       - url: "{{ baseUrl }}/api/v1/users/1/roles"
-        name: Assign roles to user
+        name: Update user roles (add / remove)
         meta:
           id: req_bcf401d6087f4915ad6fbcc7a47069c7
           created: 1788200000000
@@ -465,12 +465,13 @@ collection:
           isPrivate: false
           description: ""
           sortKey: -1788200200000
-        method: PUT
+        method: PATCH
         body:
           mimeType: application/json
           text: |-
             {
-              "role_ids": [1, 2]
+              "add": [1, 2],
+              "remove": [3]
             }
         headers:
           - name: Content-Type
@@ -617,8 +618,8 @@ collection:
             send: true
             store: true
           rebuildPath: true
-      - url: "{{ baseUrl }}/api/v1/roles/1/permissions/1"
-        name: Assign permission to role
+      - url: "{{ baseUrl }}/api/v1/roles/1/permissions"
+        name: Update role permissions (add / remove)
         meta:
           id: req_791082b4487b452480a66aec0faf179b
           created: 1788200000000
@@ -626,28 +627,17 @@ collection:
           isPrivate: false
           description: ""
           sortKey: -1788200400000
-        method: POST
-        authentication:
-          type: bearer
-          token: "{{ token }}"
-        settings:
-          renderRequestBody: true
-          encodeUrl: true
-          followRedirects: global
-          cookies:
-            send: true
-            store: true
-          rebuildPath: true
-      - url: "{{ baseUrl }}/api/v1/roles/1/permissions/1"
-        name: Remove permission from role
-        meta:
-          id: req_a0652c13e5184086bfacfa1f32c17b83
-          created: 1788200000000
-          modified: 1788200000000
-          isPrivate: false
-          description: ""
-          sortKey: -1788200500000
-        method: DELETE
+        method: PATCH
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "add": [1, 2],
+              "remove": [3]
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
         authentication:
           type: bearer
           token: "{{ token }}"
