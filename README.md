@@ -406,7 +406,7 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 | Method | URL | Description |
 |---|---|---|
-| GET | `/api/v1/orders` | Paginated list, filterable by `customerId`/`productId` |
+| GET | `/api/v1/orders` | Orders grouped by customer: each customer once, with the products they ordered (quantity and total per order) and their overall total. Paginated by customer, filterable by `customerId`/`productId` |
 | GET | `/api/v1/orders/{id}` | Order detail |
 | POST | `/api/v1/orders` | Create an order (`total` computed automatically) |
 | PUT | `/api/v1/orders/{id}` | Update an order |
