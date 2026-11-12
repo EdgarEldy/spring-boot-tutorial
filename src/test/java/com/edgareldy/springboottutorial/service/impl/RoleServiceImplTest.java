@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.role.RoleRequest;
 import com.edgareldy.springboottutorial.dto.role.RoleResponse;
+import com.edgareldy.springboottutorial.dto.role.UpdateRolePermissionsRequest;
 import com.edgareldy.springboottutorial.entity.Permission;
 import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
@@ -20,6 +21,7 @@ import com.edgareldy.springboottutorial.repository.RoleRepository;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,12 +60,14 @@ class RoleServiceImplTest {
 
     private Role role;
     private Permission permission;
+    private Permission secondPermission;
     private RoleResponse roleResponse;
 
     @BeforeEach
     void setUp() {
         role = Role.builder().id(1L).roleName("ADMIN").permissions(new HashSet<>()).build();
         permission = Permission.builder().id(1L).resource("PRODUCT").action("WRITE").build();
+        secondPermission = Permission.builder().id(2L).resource("PRODUCT").action("READ").build();
         roleResponse = new RoleResponse(1L, "ADMIN", List.of());
     }
 
@@ -153,79 +157,79 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void _09_ShouldAddPermission_WhenPermissionNotAlreadyAssigned() {
+    void _09_ShouldAddSeveralPermissions_WhenAllExist() {
         when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
-        when(permissionRepository.findById(1L)).thenReturn(Optional.of(permission));
+        when(permissionRepository.findAllById(Set.of(1L, 2L))).thenReturn(List.of(permission, secondPermission));
         when(roleRepository.save(role)).thenReturn(role);
         when(roleMapper.toResponse(role)).thenReturn(roleResponse);
 
-        roleService.assignPermission(1L, 1L);
+        roleService.updatePermissions(1L, new UpdateRolePermissionsRequest(Set.of(1L, 2L), null));
 
-        assertThat(role.getPermissions()).contains(permission);
+        assertThat(role.getPermissions()).containsExactlyInAnyOrder(permission, secondPermission);
     }
 
     @Test
-    void _10_ShouldThrowBusinessRule_WhenPermissionAlreadyAssigned() {
+    void _10_ShouldRemoveSeveralPermissions_WhenAssigned() {
+        role.getPermissions().addAll(List.of(permission, secondPermission));
+        when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
+        when(permissionRepository.findAllById(Set.of(1L, 2L))).thenReturn(List.of(permission, secondPermission));
+        when(roleRepository.save(role)).thenReturn(role);
+        when(roleMapper.toResponse(role)).thenReturn(roleResponse);
+
+        roleService.updatePermissions(1L, new UpdateRolePermissionsRequest(null, Set.of(1L, 2L)));
+
+        assertThat(role.getPermissions()).isEmpty();
+    }
+
+    @Test
+    void _11_ShouldAddAndRemoveInSameCall() {
         role.getPermissions().add(permission);
         when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
-        when(permissionRepository.findById(1L)).thenReturn(Optional.of(permission));
+        when(permissionRepository.findAllById(Set.of(1L, 2L))).thenReturn(List.of(permission, secondPermission));
+        when(roleRepository.save(role)).thenReturn(role);
+        when(roleMapper.toResponse(role)).thenReturn(roleResponse);
 
-        assertThatThrownBy(() -> roleService.assignPermission(1L, 1L))
-                .isInstanceOf(BusinessRuleException.class);
+        roleService.updatePermissions(1L, new UpdateRolePermissionsRequest(Set.of(2L), Set.of(1L)));
 
+        assertThat(role.getPermissions()).containsExactly(secondPermission);
+    }
+
+    @Test
+    void _12_ShouldBeNoOp_WhenAddingAssignedOrRemovingUnassignedPermission() {
+        role.getPermissions().add(permission);
+        when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
+        when(permissionRepository.findAllById(Set.of(1L, 2L))).thenReturn(List.of(permission, secondPermission));
+        when(roleRepository.save(role)).thenReturn(role);
+        when(roleMapper.toResponse(role)).thenReturn(roleResponse);
+
+        roleService.updatePermissions(1L, new UpdateRolePermissionsRequest(Set.of(1L), Set.of(2L)));
+
+        assertThat(role.getPermissions()).containsExactly(permission);
+    }
+
+    @Test
+    void _13_ShouldThrowNotFoundAndChangeNothing_WhenAnyPermissionMissing() {
+        role.getPermissions().add(permission);
+        when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
+        when(permissionRepository.findAllById(Set.of(1L, 2L, 99L))).thenReturn(List.of(permission, secondPermission));
+
+        assertThatThrownBy(() -> roleService.updatePermissions(
+                1L, new UpdateRolePermissionsRequest(Set.of(2L, 99L), Set.of(1L))))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("[99]");
+
+        assertThat(role.getPermissions()).containsExactly(permission);
         verify(roleRepository, never()).save(any());
     }
 
     @Test
-    void _11_ShouldThrowNotFound_WhenAssigningMissingPermission() {
-        when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
-        when(permissionRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> roleService.assignPermission(1L, 99L))
-                .isInstanceOf(ResourceNotFoundException.class);
-    }
-
-    @Test
-    void _12_ShouldThrowNotFound_WhenAssigningPermissionToMissingRole() {
+    void _14_ShouldThrowNotFound_WhenUpdatingPermissionsOfMissingRole() {
         when(roleRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> roleService.assignPermission(99L, 1L))
+        assertThatThrownBy(() -> roleService.updatePermissions(
+                99L, new UpdateRolePermissionsRequest(Set.of(1L), null)))
                 .isInstanceOf(ResourceNotFoundException.class);
 
-        verify(permissionRepository, never()).findById(any());
-    }
-
-    @Test
-    void _13_ShouldRemovePermission_WhenPermissionIsAssigned() {
-        role.getPermissions().add(permission);
-        when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
-        when(permissionRepository.findById(1L)).thenReturn(Optional.of(permission));
-        when(roleRepository.save(role)).thenReturn(role);
-        when(roleMapper.toResponse(role)).thenReturn(roleResponse);
-
-        roleService.removePermission(1L, 1L);
-
-        assertThat(role.getPermissions()).doesNotContain(permission);
-    }
-
-    @Test
-    void _14_ShouldThrowBusinessRule_WhenPermissionNotAssigned() {
-        when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
-        when(permissionRepository.findById(1L)).thenReturn(Optional.of(permission));
-
-        assertThatThrownBy(() -> roleService.removePermission(1L, 1L))
-                .isInstanceOf(BusinessRuleException.class);
-
-        verify(roleRepository, never()).save(any());
-    }
-
-    @Test
-    void _15_ShouldThrowNotFound_WhenRemovingPermissionFromMissingRole() {
-        when(roleRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> roleService.removePermission(99L, 1L))
-                .isInstanceOf(ResourceNotFoundException.class);
-
-        verify(permissionRepository, never()).findById(any());
+        verify(permissionRepository, never()).findAllById(any());
     }
 }

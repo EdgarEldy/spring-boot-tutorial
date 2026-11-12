@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -19,6 +20,7 @@ import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.permission.PermissionResponse;
 import com.edgareldy.springboottutorial.dto.role.RoleRequest;
 import com.edgareldy.springboottutorial.dto.role.RoleResponse;
+import com.edgareldy.springboottutorial.dto.role.UpdateRolePermissionsRequest;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.security.CustomPermissionEvaluator;
@@ -26,6 +28,7 @@ import com.edgareldy.springboottutorial.security.JwtService;
 import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import com.edgareldy.springboottutorial.service.RoleService;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -204,40 +207,72 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void _12_ShouldReturn200_WhenAssignPermissionSucceeds() throws Exception {
-        when(roleService.assignPermission(1L, 1L)).thenReturn(savedResponse());
+    void _12_ShouldReturn200_WhenAddingAndRemovingPermissions() throws Exception {
+        when(roleService.updatePermissions(1L, new UpdateRolePermissionsRequest(Set.of(1L, 2L), Set.of(3L))))
+                .thenReturn(savedResponse());
 
-        mockMvc.perform(post("/api/v1/roles/1/permissions/1"))
+        mockMvc.perform(patch("/api/v1/roles/1/permissions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"add\": [1, 2], \"remove\": [3]}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.role_name").value("ADMIN"));
     }
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void _13_ShouldReturn422_WhenPermissionAlreadyAssigned() throws Exception {
-        when(roleService.assignPermission(1L, 1L))
-                .thenThrow(new BusinessRuleException("Permission 1 is already assigned to role 1"));
+    void _13_ShouldReturn200_WhenOnlyAddProvided() throws Exception {
+        when(roleService.updatePermissions(1L, new UpdateRolePermissionsRequest(Set.of(1L), Set.of())))
+                .thenReturn(savedResponse());
 
-        mockMvc.perform(post("/api/v1/roles/1/permissions/1"))
-                .andExpect(status().isUnprocessableEntity());
+        mockMvc.perform(patch("/api/v1/roles/1/permissions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"add\": [1]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.permissions[0].resource").value("PRODUCT"));
     }
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void _14_ShouldReturn200_WhenRemovePermissionSucceeds() throws Exception {
-        when(roleService.removePermission(1L, 1L)).thenReturn(new RoleResponse(1L, "ADMIN", List.of()));
+    void _14_ShouldReturn400_WhenNoPermissionToAddOrRemove() throws Exception {
+        mockMvc.perform(patch("/api/v1/roles/1/permissions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"add\": [], \"remove\": []}"))
+                .andExpect(status().isBadRequest());
 
-        mockMvc.perform(delete("/api/v1/roles/1/permissions/1"))
-                .andExpect(status().isOk());
+        verify(roleService, never()).updatePermissions(any(), any());
     }
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void _15_ShouldReturn422_WhenPermissionNotAssigned() throws Exception {
-        when(roleService.removePermission(1L, 1L))
-                .thenThrow(new BusinessRuleException("Permission 1 is not assigned to role 1"));
+    void _15_ShouldReturn400_WhenSamePermissionAddedAndRemoved() throws Exception {
+        mockMvc.perform(patch("/api/v1/roles/1/permissions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"add\": [1, 2], \"remove\": [2]}"))
+                .andExpect(status().isBadRequest());
 
-        mockMvc.perform(delete("/api/v1/roles/1/permissions/1"))
-                .andExpect(status().isUnprocessableEntity());
+        verify(roleService, never()).updatePermissions(any(), any());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void _16_ShouldReturn404_WhenPermissionDoesNotExist() throws Exception {
+        when(roleService.updatePermissions(eq(1L), any()))
+                .thenThrow(new ResourceNotFoundException("Permissions not found with ids [99]"));
+
+        mockMvc.perform(patch("/api/v1/roles/1/permissions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"add\": [99]}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void _17_ShouldReturn403_WhenNonAdminUpdatesPermissions() throws Exception {
+        mockMvc.perform(patch("/api/v1/roles/1/permissions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"add\": [1]}"))
+                .andExpect(status().isForbidden());
+
+        verify(roleService, never()).updatePermissions(any(), any());
     }
 }
