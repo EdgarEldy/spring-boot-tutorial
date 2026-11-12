@@ -46,7 +46,15 @@ public interface OrderMapper {
      */
     default CustomerOrdersResponse toCustomerOrdersResponse(
             Customer customer, List<OrderProjection> orders, double total) {
-        List<OrderedProductResponse> products = orders.stream()
+        return new CustomerOrdersResponse(toCustomerResponse(customer), toOrderedProducts(orders), total);
+    }
+
+    /**
+     * Turns order rows into "ordered product" lines, one per order. Shared by
+     * the grouped order view and by the customer responses.
+     */
+    default List<OrderedProductResponse> toOrderedProducts(List<OrderProjection> orders) {
+        return orders.stream()
                 .map(order -> new OrderedProductResponse(
                         order.id(),
                         order.productId(),
@@ -55,7 +63,6 @@ public interface OrderMapper {
                         order.quantity(),
                         order.total()))
                 .toList();
-        return new CustomerOrdersResponse(toCustomerResponse(customer), products, total);
     }
 
     default OrderResponse toResponse(OrderProjection projection) {
