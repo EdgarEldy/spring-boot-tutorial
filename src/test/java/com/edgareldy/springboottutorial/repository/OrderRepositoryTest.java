@@ -7,6 +7,7 @@ import com.edgareldy.springboottutorial.entity.Category;
 import com.edgareldy.springboottutorial.entity.Customer;
 import com.edgareldy.springboottutorial.entity.Order;
 import com.edgareldy.springboottutorial.entity.Product;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 /**
  * {@code @DataJpaTest} for {@link OrderRepository}, backed by a real
@@ -90,6 +92,50 @@ class OrderRepositoryTest {
         assertThat(page.getContent()).hasSize(1);
         assertThat(page.getContent().get(0).customerFirstName()).isEqualTo("Grace");
         assertThat(page.getContent().get(0).customerLastName()).isEqualTo("Hopper");
+    }
+
+    @Test
+    void _03b_ShouldReturnEachCustomerOnce_WhenCustomerHasSeveralOrders() {
+        orderRepository.save(Order.builder().customer(ada).product(desk).quantity(1).total(200.0).build());
+
+        var page = orderRepository.findCustomersWithOrders(
+                null, null, PageRequest.of(0, 10, Sort.by("id")));
+
+        assertThat(page.getTotalElements()).isEqualTo(2);
+        assertThat(page.getContent()).extracting(Customer::getFirstName).containsExactly("Ada", "Grace");
+    }
+
+    @Test
+    void _03c_ShouldExcludeCustomersWithoutMatchingOrder_WhenPagingCustomers() {
+        customerRepository.save(Customer.builder()
+                .firstName("Alan").lastName("Turing").telephone("+1 202-555-0102")
+                .email("alan@example.com").address("3 Enigma Road").build());
+
+        var everyone = orderRepository.findCustomersWithOrders(null, null, PageRequest.of(0, 10));
+        var deskBuyers = orderRepository.findCustomersWithOrders(null, desk.getId(), PageRequest.of(0, 10));
+        var onlyAda = orderRepository.findCustomersWithOrders(ada.getId(), null, PageRequest.of(0, 10));
+
+        assertThat(everyone.getContent()).extracting(Customer::getFirstName)
+                .containsExactlyInAnyOrder("Ada", "Grace");
+        assertThat(deskBuyers.getContent()).extracting(Customer::getFirstName).containsExactly("Grace");
+        assertThat(onlyAda.getContent()).extracting(Customer::getFirstName).containsExactly("Ada");
+    }
+
+    @Test
+    void _03d_ShouldLoadEveryOrderOfGivenCustomers_WhenProjectingByCustomerIds() {
+        orderRepository.save(Order.builder().customer(ada).product(desk).quantity(3).total(600.0).build());
+
+        List<OrderProjection> all = orderRepository.findAllProjectedByCustomerIds(
+                List.of(ada.getId(), grace.getId()), null);
+        List<OrderProjection> adaDeskOnly = orderRepository.findAllProjectedByCustomerIds(
+                List.of(ada.getId()), desk.getId());
+
+        assertThat(all).hasSize(3);
+        assertThat(all).filteredOn(row -> row.customerId().equals(ada.getId()))
+                .extracting(OrderProjection::productName).containsExactly("Keyboard", "Desk");
+        assertThat(adaDeskOnly).hasSize(1);
+        assertThat(adaDeskOnly.get(0).quantity()).isEqualTo(3);
+        assertThat(adaDeskOnly.get(0).total()).isEqualTo(600.0);
     }
 
     @Test
