@@ -484,8 +484,7 @@ All endpoints are ADMIN-only (`@PreAuthorize("hasRole('ADMIN')")` at class level
 | POST | `/api/v1/roles` | Create a role |
 | PUT | `/api/v1/roles/{id}` | Update a role name |
 | DELETE | `/api/v1/roles/{id}` | Delete a role |
-| POST | `/api/v1/roles/{id}/permissions/{permissionId}` | Assign a permission to a role |
-| DELETE | `/api/v1/roles/{id}/permissions/{permissionId}` | Remove a permission from a role |
+| PATCH | `/api/v1/roles/{id}/permissions` | Add and/or remove one or several permissions on a role, body `{"add": [1, 2], "remove": [3]}` |
 
 ### Tasks
 
