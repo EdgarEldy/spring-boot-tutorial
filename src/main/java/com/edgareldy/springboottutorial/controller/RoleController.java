@@ -4,6 +4,7 @@ import com.edgareldy.springboottutorial.dto.common.ApiResponse;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.role.RoleRequest;
 import com.edgareldy.springboottutorial.dto.role.RoleResponse;
+import com.edgareldy.springboottutorial.dto.role.UpdateRolePermissionsRequest;
 import com.edgareldy.springboottutorial.service.RoleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -62,17 +64,10 @@ public class RoleController {
         return ResponseEntity.ok(ApiResponse.success(null, "Role deleted successfully"));
     }
 
-    @PostMapping("/{roleId}/permissions/{permissionId}")
-    public ResponseEntity<ApiResponse<RoleResponse>> assignPermission(
-            @PathVariable Long roleId, @PathVariable Long permissionId) {
+    @PatchMapping("/{roleId}/permissions")
+    public ResponseEntity<ApiResponse<RoleResponse>> updatePermissions(
+            @PathVariable Long roleId, @Valid @RequestBody UpdateRolePermissionsRequest request) {
         return ResponseEntity.ok(ApiResponse.success(
-                roleService.assignPermission(roleId, permissionId), "Permission assigned successfully"));
-    }
-
-    @DeleteMapping("/{roleId}/permissions/{permissionId}")
-    public ResponseEntity<ApiResponse<RoleResponse>> removePermission(
-            @PathVariable Long roleId, @PathVariable Long permissionId) {
-        return ResponseEntity.ok(ApiResponse.success(
-                roleService.removePermission(roleId, permissionId), "Permission removed successfully"));
+                roleService.updatePermissions(roleId, request), "Role permissions updated successfully"));
     }
 }
