@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.customer.CustomerRequest;
 import com.edgareldy.springboottutorial.dto.customer.CustomerResponse;
+import com.edgareldy.springboottutorial.dto.order.OrderCustomerResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
@@ -171,7 +172,9 @@ class CustomerControllerTest {
     @Test
     void _11_ShouldReturn200_WhenListingOrdersOfExistingCustomer() throws Exception {
         ProductResponse product = new ProductResponse(1L, "Keyboard", 50.0f, 1L, "Electronics");
-        OrderResponse order = new OrderResponse(1L, savedResponse(), product, 2, 100.0);
+        OrderCustomerResponse customer = new OrderCustomerResponse(
+                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way");
+        OrderResponse order = new OrderResponse(1L, customer, product, 2, 100.0);
         PageResponse<OrderResponse> page = new PageResponse<>(List.of(order), 0, 20, 1, 1);
         when(customerService.findById(1L)).thenReturn(savedResponse());
         when(orderService.findAll(eq(1L), isNull(), any())).thenReturn(page);
