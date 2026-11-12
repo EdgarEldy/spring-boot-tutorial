@@ -18,6 +18,7 @@ import com.edgareldy.springboottutorial.dto.customer.CustomerRequest;
 import com.edgareldy.springboottutorial.dto.customer.CustomerResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderCustomerResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
+import com.edgareldy.springboottutorial.dto.order.OrderedProductResponse;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
@@ -64,7 +65,8 @@ class CustomerControllerTest {
 
     private static CustomerResponse savedResponse() {
         return new CustomerResponse(
-                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way", List.of());
+                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
+                List.of(new OrderedProductResponse(7L, 3L, "Keyboard", 50.0f, 2, 100.0)), 100.0);
     }
 
     @Test
@@ -74,7 +76,12 @@ class CustomerControllerTest {
 
         mockMvc.perform(get("/api/v1/customers"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].last_name").value("Lovelace"));
+                .andExpect(jsonPath("$.data.content[0].last_name").value("Lovelace"))
+                .andExpect(jsonPath("$.data.content[0].products[0].order_id").value(7))
+                .andExpect(jsonPath("$.data.content[0].products[0].product_name").value("Keyboard"))
+                .andExpect(jsonPath("$.data.content[0].products[0].quantity").value(2))
+                .andExpect(jsonPath("$.data.content[0].products[0].total").value(100.0))
+                .andExpect(jsonPath("$.data.content[0].total").value(100.0));
     }
 
     @Test
