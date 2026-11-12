@@ -158,9 +158,12 @@ collection:
           mimeType: application/json
           text: |-
             {
-              "token": "9YXhI96GilinBxVkv-yuAOknDAFD_1VOfpqSLO_5Fzo",
-              "new_password": "newpassword123"
+              "new_password": "NewPassword123!",
+              "confirm_password": "NewPassword123!"
             }
+        parameters:
+          - name: token
+            value: 9YXhI96GilinBxVkv-yuAOknDAFD_1VOfpqSLO_5Fzo
         headers:
           - name: Content-Type
             value: application/json
@@ -182,6 +185,48 @@ collection:
           description: ""
           sortKey: -1788200200000
         method: POST
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/auth/refresh-token"
+        name: Refresh token
+        meta:
+          id: req_5c1e7a90b3d24f6e8a47d2c9e0f1b6a3
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200700000
+        method: POST
+        authentication:
+          type: bearer
+          token: "{{ refreshToken }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/auth/token-info"
+        name: Token info
+        meta:
+          id: req_a83f0d4c6e9b41d7b2c5f18e7d3a9c04
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200800000
+        method: GET
         authentication:
           type: bearer
           token: "{{ token }}"
@@ -456,7 +501,7 @@ collection:
             send: true
             store: true
           rebuildPath: true
-      - url: "{{ baseUrl }}/api/v1/users/1/roles"
+      - url: "{{ baseUrl }}/api/v1/users/2/roles"
         name: Update user roles (add / remove)
         meta:
           id: req_bcf401d6087f4915ad6fbcc7a47069c7
@@ -470,8 +515,8 @@ collection:
           mimeType: application/json
           text: |-
             {
-              "add": [1, 2],
-              "remove": [3]
+              "add": [1],
+              "remove": [2]
             }
         headers:
           - name: Content-Type
@@ -632,8 +677,8 @@ collection:
           mimeType: application/json
           text: |-
             {
-              "add": [1, 2],
-              "remove": [3]
+              "add": [1],
+              "remove": []
             }
         headers:
           - name: Content-Type
@@ -723,12 +768,6 @@ collection:
           description: ""
           sortKey: -1788200100000
         method: GET
-        body:
-          mimeType: application/json
-          text: ""
-        headers:
-          - name: Content-Type
-            value: application/json
         authentication:
           type: bearer
           token: "{{ token }}"
@@ -1244,3 +1283,4 @@ environments:
   data:
     baseUrl: http://localhost:8080
     token: ""
+    refreshToken: ""
