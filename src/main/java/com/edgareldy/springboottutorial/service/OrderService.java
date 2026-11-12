@@ -1,6 +1,7 @@
 package com.edgareldy.springboottutorial.service;
 
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
+import com.edgareldy.springboottutorial.dto.order.CustomerOrdersResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderRequest;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +19,13 @@ import org.springframework.data.domain.Pageable;
 public interface OrderService {
 
     PageResponse<OrderResponse> findAll(Long customerId, Long productId, Pageable pageable);
+
+    /**
+     * Returns one entry per customer having at least one matching order,
+     * with every product they ordered, its quantity and total, and the sum
+     * of those totals. The page counts customers, not orders.
+     */
+    PageResponse<CustomerOrdersResponse> findAllGroupedByCustomer(Long customerId, Long productId, Pageable pageable);
 
     OrderResponse findById(Long id);
 

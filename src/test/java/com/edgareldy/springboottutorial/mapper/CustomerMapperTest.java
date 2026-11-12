@@ -3,7 +3,7 @@ package com.edgareldy.springboottutorial.mapper;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.edgareldy.springboottutorial.dto.customer.CustomerResponse;
-import com.edgareldy.springboottutorial.dto.product.ProductResponse;
+import com.edgareldy.springboottutorial.dto.order.OrderedProductResponse;
 import com.edgareldy.springboottutorial.entity.Customer;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -12,8 +12,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 /**
  * Tests the real MapStruct-generated {@link CustomerMapperImpl}, not a mock:
- * {@link CustomerMapper#toResponse} and {@link CustomerMapper#toDetailResponse}
- * differ only in how they treat {@code products}, so a test exercising the
+ * {@link CustomerMapper#toResponse} and {@link CustomerMapper#toResponseWithOrders}
+ * differ only in how they treat {@code products}/{@code total}, so a test exercising the
  * generated code is the only way to catch a regression where one method's
  * behavior leaks into the other.
  * <p>
@@ -34,18 +34,24 @@ class CustomerMapperTest {
     }
 
     @Test
-    void _01_ShouldReturnEmptyProducts_WhenUsingPlainResponse() {
+    void _01_ShouldReturnEmptyProductsAndZeroTotal_WhenUsingPlainResponse() {
         CustomerResponse response = customerMapper.toResponse(customer());
 
+        assertThat(response.firstName()).isEqualTo("Ada");
         assertThat(response.products()).isEmpty();
+        assertThat(response.total()).isZero();
     }
 
     @Test
-    void _02_ShouldMapSuppliedProducts_WhenUsingDetailResponse() {
-        ProductResponse keyboard = new ProductResponse(10L, "Keyboard", 79.99f, 1L, "Electronics");
+    void _02_ShouldMapSuppliedProductsAndTotal_WhenUsingResponseWithOrders() {
+        OrderedProductResponse keyboard = new OrderedProductResponse(100L, 10L, "Keyboard", 79.99f, 2, 159.98);
 
-        CustomerResponse response = customerMapper.toDetailResponse(customer(), List.of(keyboard));
+        CustomerResponse response = customerMapper.toResponseWithOrders(customer(), List.of(keyboard), 159.98);
 
+        assertThat(response.id()).isEqualTo(1L);
+        assertThat(response.lastName()).isEqualTo("Lovelace");
         assertThat(response.products()).containsExactly(keyboard);
+        assertThat(response.total()).isEqualTo(159.98);
     }
+
 }
