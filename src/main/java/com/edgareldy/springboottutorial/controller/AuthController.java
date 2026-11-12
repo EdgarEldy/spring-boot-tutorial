@@ -58,11 +58,6 @@ public class AuthController {
     }
 
     @GetMapping("/token-info")
-    @Operation(summary = "Inspect the claims of the current bearer token")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Token claims returned"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Authentication required or token expired")
-    })
     public ResponseEntity<ApiResponse<Map<String, Object>>> tokenInfo(
             @RequestHeader("Authorization") String authHeader) {
         String token = authHeader.startsWith(BEARER_PREFIX)
