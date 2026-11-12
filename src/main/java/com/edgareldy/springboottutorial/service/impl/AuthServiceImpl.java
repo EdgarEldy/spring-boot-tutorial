@@ -66,7 +66,7 @@ public class AuthServiceImpl implements AuthService {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(appUser.getUsername(), request.password()));
         String token = jwtService.generateToken(appUser.getUsername());
-        return new AuthResponse(token, BEARER_TOKEN_TYPE, appUser.getUsername());
+        return new AuthResponse(token, BEARER_TOKEN_TYPE);
     }
 
     @Override

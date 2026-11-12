@@ -104,13 +104,13 @@ class AuthControllerTest {
 
     @Test
     void _04_ShouldReturn200_WhenCredentialsValid() throws Exception {
-        when(authService.login(any())).thenReturn(new AuthResponse("signed-token", "Bearer", "ada"));
+        when(authService.login(any())).thenReturn(new AuthResponse("signed-token", "Bearer"));
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new LoginRequest("ada@example.com", "password123"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.token").value("signed-token"))
+                .andExpect(jsonPath("$.data.access_token").value("signed-token"))
                 .andExpect(jsonPath("$.data.token_type").value("Bearer"));
     }
 
