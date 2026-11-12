@@ -2,7 +2,6 @@ package com.edgareldy.springboottutorial.repository;
 
 import com.edgareldy.springboottutorial.entity.Customer;
 import com.edgareldy.springboottutorial.entity.Order;
-import com.edgareldy.springboottutorial.entity.Product;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -65,9 +64,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT o FROM Order o JOIN FETCH o.customer JOIN FETCH o.product p JOIN FETCH p.category WHERE o.id = :id")
     Optional<Order> findByIdWithDetails(@Param("id") Long id);
-
-    @Query("SELECT DISTINCT p FROM Order o JOIN o.product p JOIN FETCH p.category WHERE o.customer.id = :customerId")
-    List<Product> findDistinctProductsByCustomerId(@Param("customerId") Long customerId);
 
     boolean existsByCustomerId(Long customerId);
 
