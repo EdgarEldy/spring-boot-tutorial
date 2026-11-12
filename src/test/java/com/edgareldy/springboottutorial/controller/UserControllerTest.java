@@ -3,6 +3,8 @@ package com.edgareldy.springboottutorial.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -16,8 +18,8 @@ import com.edgareldy.springboottutorial.dto.auth.UserResponse;
 import org.springframework.security.test.context.support.WithMockUser;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.role.RoleResponse;
-import com.edgareldy.springboottutorial.dto.user.AssignRolesRequest;
 import com.edgareldy.springboottutorial.dto.user.UpdateProfileRequest;
+import com.edgareldy.springboottutorial.dto.user.UpdateUserRolesRequest;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.security.JwtService;
@@ -101,55 +103,62 @@ class UserControllerTest {
     }
 
     @Test
-    void _04_ShouldReturn200_WhenAssigningRoles() throws Exception {
+    void _04_ShouldReturn200_WhenAddingAndRemovingRoles() throws Exception {
         UserResponse updated = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", true, false,
-                List.of(new RoleResponse(1L, "USER", List.of()), new RoleResponse(2L, "ADMIN", List.of())));
-        when(userService.assignRoles(eq(1L), any())).thenReturn(updated);
+                List.of(new RoleResponse(2L, "ADMIN", List.of()), new RoleResponse(3L, "MANAGER", List.of())));
+        when(userService.updateRoles(1L, new UpdateUserRolesRequest(Set.of(2L, 3L), Set.of(1L))))
+                .thenReturn(updated);
 
-        mockMvc.perform(put("/api/v1/users/1/roles")
+        mockMvc.perform(patch("/api/v1/users/1/roles")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new AssignRolesRequest(Set.of(1L, 2L)))))
+                        .content("{\"add\": [2, 3], \"remove\": [1]}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.data.roles[0].role_name").value("ADMIN"));
     }
 
     @Test
-    void _05_ShouldReturn400_WhenRoleIdsNullOnAssignRoles() throws Exception {
-        mockMvc.perform(put("/api/v1/users/1/roles")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"role_ids\":null}"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void _06_ShouldReturn422_WhenSomeRoleIdsInvalid() throws Exception {
-        when(userService.assignRoles(eq(1L), any()))
-                .thenThrow(new BusinessRuleException("One or more role IDs are invalid"));
-
-        mockMvc.perform(put("/api/v1/users/1/roles")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new AssignRolesRequest(Set.of(99L)))))
-                .andExpect(status().isUnprocessableEntity());
-    }
-
-    @Test
-    void _06b_ShouldReturn200_WhenRemovingRoleFromUser() throws Exception {
+    void _05_ShouldReturn200_WhenOnlyRemoveProvided() throws Exception {
         UserResponse updated = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", true, false,
                 List.of());
-        when(userService.removeRoleFromUser(1L, 1L)).thenReturn(updated);
+        when(userService.updateRoles(1L, new UpdateUserRolesRequest(Set.of(), Set.of(1L, 2L))))
+                .thenReturn(updated);
 
-        mockMvc.perform(delete("/api/v1/users/1/roles/1"))
+        mockMvc.perform(patch("/api/v1/users/1/roles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"remove\": [1, 2]}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test
-    void _06c_ShouldReturn422_WhenRoleNotAssignedToUser() throws Exception {
-        when(userService.removeRoleFromUser(1L, 99L))
-                .thenThrow(new BusinessRuleException("User does not have role with id 99"));
+    void _06_ShouldReturn400_WhenNoRoleToAddOrRemove() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/1/roles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
 
-        mockMvc.perform(delete("/api/v1/users/1/roles/99"))
-                .andExpect(status().isUnprocessableEntity());
+        verify(userService, never()).updateRoles(any(), any());
+    }
+
+    @Test
+    void _06b_ShouldReturn400_WhenSameRoleAddedAndRemoved() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/1/roles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"add\": [1, 2], \"remove\": [2]}"))
+                .andExpect(status().isBadRequest());
+
+        verify(userService, never()).updateRoles(any(), any());
+    }
+
+    @Test
+    void _06c_ShouldReturn404_WhenRoleDoesNotExist() throws Exception {
+        when(userService.updateRoles(eq(1L), any()))
+                .thenThrow(new ResourceNotFoundException("Roles not found with ids [99]"));
+
+        mockMvc.perform(patch("/api/v1/users/1/roles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"add\": [99]}"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
