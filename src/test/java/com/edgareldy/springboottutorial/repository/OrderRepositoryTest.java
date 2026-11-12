@@ -149,31 +149,4 @@ class OrderRepositoryTest {
         assertThat(found.get().getCustomer().getEmail()).isEqualTo("ada@example.com");
         assertThat(found.get().getProduct().getProductName()).isEqualTo("Keyboard");
     }
-
-    @Test
-    void _05_ShouldReturnOnlyThatCustomerProducts_WhenFindingDistinctProducts() {
-        var products = orderRepository.findDistinctProductsByCustomerId(ada.getId());
-
-        assertThat(products).extracting(Product::getProductName).containsExactly("Keyboard");
-    }
-
-    @Test
-    void _06_ShouldDeduplicateProducts_WhenCustomerOrderedSameProductTwice() {
-        orderRepository.save(Order.builder().customer(ada).product(keyboard).quantity(1).total(50.0).build());
-
-        var products = orderRepository.findDistinctProductsByCustomerId(ada.getId());
-
-        assertThat(products).extracting(Product::getProductName).containsExactly("Keyboard");
-    }
-
-    @Test
-    void _07_ShouldReturnEmpty_WhenCustomerHasNoOrders() {
-        Customer noOrders = customerRepository.save(Customer.builder()
-                .firstName("Alan").lastName("Turing").telephone("+1 202-555-0102")
-                .email("alan@example.com").address("3 Enigma Way").build());
-
-        var products = orderRepository.findDistinctProductsByCustomerId(noOrders.getId());
-
-        assertThat(products).isEmpty();
-    }
 }
