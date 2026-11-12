@@ -543,7 +543,7 @@ Admin-facing user management: list, view, activate/deactivate accounts, assign r
 |---|---|---|---|
 | GET | `/api/v1/users` | Paginated list of users | ADMIN |
 | GET | `/api/v1/users/{id}` | User detail | ADMIN |
-| PUT | `/api/v1/users/{id}/roles` | Assign roles to a user | ADMIN |
+| PATCH | `/api/v1/users/{id}/roles` | Add and/or remove one or several roles on a user, body `{"add": [1, 2], "remove": [3]}` | ADMIN |
 | DELETE | `/api/v1/users/{id}` | Delete a user | ADMIN |
 | GET | `/api/v1/auth/activate` | Activate account with token | Public |
 | POST | `/api/v1/auth/forgot-password` | Request a password-reset email | Public |
