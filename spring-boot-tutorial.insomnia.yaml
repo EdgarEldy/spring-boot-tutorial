@@ -158,9 +158,12 @@ collection:
           mimeType: application/json
           text: |-
             {
-              "token": "9YXhI96GilinBxVkv-yuAOknDAFD_1VOfpqSLO_5Fzo",
-              "new_password": "newpassword123"
+              "new_password": "NewPassword123!",
+              "confirm_password": "NewPassword123!"
             }
+        parameters:
+          - name: token
+            value: 9YXhI96GilinBxVkv-yuAOknDAFD_1VOfpqSLO_5Fzo
         headers:
           - name: Content-Type
             value: application/json
@@ -182,6 +185,48 @@ collection:
           description: ""
           sortKey: -1788200200000
         method: POST
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/auth/refresh-token"
+        name: Refresh token
+        meta:
+          id: req_5c1e7a90b3d24f6e8a47d2c9e0f1b6a3
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200700000
+        method: POST
+        authentication:
+          type: bearer
+          token: "{{ refreshToken }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/auth/token-info"
+        name: Token info
+        meta:
+          id: req_a83f0d4c6e9b41d7b2c5f18e7d3a9c04
+          created: 1788200000000
+          modified: 1788200000000
+          isPrivate: false
+          description: ""
+          sortKey: -1788200800000
+        method: GET
         authentication:
           type: bearer
           token: "{{ token }}"
@@ -456,8 +501,8 @@ collection:
             send: true
             store: true
           rebuildPath: true
-      - url: "{{ baseUrl }}/api/v1/users/1/roles"
-        name: Assign roles to user
+      - url: "{{ baseUrl }}/api/v1/users/2/roles"
+        name: Update user roles (add / remove)
         meta:
           id: req_bcf401d6087f4915ad6fbcc7a47069c7
           created: 1788200000000
@@ -465,12 +510,13 @@ collection:
           isPrivate: false
           description: ""
           sortKey: -1788200200000
-        method: PUT
+        method: PATCH
         body:
           mimeType: application/json
           text: |-
             {
-              "role_ids": [1, 2]
+              "add": [1],
+              "remove": [2]
             }
         headers:
           - name: Content-Type
@@ -617,8 +663,8 @@ collection:
             send: true
             store: true
           rebuildPath: true
-      - url: "{{ baseUrl }}/api/v1/roles/1/permissions/1"
-        name: Assign permission to role
+      - url: "{{ baseUrl }}/api/v1/roles/1/permissions"
+        name: Update role permissions (add / remove)
         meta:
           id: req_791082b4487b452480a66aec0faf179b
           created: 1788200000000
@@ -626,28 +672,17 @@ collection:
           isPrivate: false
           description: ""
           sortKey: -1788200400000
-        method: POST
-        authentication:
-          type: bearer
-          token: "{{ token }}"
-        settings:
-          renderRequestBody: true
-          encodeUrl: true
-          followRedirects: global
-          cookies:
-            send: true
-            store: true
-          rebuildPath: true
-      - url: "{{ baseUrl }}/api/v1/roles/1/permissions/1"
-        name: Remove permission from role
-        meta:
-          id: req_a0652c13e5184086bfacfa1f32c17b83
-          created: 1788200000000
-          modified: 1788200000000
-          isPrivate: false
-          description: ""
-          sortKey: -1788200500000
-        method: DELETE
+        method: PATCH
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "add": [1],
+              "remove": []
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
         authentication:
           type: bearer
           token: "{{ token }}"
@@ -733,12 +768,6 @@ collection:
           description: ""
           sortKey: -1788200100000
         method: GET
-        body:
-          mimeType: application/json
-          text: ""
-        headers:
-          - name: Content-Type
-            value: application/json
         authentication:
           type: bearer
           token: "{{ token }}"
@@ -1254,3 +1283,4 @@ environments:
   data:
     baseUrl: http://localhost:8080
     token: ""
+    refreshToken: ""
