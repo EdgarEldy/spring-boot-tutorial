@@ -13,12 +13,11 @@ import com.edgareldy.springboottutorial.dto.customer.CustomerResponse;
 import com.edgareldy.springboottutorial.entity.Customer;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
-import com.edgareldy.springboottutorial.dto.product.ProductResponse;
-import com.edgareldy.springboottutorial.entity.Category;
-import com.edgareldy.springboottutorial.entity.Product;
+import com.edgareldy.springboottutorial.dto.order.OrderedProductResponse;
 import com.edgareldy.springboottutorial.mapper.CustomerMapper;
-import com.edgareldy.springboottutorial.mapper.ProductMapper;
+import com.edgareldy.springboottutorial.mapper.OrderMapper;
 import com.edgareldy.springboottutorial.repository.CustomerRepository;
+import com.edgareldy.springboottutorial.repository.OrderProjection;
 import com.edgareldy.springboottutorial.repository.OrderRepository;
 import java.util.List;
 import java.util.Optional;
@@ -33,8 +32,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 /**
- * Unit tests for {@link CustomerServiceImpl}, with {@link CustomerRepository}
- * and {@link CustomerMapper} mocked.
+ * Unit tests for {@link CustomerServiceImpl}, with {@link CustomerRepository},
+ * {@link OrderRepository}, {@link CustomerMapper} and {@link OrderMapper} mocked.
  * <p>
  * Created edgar.muhamyangabo on 7/4/26
  * Author : edgar.muhamyangabo
@@ -54,7 +53,7 @@ class CustomerServiceImplTest {
     private OrderRepository orderRepository;
 
     @Mock
-    private ProductMapper productMapper;
+    private OrderMapper orderMapper;
 
     @InjectMocks
     private CustomerServiceImpl customerService;
@@ -68,14 +67,14 @@ class CustomerServiceImplTest {
                 .id(1L).firstName("Ada").lastName("Lovelace").telephone("+1 202-555-0100")
                 .email("ada@example.com").address("1 Analytical Engine Way").build();
         customerResponse = new CustomerResponse(
-                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way", List.of());
+                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way", List.of(), 0.0);
     }
 
     @Test
     void _01_ShouldUsePlainFindAll_WhenNoSearchTermGiven() {
         Pageable pageable = PageRequest.of(0, 10);
         when(customerRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(customer), pageable, 1));
-        when(customerMapper.toResponse(customer)).thenReturn(customerResponse);
+        when(customerMapper.toResponseWithOrders(customer, List.of(), 0.0)).thenReturn(customerResponse);
 
         PageResponse<CustomerResponse> result = customerService.findAll(null, pageable);
 
@@ -88,7 +87,7 @@ class CustomerServiceImplTest {
         Pageable pageable = PageRequest.of(0, 10);
         when(customerRepository.search("lovelace", pageable))
                 .thenReturn(new PageImpl<>(List.of(customer), pageable, 1));
-        when(customerMapper.toResponse(customer)).thenReturn(customerResponse);
+        when(customerMapper.toResponseWithOrders(customer, List.of(), 0.0)).thenReturn(customerResponse);
 
         PageResponse<CustomerResponse> result = customerService.findAll("lovelace", pageable);
 
@@ -97,17 +96,65 @@ class CustomerServiceImplTest {
     }
 
     @Test
+    void _02b_ShouldAttachEachCustomerOrdersWithOneQuery_WhenListingCustomers() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Customer grace = Customer.builder()
+                .id(2L).firstName("Grace").lastName("Hopper").telephone("+1 202-555-0101")
+                .email("grace@example.com").address("2 Compiler Street").build();
+        OrderProjection adaKeyboard = new OrderProjection(
+                1L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
+                1L, "Keyboard", 19.99f, 1L, "Electronics", 1, 19.99);
+        OrderProjection adaDesk = new OrderProjection(
+                2L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
+                2L, "Desk", 0.1f, 1L, "Electronics", 2, 0.2);
+        List<OrderedProductResponse> adaLines = List.of(
+                new OrderedProductResponse(1L, 1L, "Keyboard", 19.99f, 1, 19.99),
+                new OrderedProductResponse(2L, 2L, "Desk", 0.1f, 2, 0.2));
+        CustomerResponse adaResponse = new CustomerResponse(
+                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
+                adaLines, 20.19);
+        CustomerResponse graceResponse = new CustomerResponse(
+                2L, "Grace", "Hopper", "+1 202-555-0101", "grace@example.com", "2 Compiler Street", List.of(), 0.0);
+        when(customerRepository.findAll(pageable))
+                .thenReturn(new PageImpl<>(List.of(customer, grace), pageable, 2));
+        when(orderRepository.findAllProjectedByCustomerIds(List.of(1L, 2L), null))
+                .thenReturn(List.of(adaKeyboard, adaDesk));
+        when(orderMapper.toOrderedProducts(List.of(adaKeyboard, adaDesk))).thenReturn(adaLines);
+        when(orderMapper.toOrderedProducts(List.of())).thenReturn(List.of());
+        // 19.99 + 0.2 is 20.189999999999998 in double arithmetic: the service must round it to 20.19.
+        when(customerMapper.toResponseWithOrders(customer, adaLines, 20.19)).thenReturn(adaResponse);
+        when(customerMapper.toResponseWithOrders(grace, List.of(), 0.0)).thenReturn(graceResponse);
+
+        PageResponse<CustomerResponse> result = customerService.findAll(null, pageable);
+
+        assertThat(result.content()).containsExactly(adaResponse, graceResponse);
+        verify(orderRepository).findAllProjectedByCustomerIds(List.of(1L, 2L), null);
+    }
+
+    @Test
+    void _02c_ShouldSkipOrderQuery_WhenPageIsEmpty() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(customerRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        assertThat(customerService.findAll(null, pageable).content()).isEmpty();
+
+        verify(orderRepository, never()).findAllProjectedByCustomerIds(any(), any());
+    }
+
+    @Test
     void _03_ShouldReturnResponseWithOrderedProducts_WhenCustomerFound() {
-        Category category = Category.builder().id(1L).categoryName("Electronics").build();
-        Product keyboard = Product.builder().id(1L).category(category).productName("Keyboard").unitPrice(79.99f).build();
-        ProductResponse keyboardResponse = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
+        OrderProjection keyboardOrder = new OrderProjection(
+                7L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
+                1L, "Keyboard", 79.99f, 1L, "Electronics", 2, 159.98);
+        List<OrderedProductResponse> lines =
+                List.of(new OrderedProductResponse(7L, 1L, "Keyboard", 79.99f, 2, 159.98));
         CustomerResponse detailResponse = new CustomerResponse(
                 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
-                List.of(keyboardResponse));
+                lines, 159.98);
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
-        when(orderRepository.findDistinctProductsByCustomerId(1L)).thenReturn(List.of(keyboard));
-        when(productMapper.toResponse(keyboard)).thenReturn(keyboardResponse);
-        when(customerMapper.toDetailResponse(customer, List.of(keyboardResponse))).thenReturn(detailResponse);
+        when(orderRepository.findAllProjectedByCustomerIds(List.of(1L), null)).thenReturn(List.of(keyboardOrder));
+        when(orderMapper.toOrderedProducts(List.of(keyboardOrder))).thenReturn(lines);
+        when(customerMapper.toResponseWithOrders(customer, lines, 159.98)).thenReturn(detailResponse);
 
         assertThat(customerService.findById(1L)).isEqualTo(detailResponse);
     }
@@ -161,10 +208,10 @@ class CustomerServiceImplTest {
         CustomerRequest request = new CustomerRequest(
                 "Ada", "Byron", "+1 202-555-0100", "ada@example.com", "2 Analytical Engine Way");
         CustomerResponse updatedResponse = new CustomerResponse(
-                1L, "Ada", "Byron", "+1 202-555-0100", "ada@example.com", "2 Analytical Engine Way", List.of());
+                1L, "Ada", "Byron", "+1 202-555-0100", "ada@example.com", "2 Analytical Engine Way", List.of(), 0.0);
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(customerRepository.save(customer)).thenReturn(customer);
-        when(customerMapper.toResponse(customer)).thenReturn(updatedResponse);
+        when(customerMapper.toResponseWithOrders(customer, List.of(), 0.0)).thenReturn(updatedResponse);
 
         assertThat(customerService.update(1L, request)).isEqualTo(updatedResponse);
 
@@ -177,10 +224,10 @@ class CustomerServiceImplTest {
         CustomerRequest request = new CustomerRequest(
                 "Ada", "Byron", "+1 202-555-0100", "ADA@EXAMPLE.COM", "2 Analytical Engine Way");
         CustomerResponse updatedResponse = new CustomerResponse(
-                1L, "Ada", "Byron", "+1 202-555-0100", "ADA@EXAMPLE.COM", "2 Analytical Engine Way", List.of());
+                1L, "Ada", "Byron", "+1 202-555-0100", "ADA@EXAMPLE.COM", "2 Analytical Engine Way", List.of(), 0.0);
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(customerRepository.save(customer)).thenReturn(customer);
-        when(customerMapper.toResponse(customer)).thenReturn(updatedResponse);
+        when(customerMapper.toResponseWithOrders(customer, List.of(), 0.0)).thenReturn(updatedResponse);
 
         assertThat(customerService.update(1L, request)).isEqualTo(updatedResponse);
 

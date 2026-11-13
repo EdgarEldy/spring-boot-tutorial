@@ -1,6 +1,7 @@
 package com.edgareldy.springboottutorial.service.impl;
 
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
+import com.edgareldy.springboottutorial.dto.order.CustomerOrdersResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderRequest;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
 import com.edgareldy.springboottutorial.entity.Customer;
@@ -14,6 +15,9 @@ import com.edgareldy.springboottutorial.repository.OrderProjection;
 import com.edgareldy.springboottutorial.repository.OrderRepository;
 import com.edgareldy.springboottutorial.repository.ProductRepository;
 import com.edgareldy.springboottutorial.service.OrderService;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -44,6 +48,23 @@ public class OrderServiceImpl implements OrderService {
     public PageResponse<OrderResponse> findAll(Long customerId, Long productId, Pageable pageable) {
         Page<OrderProjection> page = orderRepository.findAllProjected(customerId, productId, pageable);
         return PageResponse.from(page.map(orderMapper::toResponse));
+    }
+
+    @Override
+    public PageResponse<CustomerOrdersResponse> findAllGroupedByCustomer(
+            Long customerId, Long productId, Pageable pageable) {
+        Page<Customer> customers = orderRepository.findCustomersWithOrders(customerId, productId, pageable);
+        List<Long> customerIds = customers.getContent().stream().map(Customer::getId).toList();
+        Map<Long, List<OrderProjection>> ordersByCustomer = customerIds.isEmpty()
+                ? Map.of()
+                : orderRepository.findAllProjectedByCustomerIds(customerIds, productId).stream()
+                        .collect(Collectors.groupingBy(OrderProjection::customerId));
+        return PageResponse.from(customers.map(customer -> {
+            List<OrderProjection> orders = ordersByCustomer.getOrDefault(customer.getId(), List.of());
+            double total = orders.stream().mapToDouble(OrderProjection::total).sum();
+            // Rounded to cents: summing doubles can leave noise such as 3949.9700000000003.
+            return orderMapper.toCustomerOrdersResponse(customer, orders, Math.round(total * 100) / 100.0);
+        }));
     }
 
     @Override
