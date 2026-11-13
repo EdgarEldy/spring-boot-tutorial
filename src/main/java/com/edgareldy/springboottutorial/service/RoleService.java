@@ -3,6 +3,7 @@ package com.edgareldy.springboottutorial.service;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.role.RoleRequest;
 import com.edgareldy.springboottutorial.dto.role.RoleResponse;
+import com.edgareldy.springboottutorial.dto.role.UpdateRolePermissionsRequest;
 import org.springframework.data.domain.Pageable;
 
 /**
@@ -25,7 +26,10 @@ public interface RoleService {
 
     void delete(Long id);
 
-    RoleResponse assignPermission(Long roleId, Long permissionId);
-
-    RoleResponse removePermission(Long roleId, Long permissionId);
+    /**
+     * Adds and removes permissions on a role in a single transaction. Adding a
+     * permission the role already has, or removing one it does not have, is a
+     * no-op rather than an error.
+     */
+    RoleResponse updatePermissions(Long roleId, UpdateRolePermissionsRequest request);
 }
