@@ -2,6 +2,7 @@ package com.edgareldy.springboottutorial.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.edgareldy.springboottutorial.dto.order.CustomerOrdersResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderRequest;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
 import com.edgareldy.springboottutorial.entity.Category;
@@ -9,13 +10,14 @@ import com.edgareldy.springboottutorial.entity.Customer;
 import com.edgareldy.springboottutorial.entity.Order;
 import com.edgareldy.springboottutorial.entity.Product;
 import com.edgareldy.springboottutorial.repository.OrderProjection;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 /**
  * Tests the real MapStruct-generated {@link OrderMapperImpl}, not a mock.
- * {@link OrderMapper#toResponse(Order)} delegates to {@link CustomerMapper}/
+ * {@link OrderMapper#toResponse(Order)} delegates to
  * {@link ProductMapper} (via {@code uses}), while
  * {@link OrderMapper#toResponse(OrderProjection)} is a hand-written
  * {@code default} method rebuilding the same DTOs field by field from a flat
@@ -27,7 +29,7 @@ import org.springframework.boot.test.context.SpringBootTest;
  * Date : 9/3/26
  * Project : spring-boot-tutorial
  */
-@SpringBootTest(classes = {OrderMapperImpl.class, CustomerMapperImpl.class, ProductMapperImpl.class})
+@SpringBootTest(classes = {OrderMapperImpl.class, ProductMapperImpl.class})
 class OrderMapperTest {
 
     @Autowired
@@ -45,7 +47,6 @@ class OrderMapperTest {
 
         assertThat(response.customer().firstName()).isEqualTo("Ada");
         assertThat(response.customer().lastName()).isEqualTo("Lovelace");
-        assertThat(response.customer().products()).isEmpty();
         assertThat(response.product().productName()).isEqualTo("Keyboard");
         assertThat(response.product().categoryName()).isEqualTo("Electronics");
     }
@@ -64,7 +65,6 @@ class OrderMapperTest {
         assertThat(response.customer().telephone()).isEqualTo("+1 202-555-0100");
         assertThat(response.customer().email()).isEqualTo("ada@example.com");
         assertThat(response.customer().address()).isEqualTo("1 Analytical Engine Way");
-        assertThat(response.customer().products()).isEmpty();
         assertThat(response.product().id()).isEqualTo(10L);
         assertThat(response.product().productName()).isEqualTo("Keyboard");
         assertThat(response.product().unitPrice()).isEqualTo(50.0f);
@@ -72,6 +72,38 @@ class OrderMapperTest {
         assertThat(response.product().categoryName()).isEqualTo("Electronics");
         assertThat(response.quantity()).isEqualTo(2);
         assertThat(response.total()).isEqualTo(100.0);
+    }
+
+    @Test
+    void _02b_ShouldListOneLinePerOrder_WhenBuildingCustomerOrders() {
+        Customer customer = Customer.builder().id(1L).firstName("Ada").lastName("Lovelace")
+                .telephone("+1 202-555-0100").email("ada@example.com").address("1 Analytical Engine Way").build();
+        OrderProjection keyboardOrder = new OrderProjection(
+                100L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
+                10L, "Keyboard", 50.0f, 5L, "Electronics", 2, 100.0);
+        OrderProjection deskOrder = new OrderProjection(
+                101L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
+                11L, "Desk", 200.0f, 5L, "Electronics", 1, 200.0);
+
+        CustomerOrdersResponse response =
+                orderMapper.toCustomerOrdersResponse(customer, List.of(keyboardOrder, deskOrder), 300.0);
+
+        assertThat(response.customer().id()).isEqualTo(1L);
+        assertThat(response.customer().firstName()).isEqualTo("Ada");
+        assertThat(response.customer().lastName()).isEqualTo("Lovelace");
+        assertThat(response.customer().telephone()).isEqualTo("+1 202-555-0100");
+        assertThat(response.customer().email()).isEqualTo("ada@example.com");
+        assertThat(response.customer().address()).isEqualTo("1 Analytical Engine Way");
+        assertThat(response.products()).hasSize(2);
+        assertThat(response.products().get(0).orderId()).isEqualTo(100L);
+        assertThat(response.products().get(0).productId()).isEqualTo(10L);
+        assertThat(response.products().get(0).productName()).isEqualTo("Keyboard");
+        assertThat(response.products().get(0).unitPrice()).isEqualTo(50.0f);
+        assertThat(response.products().get(0).quantity()).isEqualTo(2);
+        assertThat(response.products().get(0).total()).isEqualTo(100.0);
+        assertThat(response.products().get(1).orderId()).isEqualTo(101L);
+        assertThat(response.products().get(1).productName()).isEqualTo("Desk");
+        assertThat(response.total()).isEqualTo(300.0);
     }
 
     @Test

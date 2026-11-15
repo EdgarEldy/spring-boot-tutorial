@@ -398,15 +398,16 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 ### Response shapes
 
-- `OrderResponse` embeds the full `CustomerResponse`/`ProductResponse` DTOs (`customer`, `product`) instead of summarized sub-objects, on both the detail endpoint (`OrderRepository.findByIdWithDetails`, entity fetch join) and the paginated list (`OrderRepository.findAllProjected`, a flat JPQL constructor-expression projection extended with every column both DTOs need, still avoiding N+1 on a page of results).
-- `CustomerResponse.findById` (`GET /api/v1/customers/{id}`) now also returns the `products` that customer has ordered, resolved via a dedicated `OrderRepository.findDistinctProductsByCustomerId` query rather than a new JPA relationship on `Customer`/`Product`; `findAll` keeps returning an empty `products` list per customer to avoid the same N+1 cost on a page.
+- `OrderResponse` (one order) embeds the customer's contact details (`OrderCustomerResponse`) and the full `ProductResponse`, on both the detail endpoint (`OrderRepository.findByIdWithDetails`, entity fetch join) and the paginated list (`OrderRepository.findAllProjected`, a flat JPQL constructor-expression projection extended with every column both DTOs need, still avoiding N+1 on a page of results).
+- `CustomerResponse` (`GET /api/v1/customers` and `GET /api/v1/customers/{id}`) carries the customer's orders: `products`, one line per order (`order_id`, `product_id`, `product_name`, `unit_price`, `quantity`, `total`), and `total`, the sum of those totals. On the paginated list the orders of every customer of the page are loaded with a single `OrderRepository.findAllProjectedByCustomerIds` query (an `IN` on the page's customer ids), not one query per customer, and no JPA relationship is added on `Customer`.
+- `GET /api/v1/orders` returns the same lines grouped by customer (`CustomerOrdersResponse`), paginated by customer via `OrderRepository.findCustomersWithOrders`.
 - `OrderController` returns `ResponseEntity<ApiResponse<T>>`; `OrderRequest`/`OrderResponse` fields exposed in JSON as snake_case via `@JsonProperty` (`customer_id`, `product_id`).
 
 ### Endpoints
 
 | Method | URL | Description |
 |---|---|---|
-| GET | `/api/v1/orders` | Paginated list, filterable by `customerId`/`productId` |
+| GET | `/api/v1/orders` | Orders grouped by customer: each customer once, with the products they ordered (quantity and total per order) and their overall total. Paginated by customer, filterable by `customerId`/`productId` |
 | GET | `/api/v1/orders/{id}` | Order detail |
 | POST | `/api/v1/orders` | Create an order (`total` computed automatically) |
 | PUT | `/api/v1/orders/{id}` | Update an order |
@@ -417,12 +418,12 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 - [x] `Order` entity with `@ManyToOne` to `Customer` and `Product`
 - [x] `OrderRepository` with join queries (`@Query` with `JOIN`), DTO projection for lists
-- [x] DTOs `OrderRequest` (customerId, productId, quantity) / `OrderResponse` (full `CustomerResponse`/`ProductResponse`, not summarized sub-objects)
+- [x] DTOs `OrderRequest` (customerId, productId, quantity) / `OrderResponse` (`OrderCustomerResponse` + full `ProductResponse`), `CustomerOrdersResponse`/`OrderedProductResponse` for the grouped views
 - [x] `OrderMapper`
 - [x] `OrderService` interface and `OrderServiceImpl` implementation (in `service/impl`): computes `total = quantity * product.unitPrice`, checks that the customer and product exist
 - [x] `OrderCreatedEvent` application event published after creation, consumed by `OrderCreatedEventListener` (e.g. business logging, future email notification)
 - [x] `OrderController` returns `ResponseEntity<ApiResponse<T>>`
-- [x] `CustomerResponse.findById` returns the customer's ordered products (see Response shapes above)
+- [x] `CustomerResponse` returns the customer's orders and their total on both the list and the detail (see Response shapes above)
 - [x] Unit tests (total computation, business rules) and integration tests
 
 ## feature/auth

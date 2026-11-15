@@ -14,9 +14,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
-import com.edgareldy.springboottutorial.dto.customer.CustomerResponse;
+import com.edgareldy.springboottutorial.dto.order.CustomerOrdersResponse;
+import com.edgareldy.springboottutorial.dto.order.OrderCustomerResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderRequest;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
+import com.edgareldy.springboottutorial.dto.order.OrderedProductResponse;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.security.JwtService;
@@ -69,27 +71,46 @@ class OrderControllerTest {
     @MockitoBean
     private BlacklistedTokenService blacklistedTokenService;
 
+    private static OrderCustomerResponse sampleCustomer() {
+        return new OrderCustomerResponse(
+                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way");
+    }
+
     private static OrderResponse sampleResponse() {
-        CustomerResponse customer = new CustomerResponse(
-                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way", List.of());
         ProductResponse product = new ProductResponse(1L, "Keyboard", 50.0f, 1L, "Electronics");
-        return new OrderResponse(1L, customer, product, 2, 100.0);
+        return new OrderResponse(1L, sampleCustomer(), product, 2, 100.0);
+    }
+
+    private static PageResponse<CustomerOrdersResponse> sampleGroupedPage() {
+        CustomerOrdersResponse entry = new CustomerOrdersResponse(
+                sampleCustomer(),
+                List.of(new OrderedProductResponse(1L, 1L, "Keyboard", 50.0f, 2, 100.0),
+                        new OrderedProductResponse(2L, 2L, "Desk", 200.0f, 1, 200.0)),
+                300.0);
+        return new PageResponse<>(List.of(entry), 0, 20, 1, 1);
     }
 
     @Test
-    void _01_ShouldPassNullFilters_WhenNoFilterGiven() throws Exception {
-        PageResponse<OrderResponse> page = new PageResponse<>(List.of(sampleResponse()), 0, 20, 1, 1);
-        when(orderService.findAll(isNull(), isNull(), any())).thenReturn(page);
+    void _01_ShouldReturnOrdersGroupedByCustomer_WhenNoFilterGiven() throws Exception {
+        when(orderService.findAllGroupedByCustomer(isNull(), isNull(), any())).thenReturn(sampleGroupedPage());
 
         mockMvc.perform(get("/api/v1/orders"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].total").value(100.0));
+                .andExpect(jsonPath("$.data.content[0].customer.first_name").value("Ada"))
+                .andExpect(jsonPath("$.data.content[0].customer.products").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].products.length()").value(2))
+                .andExpect(jsonPath("$.data.content[0].products[0].order_id").value(1))
+                .andExpect(jsonPath("$.data.content[0].products[0].product_name").value("Keyboard"))
+                .andExpect(jsonPath("$.data.content[0].products[0].unit_price").value(50.0))
+                .andExpect(jsonPath("$.data.content[0].products[0].quantity").value(2))
+                .andExpect(jsonPath("$.data.content[0].products[0].total").value(100.0))
+                .andExpect(jsonPath("$.data.content[0].products[1].product_id").value(2))
+                .andExpect(jsonPath("$.data.content[0].total").value(300.0));
     }
 
     @Test
     void _02_ShouldForwardFilters_WhenCustomerAndProductGiven() throws Exception {
-        PageResponse<OrderResponse> page = new PageResponse<>(List.of(sampleResponse()), 0, 20, 1, 1);
-        when(orderService.findAll(eq(1L), eq(1L), any())).thenReturn(page);
+        when(orderService.findAllGroupedByCustomer(eq(1L), eq(1L), any())).thenReturn(sampleGroupedPage());
 
         mockMvc.perform(get("/api/v1/orders").param("customerId", "1").param("productId", "1"))
                 .andExpect(status().isOk())

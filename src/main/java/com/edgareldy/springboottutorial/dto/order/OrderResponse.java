@@ -1,15 +1,15 @@
 package com.edgareldy.springboottutorial.dto.order;
 
-import com.edgareldy.springboottutorial.dto.customer.CustomerResponse;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
 
 /**
- * Representation of a {@link com.edgareldy.springboottutorial.entity.Order}
- * returned by the API. Carries the full {@link CustomerResponse}/
- * {@link ProductResponse} shapes for {@code customer}/{@code product}
- * rather than a summarized sub-object, so a caller never has to make a
- * second request just to get the customer's address or the product's
- * category.
+ * Representation of a single
+ * {@link com.edgareldy.springboottutorial.entity.Order} returned by the API
+ * (detail, create, update, and the per-customer order list). Carries the
+ * customer's contact details and the full {@link ProductResponse}, so a
+ * caller never has to make a second request just to get the customer's
+ * address or the product's category. The grouped view of
+ * {@code GET /api/v1/orders} uses {@link CustomerOrdersResponse} instead.
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
  * Author : edgar.muhamyangabo
@@ -18,7 +18,7 @@ import com.edgareldy.springboottutorial.dto.product.ProductResponse;
  */
 public record OrderResponse(
         Long id,
-        CustomerResponse customer,
+        OrderCustomerResponse customer,
         ProductResponse product,
         int quantity,
         double total

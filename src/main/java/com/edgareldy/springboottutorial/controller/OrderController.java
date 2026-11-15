@@ -2,6 +2,7 @@ package com.edgareldy.springboottutorial.controller;
 
 import com.edgareldy.springboottutorial.dto.common.ApiResponse;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
+import com.edgareldy.springboottutorial.dto.order.CustomerOrdersResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderRequest;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
 import com.edgareldy.springboottutorial.service.OrderService;
@@ -37,12 +38,13 @@ public class OrderController {
     private final OrderService orderService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> findAll(
+    public ResponseEntity<ApiResponse<PageResponse<CustomerOrdersResponse>>> findAll(
             @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) Long productId,
             Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(
-                orderService.findAll(customerId, productId, pageable), "Orders retrieved successfully"));
+                orderService.findAllGroupedByCustomer(customerId, productId, pageable),
+                "Orders retrieved successfully"));
     }
 
     @GetMapping("/{id}")
