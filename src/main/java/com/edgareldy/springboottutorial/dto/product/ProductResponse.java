@@ -2,6 +2,7 @@ package com.edgareldy.springboottutorial.dto.product;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Representation of a {@link com.edgareldy.springboottutorial.entity.Product}
@@ -35,6 +36,8 @@ public record ProductResponse(
         Long categoryId,
 
         @JsonProperty("category_name")
-        String categoryName
+        String categoryName,
+
+        List<ProductImageResponse> images
 ) {
 }
