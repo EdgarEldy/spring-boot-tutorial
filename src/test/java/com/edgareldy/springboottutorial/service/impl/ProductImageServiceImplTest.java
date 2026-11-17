@@ -133,6 +133,24 @@ class ProductImageServiceImplTest {
     }
 
     @Test
+    void _07_ShouldAddImageAsPrimary_WhenNoPreviousPrimaryExists() {
+        ProductImage saved = ProductImage.builder().id(10L).product(product)
+                .imageUrl("/uploads/products/uuid.jpg").primary(true).displayOrder(0).build();
+        ProductImageResponse response = new ProductImageResponse(10L, "/uploads/products/uuid.jpg", null, true, 0);
+
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(productImageRepository.findByProductIdAndPrimaryTrue(1L)).thenReturn(Optional.empty());
+        when(fileStorageService.store(file, "products")).thenReturn("/uploads/products/uuid.jpg");
+        when(productImageRepository.save(any(ProductImage.class))).thenReturn(saved);
+        when(productImageMapper.toResponse(saved)).thenReturn(response);
+
+        ProductImageResponse result = productImageService.addImage(1L, file, null, true);
+
+        assertThat(result).isEqualTo(response);
+        verify(productImageRepository).findByProductIdAndPrimaryTrue(1L);
+    }
+
+    @Test
     void _06_ShouldThrowNotFound_WhenImageDoesNotBelongToProduct() {
         Product otherProduct = Product.builder().id(99L).productName("Mouse").build();
         ProductImage image = ProductImage.builder().id(10L).product(otherProduct)
