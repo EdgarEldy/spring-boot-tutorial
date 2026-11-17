@@ -18,6 +18,7 @@ import com.edgareldy.springboottutorial.dto.product.ProductRequest;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.service.ProductService;
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,7 +54,8 @@ class ProductControllerTest {
 
     @Test
     void _01_ShouldPassNullCategoryId_WhenNoFilterGiven() throws Exception {
-        ProductResponse product = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
+        ProductResponse product =
+                new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics");
         PageResponse<ProductResponse> page = new PageResponse<>(List.of(product), 0, 20, 1, 1);
         when(productService.findAll(isNull(), isNull(), isNull(), isNull(), any())).thenReturn(page);
 
@@ -64,7 +66,8 @@ class ProductControllerTest {
 
     @Test
     void _02_ShouldForwardCategoryFilter_WhenCategoryIdGiven() throws Exception {
-        ProductResponse product = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
+        ProductResponse product =
+                new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics");
         PageResponse<ProductResponse> page = new PageResponse<>(List.of(product), 0, 20, 1, 1);
         when(productService.findAll(eq(1L), isNull(), isNull(), isNull(), any())).thenReturn(page);
 
@@ -75,9 +78,11 @@ class ProductControllerTest {
 
     @Test
     void _03_ShouldForwardNameAndPriceFilters_WhenAdvancedFiltersGiven() throws Exception {
-        ProductResponse product = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
+        ProductResponse product =
+                new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics");
         PageResponse<ProductResponse> page = new PageResponse<>(List.of(product), 0, 20, 1, 1);
-        when(productService.findAll(isNull(), eq("key"), eq(50f), eq(100f), any())).thenReturn(page);
+        when(productService.findAll(isNull(), eq("key"), eq(new BigDecimal("50")), eq(new BigDecimal("100")), any()))
+                .thenReturn(page);
 
         mockMvc.perform(get("/api/v1/products")
                         .param("productName", "key")
@@ -98,8 +103,9 @@ class ProductControllerTest {
 
     @Test
     void _05_ShouldReturn201_WhenCreateRequestValid() throws Exception {
-        ProductRequest request = new ProductRequest(1L, "Keyboard", 79.99f);
-        when(productService.create(any())).thenReturn(new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics"));
+        ProductRequest request = new ProductRequest(1L, "Keyboard", null, new BigDecimal("79.99"));
+        when(productService.create(any()))
+                .thenReturn(new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics"));
 
         mockMvc.perform(post("/api/v1/products")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -110,7 +116,7 @@ class ProductControllerTest {
 
     @Test
     void _06_ShouldReturn400_WhenUnitPriceNotPositive() throws Exception {
-        ProductRequest invalid = new ProductRequest(1L, "Keyboard", -5f);
+        ProductRequest invalid = new ProductRequest(1L, "Keyboard", null, new BigDecimal("-5"));
 
         mockMvc.perform(post("/api/v1/products")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -121,7 +127,7 @@ class ProductControllerTest {
 
     @Test
     void _07_ShouldReturn404_WhenCategoryMissingOnCreate() throws Exception {
-        ProductRequest request = new ProductRequest(99L, "Keyboard", 79.99f);
+        ProductRequest request = new ProductRequest(99L, "Keyboard", null, new BigDecimal("79.99"));
         when(productService.create(any())).thenThrow(new ResourceNotFoundException("Category not found with id 99"));
 
         mockMvc.perform(post("/api/v1/products")
@@ -132,9 +138,10 @@ class ProductControllerTest {
 
     @Test
     void _08_ShouldReturn200_WhenUpdateRequestValid() throws Exception {
-        ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", 99.99f);
+        ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", null, new BigDecimal("99.99"));
         when(productService.update(eq(1L), any()))
-                .thenReturn(new ProductResponse(1L, "Mechanical Keyboard", 99.99f, 1L, "Electronics"));
+                .thenReturn(new ProductResponse(
+                        1L, "Mechanical Keyboard", new BigDecimal("99.99"), null, true, 1L, "Electronics"));
 
         mockMvc.perform(put("/api/v1/products/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -145,7 +152,7 @@ class ProductControllerTest {
 
     @Test
     void _09_ShouldReturn409_WhenProductIsStale() throws Exception {
-        ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", 99.99f);
+        ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", null, new BigDecimal("99.99"));
         when(productService.update(eq(1L), any()))
                 .thenThrow(new ObjectOptimisticLockingFailureException(Object.class, 1L));
 
@@ -158,7 +165,7 @@ class ProductControllerTest {
 
     @Test
     void _10_ShouldReturn404_WhenProductMissingOnUpdate() throws Exception {
-        ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", 99.99f);
+        ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", null, new BigDecimal("99.99"));
         when(productService.update(eq(99L), any()))
                 .thenThrow(new ResourceNotFoundException("Product not found with id 99"));
 
