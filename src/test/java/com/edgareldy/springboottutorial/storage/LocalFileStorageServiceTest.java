@@ -108,4 +108,15 @@ class LocalFileStorageServiceTest {
         // Should not throw
         storageService.delete("/static/logo.png");
     }
+
+    @Test
+    void _08_ShouldRejectFile_WhenMimeTypeMismatch() {
+        // .jpg extension (allowed) but image/gif content-type (not allowed)
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "photo.jpg", "image/gif", "gif-bytes".getBytes());
+
+        assertThatThrownBy(() -> storageService.store(file, "products"))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("MIME type not allowed");
+    }
 }
