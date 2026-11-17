@@ -7,3 +7,8 @@ spring:
 
 server:
   port: 8080
+
+app:
+  storage:
+    upload-dir: ${APP_STORAGE_UPLOAD_DIR:./uploads/products}
+    max-file-size-mb: 5
