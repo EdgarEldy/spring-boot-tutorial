@@ -3,6 +3,7 @@ package com.edgareldy.springboottutorial.service;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.product.ProductRequest;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
+import java.math.BigDecimal;
 import org.springframework.data.domain.Pageable;
 
 /**
@@ -18,7 +19,7 @@ import org.springframework.data.domain.Pageable;
 public interface ProductService {
 
     PageResponse<ProductResponse> findAll(
-            Long categoryId, String productName, Float minPrice, Float maxPrice, Pageable pageable);
+            Long categoryId, String productName, BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable);
 
     ProductResponse findById(Long id);
 

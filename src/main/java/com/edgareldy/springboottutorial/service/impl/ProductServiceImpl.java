@@ -13,6 +13,7 @@ import com.edgareldy.springboottutorial.repository.OrderRepository;
 import com.edgareldy.springboottutorial.repository.ProductRepository;
 import com.edgareldy.springboottutorial.repository.specification.ProductSpecifications;
 import com.edgareldy.springboottutorial.service.ProductService;
+import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -52,7 +53,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public PageResponse<ProductResponse> findAll(
-            Long categoryId, String productName, Float minPrice, Float maxPrice, Pageable pageable) {
+            Long categoryId, String productName, BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
         Page<Product> page;
         if (productName != null || minPrice != null || maxPrice != null) {
             // Falls through to the Specification-based query, which does not

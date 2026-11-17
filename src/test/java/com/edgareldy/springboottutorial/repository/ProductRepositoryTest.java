@@ -7,6 +7,7 @@ import com.edgareldy.springboottutorial.config.JpaAuditingConfig;
 import com.edgareldy.springboottutorial.entity.Category;
 import com.edgareldy.springboottutorial.entity.Product;
 import jakarta.persistence.EntityManager;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,9 +48,9 @@ class ProductRepositoryTest {
         electronics = categoryRepository.save(Category.builder().categoryName("Electronics").build());
         furniture = categoryRepository.save(Category.builder().categoryName("Furniture").build());
         productRepository.save(Product.builder()
-                .category(electronics).productName("Keyboard").unitPrice(79.99f).build());
+                .category(electronics).productName("Keyboard").unitPrice(new BigDecimal("79.99")).build());
         productRepository.save(Product.builder()
-                .category(furniture).productName("Desk").unitPrice(199.99f).build());
+                .category(furniture).productName("Desk").unitPrice(new BigDecimal("199.99")).build());
     }
 
     @Test
@@ -86,7 +87,8 @@ class ProductRepositoryTest {
     @Test
     void _04_ShouldThrowOptimisticLockingFailure_WhenProductIsStale() {
         Product saved = productRepository.saveAndFlush(
-                Product.builder().category(electronics).productName("Mouse").unitPrice(29.99f).build());
+                Product.builder().category(electronics).productName("Mouse")
+                        .unitPrice(new BigDecimal("29.99")).build());
 
         // Simulates a concurrent update from another transaction: bumps the row's
         // version directly in the database, bypassing this test's persistence
@@ -95,7 +97,7 @@ class ProductRepositoryTest {
                 .setParameter("id", saved.getId())
                 .executeUpdate();
 
-        saved.setUnitPrice(19.99f);
+        saved.setUnitPrice(new BigDecimal("19.99"));
         assertThatThrownBy(() -> productRepository.saveAndFlush(saved))
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
     }

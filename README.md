@@ -82,7 +82,9 @@ customers (id, first_name, last_name, telephone, email, address)
 | id | BIGINT | PK, auto-increment |
 | category_id | BIGINT | FK → categories.id, NOT NULL |
 | product_name | VARCHAR(255) | NOT NULL |
-| unit_price | FLOAT | NOT NULL, > 0 |
+| description | VARCHAR(500) | nullable |
+| unit_price | NUMERIC(12,2) | NOT NULL, > 0 |
+| active | BOOLEAN | NOT NULL, default TRUE |
 
 **customers**
 | Column | Type | Constraints |
@@ -346,6 +348,8 @@ Includes `Category` and `Product`, given their direct link in the model.
 - [x] `Category`, `Product` entities with `@OneToMany`/`@ManyToOne` relation (`LAZY` loading)
 - [x] `CategoryRepository`, `ProductRepository` (Spring Data JPA) with derived queries (`findByCategoryId`) and one `@Query` using `JOIN FETCH`
 - [x] DTOs `CategoryRequest`/`CategoryResponse`, `ProductRequest`/`ProductResponse`
+- [x] `Product.unitPrice` uses `BigDecimal` (Java) backed by `NUMERIC(12,2)` (SQL, V13 migration) for exact monetary arithmetic
+- [x] `Product.description` (nullable `VARCHAR(500)`) and `Product.active` (boolean, default `true`, V13 migration)
 - [x] Corresponding MapStruct mappers
 - [x] `CategoryService`, `ProductService` interfaces (contracts) and their `CategoryServiceImpl`, `ProductServiceImpl` implementations in `service/impl`, annotated `@Service`, with `@Transactional` on writes
 - [x] Business rule: a category containing products cannot be deleted (`BusinessRuleException`)
@@ -364,8 +368,10 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 - **`CategoryResponse.products` is only populated by `GET /api/v1/categories/{id}`, never by the paginated list.** `CategoryRepository.findByIdWithProducts` (`LEFT JOIN FETCH`) backs the detail endpoint; the list endpoint's `CategoryMapper.toResponse` explicitly sets `products` to an empty list rather than touching the entity's lazy, unfetched collection, avoiding an N+1 across a full page of categories.
 - **Snake_case JSON via `@JsonProperty` per field, not a global Jackson naming strategy.** Keeps every Java field/record component camelCase (idiomatic, and MapStruct keeps matching DTO fields to entity fields by name automatically) while the public JSON contract is snake_case.
-- **Flyway migrations on this branch are numbered `V3`/`V4`, skipping `V2`.** `V2` is reserved for `feature/auth`'s `V2__init_users_and_roles.sql`, not present on this branch yet; Flyway version numbers must stay unique and ordered across the whole project regardless of merge order.
+- **Flyway migrations on this branch are numbered `V3`, `V4` and `V13`, skipping `V2` and `V5-V12`.** `V2` is reserved for `feature/auth`; `V5-V12` are reserved for branches from `feature/auth` through `feature/user-management` that appear further up the merge chain. `V13` adds `description`, `active` and migrates `unit_price` from `REAL` to `NUMERIC(12,2)` on the products table.
 - **`ProductServiceImpl.findAll` only falls back to a `Specification`-based query when `productName`/`minPrice`/`maxPrice` is supplied.** The plain and `categoryId`-only cases keep using the existing `@EntityGraph`-backed repository methods; the `Specification` path has no fetch join for `category`, an accepted N+1 risk kept simple rather than complicating `ProductSpecifications` with one, and scoped only to requests that actually use the new filters.
+- **`minPrice`/`maxPrice` query parameters and `unitPrice` throughout the stack use `BigDecimal`.** `ProductSpecifications.priceBetween`, `ProductService.findAll`, `ProductController.findAll` and all DTOs have been updated from `Float`/`float` to `BigDecimal` to prevent rounding at the HTTP deserialization boundary.
+- **`Product.active` is not writable from `ProductRequest`.** `ProductMapper.toEntity` and `updateEntityFromRequest` both ignore `active` to prevent a create/update call from accidentally clearing the flag. Activation and deactivation are managed separately.
 
 ## feature/customers
 

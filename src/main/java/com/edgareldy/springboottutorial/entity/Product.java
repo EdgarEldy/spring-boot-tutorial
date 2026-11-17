@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -24,6 +25,10 @@ import lombok.Setter;
  * {@code UPDATE} and throws {@code ObjectOptimisticLockingFailureException}
  * if the row was modified concurrently since it was read, instead of
  * silently overwriting the other change.
+ * {@code unitPrice} uses {@link BigDecimal} backed by SQL {@code NUMERIC(12,2)}
+ * (see V13 migration) for exact decimal arithmetic. {@code active} allows
+ * soft-deactivation of a product so it no longer appears as purchasable
+ * without removing its historical order references.
  * <p>
  * Created edgar.muhamyangabo on 7/4/26
  * Author : edgar.muhamyangabo
@@ -50,8 +55,15 @@ public class Product {
     @Column(name = "product_name", nullable = false)
     private String productName;
 
+    @Column(name = "description")
+    private String description;
+
     @Column(name = "unit_price", nullable = false)
-    private float unitPrice;
+    private BigDecimal unitPrice;
+
+    @Column(name = "active", nullable = false)
+    @Builder.Default
+    private boolean active = true;
 
     @Version
     private Long version;
