@@ -3,6 +3,7 @@ package com.edgareldy.springboottutorial.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.edgareldy.springboottutorial.config.JpaAuditingConfig;
 import com.edgareldy.springboottutorial.entity.Category;
 import com.edgareldy.springboottutorial.entity.Product;
 import jakarta.persistence.EntityManager;
@@ -27,7 +28,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
  */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(RepositoryTestcontainersConfiguration.class)
+@Import({RepositoryTestcontainersConfiguration.class, JpaAuditingConfig.class})
 class ProductRepositoryTest {
 
     @Autowired
