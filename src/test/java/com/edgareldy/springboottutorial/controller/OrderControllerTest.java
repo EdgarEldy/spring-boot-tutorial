@@ -34,8 +34,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * MockMvc integration tests for {@link OrderController}, with
- * {@link OrderService} mocked. Security filters are disabled since
- * {@code feature/auth} has not defined a {@code SecurityConfig} yet.
+ * {@link OrderService} mocked. Security filters are disabled to focus on
+ * controller logic only ({@code addFilters = false}).
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
  * Author : edgar.muhamyangabo
