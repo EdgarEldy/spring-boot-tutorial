@@ -2,6 +2,7 @@ package com.edgareldy.springboottutorial.dto.customer;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.edgareldy.springboottutorial.dto.order.OrderedProductResponse;
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -32,6 +33,6 @@ public record CustomerResponse(
         String email,
         String address,
         List<OrderedProductResponse> products,
-        double total
+        BigDecimal total
 ) {
 }
