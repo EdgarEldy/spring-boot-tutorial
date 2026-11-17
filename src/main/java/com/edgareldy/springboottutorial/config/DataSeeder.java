@@ -6,7 +6,6 @@ import com.edgareldy.springboottutorial.repository.CategoryRepository;
 import com.edgareldy.springboottutorial.repository.ProductRepository;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,8 +35,7 @@ public class DataSeeder {
     private final ProductRepository productRepository;
 
     @Bean
-    public CommandLineRunner seedDemoData(
-            @Value("${app.seed.reset-user-passwords:false}") boolean resetUserPasswords) {
+    public CommandLineRunner seedDemoData() {
         return args -> {
             if (categoryRepository.count() == 0) {
                 Category electronics = categoryRepository.save(Category.builder().categoryName("Electronics").build());
