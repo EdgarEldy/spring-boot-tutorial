@@ -10,6 +10,7 @@ import com.edgareldy.springboottutorial.repository.ProductRepository;
 import com.edgareldy.springboottutorial.service.ProductImageService;
 import com.edgareldy.springboottutorial.storage.FileStorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -39,6 +40,7 @@ public class ProductImageServiceImpl implements ProductImageService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "products", key = "#productId")
     public ProductImageResponse addImage(Long productId, MultipartFile file, String altText, boolean isPrimary) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + productId));
@@ -64,6 +66,7 @@ public class ProductImageServiceImpl implements ProductImageService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "products", key = "#productId")
     public void deleteImage(Long productId, Long imageId) {
         ProductImage image = productImageRepository.findById(imageId)
                 .orElseThrow(() -> new ResourceNotFoundException("Image not found with id " + imageId));
