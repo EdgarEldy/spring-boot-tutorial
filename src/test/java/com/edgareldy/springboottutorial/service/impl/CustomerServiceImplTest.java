@@ -12,6 +12,7 @@ import com.edgareldy.springboottutorial.dto.customer.CustomerRequest;
 import com.edgareldy.springboottutorial.dto.customer.CustomerResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderedProductResponse;
 import com.edgareldy.springboottutorial.entity.Customer;
+import com.edgareldy.springboottutorial.entity.OrderStatus;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.mapper.CustomerMapper;
@@ -106,11 +107,11 @@ class CustomerServiceImplTest {
         OrderProjection adaKeyboard = new OrderProjection(
                 1L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
                 1L, "Keyboard", new BigDecimal("19.99"), true, 1L, "Electronics",
-                1, new BigDecimal("19.99"), "PENDING", "ORD-TEST-001");
+                1, new BigDecimal("19.99"), OrderStatus.PENDING, "ORD-TEST-001");
         OrderProjection adaDesk = new OrderProjection(
                 2L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
                 2L, "Desk", new BigDecimal("0.10"), true, 1L, "Electronics",
-                2, new BigDecimal("0.20"), "PENDING", "ORD-TEST-002");
+                2, new BigDecimal("0.20"), OrderStatus.PENDING, "ORD-TEST-002");
         List<OrderedProductResponse> adaLines = List.of(
                 new OrderedProductResponse(1L, 1L, "Keyboard", new BigDecimal("19.99"), 1, new BigDecimal("19.99")),
                 new OrderedProductResponse(2L, 2L, "Desk", new BigDecimal("0.10"), 2, new BigDecimal("0.20")));
@@ -150,7 +151,7 @@ class CustomerServiceImplTest {
         OrderProjection keyboardOrder = new OrderProjection(
                 7L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
                 1L, "Keyboard", new BigDecimal("79.99"), true, 1L, "Electronics",
-                2, new BigDecimal("159.98"), "PENDING", "ORD-TEST-007");
+                2, new BigDecimal("159.98"), OrderStatus.PENDING, "ORD-TEST-007");
         List<OrderedProductResponse> lines = List.of(
                 new OrderedProductResponse(7L, 1L, "Keyboard", new BigDecimal("79.99"), 2, new BigDecimal("159.98")));
         CustomerResponse detailResponse = new CustomerResponse(
