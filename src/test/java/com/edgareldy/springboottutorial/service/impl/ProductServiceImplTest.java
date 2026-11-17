@@ -17,6 +17,7 @@ import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.mapper.ProductMapper;
 import com.edgareldy.springboottutorial.repository.CategoryRepository;
 import com.edgareldy.springboottutorial.repository.ProductRepository;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,8 +62,9 @@ class ProductServiceImplTest {
     @BeforeEach
     void setUp() {
         category = Category.builder().id(1L).categoryName("Electronics").build();
-        product = Product.builder().id(1L).category(category).productName("Keyboard").unitPrice(79.99f).build();
-        productResponse = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
+        product = Product.builder().id(1L).category(category).productName("Keyboard")
+                .unitPrice(new BigDecimal("79.99")).active(true).build();
+        productResponse = new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics");
     }
 
     @Test
@@ -96,7 +98,8 @@ class ProductServiceImplTest {
                 .thenReturn(new PageImpl<>(List.of(product), pageable, 1));
         when(productMapper.toResponse(product)).thenReturn(productResponse);
 
-        PageResponse<ProductResponse> result = productService.findAll(null, "key", 50f, 100f, pageable);
+        PageResponse<ProductResponse> result =
+                productService.findAll(null, "key", new BigDecimal("50"), new BigDecimal("100"), pageable);
 
         assertThat(result.content()).containsExactly(productResponse);
         verify(productRepository, never()).findAll(pageable);
@@ -121,7 +124,7 @@ class ProductServiceImplTest {
 
     @Test
     void _06_ShouldResolveCategoryAndSave_WhenCreatingProduct() {
-        ProductRequest request = new ProductRequest(1L, "Keyboard", 79.99f);
+        ProductRequest request = new ProductRequest(1L, "Keyboard", null, new BigDecimal("79.99"));
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(productMapper.toEntity(request, category)).thenReturn(product);
         when(productRepository.save(product)).thenReturn(product);
@@ -132,7 +135,7 @@ class ProductServiceImplTest {
 
     @Test
     void _07_ShouldThrowNotFound_WhenCategoryMissingOnCreate() {
-        ProductRequest request = new ProductRequest(99L, "Keyboard", 79.99f);
+        ProductRequest request = new ProductRequest(99L, "Keyboard", null, new BigDecimal("79.99"));
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> productService.create(request))
@@ -143,8 +146,9 @@ class ProductServiceImplTest {
 
     @Test
     void _08_ShouldResolveCategoryAndSave_WhenUpdatingProduct() {
-        ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", 99.99f);
-        ProductResponse updatedResponse = new ProductResponse(1L, "Mechanical Keyboard", 99.99f, 1L, "Electronics");
+        ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", null, new BigDecimal("99.99"));
+        ProductResponse updatedResponse =
+                new ProductResponse(1L, "Mechanical Keyboard", new BigDecimal("99.99"), null, true, 1L, "Electronics");
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(productRepository.save(product)).thenReturn(product);
@@ -157,7 +161,7 @@ class ProductServiceImplTest {
 
     @Test
     void _09_ShouldThrowNotFound_WhenProductMissingOnUpdate() {
-        ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", 99.99f);
+        ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", null, new BigDecimal("99.99"));
         when(productRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> productService.update(99L, request))
@@ -168,7 +172,7 @@ class ProductServiceImplTest {
 
     @Test
     void _10_ShouldThrowNotFound_WhenCategoryMissingOnUpdate() {
-        ProductRequest request = new ProductRequest(99L, "Mechanical Keyboard", 99.99f);
+        ProductRequest request = new ProductRequest(99L, "Mechanical Keyboard", null, new BigDecimal("99.99"));
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
