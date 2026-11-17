@@ -191,4 +191,14 @@ class ProductControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false));
     }
+
+    @Test
+    void _13_ShouldSerializeActiveFalse_WhenProductIsInactive() throws Exception {
+        when(productService.findById(2L))
+                .thenReturn(new ProductResponse(2L, "Legacy Keyboard", new BigDecimal("49.99"), "Discontinued model", false, 1L, "Electronics"));
+
+        mockMvc.perform(get("/api/v1/products/2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.active").value(false));
+    }
 }
