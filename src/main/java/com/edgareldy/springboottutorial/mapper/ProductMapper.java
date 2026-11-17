@@ -13,9 +13,8 @@ import org.mapstruct.MappingTarget;
  * {@code category} association is looked up by the service layer (which needs
  * a repository lookup) and handed to the entity-building methods as a
  * parameter: this mapper only assigns it, so the service never calls a
- * setter itself. {@code active} is ignored on writes: the flag is managed
- * via a dedicated activation endpoint, not through the product create/update
- * payload, so it must never be overwritten by {@link ProductRequest}.
+ * setter itself. {@code active} is ignored on writes so that create and update
+ * operations cannot inadvertently overwrite the flag via {@link ProductRequest}.
  * <p>
  * Created edgar.muhamyangabo on 7/4/26
  * Author : edgar.muhamyangabo
