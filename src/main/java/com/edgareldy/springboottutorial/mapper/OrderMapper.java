@@ -87,6 +87,6 @@ public interface OrderMapper {
                 p.productCategoryName());
         return new OrderResponse(
                 p.id(), customer, product, p.quantity(),
-                p.orderNumber(), p.status(), p.totalAmount(), List.of());
+                p.orderNumber(), p.status().name(), p.totalAmount(), List.of());
     }
 }
