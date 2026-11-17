@@ -6,7 +6,10 @@ import com.edgareldy.springboottutorial.config.JpaAuditingConfig;
 import com.edgareldy.springboottutorial.entity.Category;
 import com.edgareldy.springboottutorial.entity.Customer;
 import com.edgareldy.springboottutorial.entity.Order;
+import com.edgareldy.springboottutorial.entity.OrderItem;
 import com.edgareldy.springboottutorial.entity.Product;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,12 +61,12 @@ class OrderRepositoryTest {
                 .firstName("Grace").lastName("Hopper").telephone("+1 202-555-0101")
                 .email("grace@example.com").address("2 Compiler Street").build());
         keyboard = productRepository.save(Product.builder()
-                .category(category).productName("Keyboard").unitPrice(50.0f).build());
+                .category(category).productName("Keyboard").unitPrice(new BigDecimal("50.00")).build());
         desk = productRepository.save(Product.builder()
-                .category(category).productName("Desk").unitPrice(200.0f).build());
+                .category(category).productName("Desk").unitPrice(new BigDecimal("200.00")).build());
 
-        orderRepository.save(Order.builder().customer(ada).product(keyboard).quantity(2).total(100.0).build());
-        orderRepository.save(Order.builder().customer(grace).product(desk).quantity(1).total(200.0).build());
+        saveOrderWithItem(ada, keyboard, 2, new BigDecimal("100.00"), "ORD-TEST-001");
+        saveOrderWithItem(grace, desk, 1, new BigDecimal("200.00"), "ORD-TEST-002");
     }
 
     @Test
@@ -82,7 +85,7 @@ class OrderRepositoryTest {
         assertThat(projection.customerFirstName()).isEqualTo("Ada");
         assertThat(projection.customerLastName()).isEqualTo("Lovelace");
         assertThat(projection.productName()).isEqualTo("Keyboard");
-        assertThat(projection.total()).isEqualTo(100.0);
+        assertThat(projection.totalAmount()).isEqualByComparingTo(new BigDecimal("100.00"));
     }
 
     @Test
@@ -96,7 +99,7 @@ class OrderRepositoryTest {
 
     @Test
     void _03b_ShouldReturnEachCustomerOnce_WhenCustomerHasSeveralOrders() {
-        orderRepository.save(Order.builder().customer(ada).product(desk).quantity(1).total(200.0).build());
+        saveOrderWithItem(ada, desk, 1, new BigDecimal("200.00"), "ORD-TEST-003");
 
         var page = orderRepository.findCustomersWithOrders(
                 null, null, PageRequest.of(0, 10, Sort.by("id")));
@@ -123,7 +126,7 @@ class OrderRepositoryTest {
 
     @Test
     void _03d_ShouldLoadEveryOrderOfGivenCustomers_WhenProjectingByCustomerIds() {
-        orderRepository.save(Order.builder().customer(ada).product(desk).quantity(3).total(600.0).build());
+        saveOrderWithItem(ada, desk, 3, new BigDecimal("600.00"), "ORD-TEST-003");
 
         List<OrderProjection> all = orderRepository.findAllProjectedByCustomerIds(
                 List.of(ada.getId(), grace.getId()), null);
@@ -135,11 +138,11 @@ class OrderRepositoryTest {
                 .extracting(OrderProjection::productName).containsExactly("Keyboard", "Desk");
         assertThat(adaDeskOnly).hasSize(1);
         assertThat(adaDeskOnly.get(0).quantity()).isEqualTo(3);
-        assertThat(adaDeskOnly.get(0).total()).isEqualTo(600.0);
+        assertThat(adaDeskOnly.get(0).totalAmount()).isEqualByComparingTo(new BigDecimal("600.00"));
     }
 
     @Test
-    void _04_ShouldLoadCustomerAndProductEagerly_WhenFindingOrderById() {
+    void _04_ShouldLoadCustomerProductAndItems_WhenFindingOrderById() {
         Long orderId = orderRepository.findAllProjected(ada.getId(), null, PageRequest.of(0, 10))
                 .getContent().get(0).id();
 
@@ -148,5 +151,23 @@ class OrderRepositoryTest {
         assertThat(found).isPresent();
         assertThat(found.get().getCustomer().getEmail()).isEqualTo("ada@example.com");
         assertThat(found.get().getProduct().getProductName()).isEqualTo("Keyboard");
+        assertThat(found.get().getItems()).hasSize(1);
+        assertThat(found.get().getItems().get(0).getProductName()).isEqualTo("Keyboard");
+        assertThat(found.get().getItems().get(0).getUnitPrice()).isEqualByComparingTo(new BigDecimal("50.00"));
+    }
+
+    private Order saveOrderWithItem(Customer c, Product p, int qty, BigDecimal total, String orderNum) {
+        BigDecimal subtotal = p.getUnitPrice().multiply(BigDecimal.valueOf(qty));
+        OrderItem item = OrderItem.builder()
+                .product(p).productName(p.getProductName())
+                .unitPrice(p.getUnitPrice()).quantity(qty).subtotal(subtotal)
+                .build();
+        Order order = Order.builder()
+                .customer(c).product(p).quantity(qty)
+                .totalAmount(total).orderNumber(orderNum)
+                .items(new ArrayList<>(List.of(item)))
+                .build();
+        item.setOrder(order);
+        return orderRepository.save(order);
     }
 }
