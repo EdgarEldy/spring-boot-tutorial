@@ -104,7 +104,19 @@ class OrderControllerTest {
     }
 
     @Test
-    void _03_ShouldReturn404_WhenOrderMissing() throws Exception {
+    void _03_ShouldReturn200_WhenOrderFound() throws Exception {
+        when(orderService.findById(1L)).thenReturn(sampleResponse());
+
+        mockMvc.perform(get("/api/v1/orders/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.order_number").value("ORD-TEST-0001"))
+                .andExpect(jsonPath("$.data.status").value("PENDING"))
+                .andExpect(jsonPath("$.data.total_amount").value(100.00))
+                .andExpect(jsonPath("$.data.items").isArray());
+    }
+
+    @Test
+    void _03b_ShouldReturn404_WhenOrderMissing() throws Exception {
         when(orderService.findById(99L)).thenThrow(new ResourceNotFoundException("Order not found with id 99"));
 
         mockMvc.perform(get("/api/v1/orders/99"))
