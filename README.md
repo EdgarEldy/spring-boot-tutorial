@@ -24,6 +24,12 @@ Repository: https://github.com/EdgarEldy/spring-boot-tutorial
 - [feature/roles-permissions](#featureroles-permissions)
 - [feature/token-management](#featuretoken-management)
 - [feature/user-management](#featureuser-management)
+- [feature/product-images](#featureproduct-images)
+- [feature/shopping-cart](#featureshopping-cart)
+- [feature/order-checkout](#featureorder-checkout)
+- [feature/order-notifications](#featureorder-notifications)
+- [feature/order-authorization](#featureorder-authorization)
+- [feature/integration](#featureintegration)
 - [Order of work](#order-of-work)
 - [Code conventions](#code-conventions)
 - [Concepts covered](#concepts-covered)
@@ -82,7 +88,9 @@ customers (id, first_name, last_name, telephone, email, address)
 | id | BIGINT | PK, auto-increment |
 | category_id | BIGINT | FK → categories.id, NOT NULL |
 | product_name | VARCHAR(255) | NOT NULL |
-| unit_price | FLOAT | NOT NULL, > 0 |
+| unit_price | NUMERIC(12,2) | NOT NULL, > 0 — migrated from FLOAT in V13 for exact monetary arithmetic |
+| description | VARCHAR(500) | nullable — added in V13 |
+| active | BOOLEAN | NOT NULL DEFAULT TRUE — added in V13; excluded from create/update payloads |
 
 **customers**
 | Column | Type | Constraints |
@@ -94,14 +102,47 @@ customers (id, first_name, last_name, telephone, email, address)
 | email | VARCHAR(255) | NOT NULL, UNIQUE, valid email format |
 | address | VARCHAR(255) | NOT NULL |
 
-**orders**
+**orders** (extended in `feature/orders` and `feature/order-checkout`)
 | Column | Type | Constraints |
 |---|---|---|
 | id | BIGINT | PK, auto-increment |
-| customer_id | BIGINT | FK → customers.id, NOT NULL |
+| customer_id | BIGINT | FK → customers.id, nullable after e-commerce refactor (kept for history) |
+| user_id | BIGINT | FK → app_users.id, NOT NULL — added in V14; ties each order to its authenticated owner |
+| order_number | VARCHAR(36) | NOT NULL UNIQUE — UUID generated at creation |
+| status | VARCHAR(20) | NOT NULL DEFAULT 'PENDING' — PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED |
+| total_amount | NUMERIC(12,2) | NOT NULL — sum of all OrderItem lines |
+
+**order_items** (added in V14)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| order_id | BIGINT | FK → orders.id, NOT NULL |
 | product_id | BIGINT | FK → products.id, NOT NULL |
 | quantity | INT | NOT NULL, > 0 |
-| total | DOUBLE | NOT NULL, computed = quantity × product unit_price |
+| unit_price | NUMERIC(12,2) | NOT NULL — snapshot at order time |
+
+**product_images** (added in V15)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| product_id | BIGINT | FK → products.id, NOT NULL |
+| filename | VARCHAR(255) | NOT NULL |
+| url | VARCHAR(512) | NOT NULL |
+| sort_order | INT | NOT NULL DEFAULT 0 |
+
+**cart** (added in V16)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| user_id | BIGINT | FK → app_users.id, NOT NULL UNIQUE |
+
+**cart_items** (added in V16)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| cart_id | BIGINT | FK → cart.id, NOT NULL |
+| product_id | BIGINT | FK → products.id, NOT NULL |
+| quantity | INT | NOT NULL, > 0 |
 
 ## Branching strategy
 
@@ -117,6 +158,12 @@ customers (id, first_name, last_name, telephone, email, address)
 | `feature/roles-permissions` | Fine-grained Role/Permission CRUD and method-level security (`@PreAuthorize`, custom `PermissionEvaluator`). |
 | `feature/token-management` | Activation, blacklisted and password-reset tokens; async email (`@Async`); scheduled cleanup (`@Scheduled`). |
 | `feature/user-management` | `AppUser` CRUD (admin), user-role assignment (`role_user` join table, V7), account activation/password-reset flows. |
+| `feature/product-images` | Product image upload: `ProductImage` entity (V15), `FileStorageService`, `POST`/`DELETE /api/v1/products/{id}/images` (ROLE_ADMIN). |
+| `feature/shopping-cart` | Persistent shopping cart: `Cart`/`CartItem` entities (V16), full CRUD endpoints tied to the authenticated user (`@AuthenticationPrincipal`). |
+| `feature/order-checkout` | Atomic checkout: `POST /api/v1/orders` drains the cart and creates an `Order` with `OrderItem` lines in a single transaction. Introduces `order_items` table (V14), `order_number`, `status`, `total_amount`. |
+| `feature/order-notifications` | Email notification on order placement via `OrderEmailService` (`@Async`) and `NotificationProperties` (`@ConfigurationProperties`). |
+| `feature/order-authorization` | Role-based order access: users see only their own orders, admins see all; `PATCH /api/v1/orders/{id}/status` restricted to ROLE_ADMIN. |
+| `feature/integration` | Merges `feature/product-images` into the main chain; end-to-end `EcommerceIntegrationTest` covering the full flow from registration to order status update. |
 
 Each feature is developed on its own branch, then merged into `develop` via a documented **Pull Request** (even solo), to keep a clear, educational trace of each step. In practice, on this particular repository, merges have been done locally (`git merge`) rather than through an actual GitHub Pull Request: this section describes the intended workflow for anyone forking or following along, not necessarily every merge already present in this history.
 
@@ -533,7 +580,13 @@ Admin-facing user management: list, view, activate/deactivate accounts, assign r
 6. `feature/roles-permissions` (fine-grained RBAC) → Pull Request to `develop`
 7. `feature/token-management` (token lifecycle, async email, scheduled cleanup) → Pull Request to `develop`
 8. `feature/user-management` (admin user CRUD, activation/reset flows) → Pull Request to `develop`
-9. `develop` → `master` once everything is tested and validated
+9. `feature/product-images` (from `feature/products` HEAD — independent of the auth chain) — no PR, merged into `feature/integration` only
+10. `feature/shopping-cart` (from `feature/user-management`, merges `feature/orders`) — no PR, merged into next branch
+11. `feature/order-checkout` (from `feature/shopping-cart`) — no PR, merged into next branch
+12. `feature/order-notifications` (from `feature/order-checkout`) — no PR, merged into next branch
+13. `feature/order-authorization` (from `feature/order-notifications`) — no PR, merged into next branch
+14. `feature/integration` (from `feature/order-authorization`, merges `feature/product-images`) → **single Pull Request to `develop`** for the entire e-commerce chain
+15. `develop` → `master` once everything is tested and validated
 
 ## Code conventions
 
@@ -574,13 +627,165 @@ Admin-facing user management: list, view, activate/deactivate accounts, assign r
 - Aspect-oriented programming (Spring AOP: `@Around`, `@Before`, `@After`, `@AfterReturning`, `@AfterThrowing`)
 - Containerization (Docker, docker-compose)
 - Continuous integration (GitHub Actions)
+- File upload (`MultipartFile`, `FileStorageService`, disk storage with configurable path)
+- Persistent shopping cart (entity-backed cart tied to authenticated user)
+- Atomic checkout (multi-entity transactional write: cart drain + order creation)
+- Role-based data ownership (`@AuthenticationPrincipal`, users see only their own orders)
 
 ## How to follow this tutorial
 
 1. Clone the repository and check out `develop`
 2. Create/checkout the `feature/core-architecture` branch and follow its task checklist
-3. Continue with `feature/products`, `feature/customers`, `feature/orders`, `feature/auth`, `feature/roles-permissions`, `feature/token-management`, `feature/user-management` in that order
+3. Continue with `feature/products`, `feature/customers`, `feature/orders`, `feature/auth`, `feature/roles-permissions`, `feature/token-management`, `feature/user-management`, `feature/product-images`, `feature/shopping-cart`, `feature/order-checkout`, `feature/order-notifications`, `feature/order-authorization`, `feature/integration` in that order
 4. Open a Pull Request to `develop` at the end of each branch
 5. Copy `.env.example` to `.env` and fill in the required variables
 6. Run the project with `docker-compose up`, then open Swagger UI at `http://localhost:8080/swagger-ui.html`
 7. MailHog UI is available at `http://localhost:8025` to inspect outgoing emails in local dev
+
+## feature/product-images
+
+Adds image management to the product catalogue. Created from `feature/products` HEAD, independent of the main authentication/user chain.
+
+### Endpoints
+
+| Method | URL | Description |
+|---|---|---|
+| POST | `/api/v1/products/{id}/images` | Upload an image for a product (multipart/form-data, ROLE_ADMIN) |
+| DELETE | `/api/v1/products/{id}/images/{imageId}` | Delete a product image (ROLE_ADMIN) |
+
+### Tasks
+
+- [ ] `ProductImage` entity (`product_id`, `filename`, `url`, `sort_order`)
+- [ ] Flyway migration V15
+- [ ] `FileStorageService` interface + `LocalFileStorageService` impl (stores files under `${app.storage.upload-dir}`)
+- [ ] `StorageProperties` record (`@ConfigurationProperties(prefix = "app.storage")`, `uploadDir`, `maxFileSizeMb`)
+- [ ] `POST /api/v1/products/{id}/images`: receives `MultipartFile`, delegates to `FileStorageService`, persists `ProductImage`
+- [ ] `DELETE /api/v1/products/{id}/images/{imageId}`: deletes record and removes file from disk
+- [ ] `ProductResponse` gains `List<ProductImageResponse> images` (always populated)
+- [ ] Unit tests for `FileStorageService` (happy path, size limit, unsupported type)
+- [ ] MockMvc controller tests
+
+### Configuration notes
+
+- **Branch is independent of the auth chain** (`feature/auth` through `feature/user-management`). It is merged into `feature/integration` at the end, not cascaded through the main chain.
+- **`StorageProperties` is a `record` with `@ConfigurationProperties`**, consistent with `JwtProperties` from `feature/auth`.
+- **File type validation** rejects anything that is not `image/jpeg`, `image/png` or `image/webp`.
+
+## feature/shopping-cart
+
+Persistent shopping cart backed by JPA entities, one cart per authenticated user.
+
+### Endpoints
+
+| Method | URL | Description |
+|---|---|---|
+| GET | `/api/v1/cart` | Get the current user's cart (creates it if absent) |
+| POST | `/api/v1/cart/items` | Add a product to the cart |
+| PATCH | `/api/v1/cart/items/{itemId}` | Update item quantity |
+| DELETE | `/api/v1/cart/items/{itemId}` | Remove a single item |
+| DELETE | `/api/v1/cart` | Clear the entire cart |
+
+### Tasks
+
+- [ ] `Cart` entity (`user_id` FK → `app_users`, timestamps via `@CreatedDate`/`@LastModifiedDate`)
+- [ ] `CartItem` entity (`cart_id`, `product_id`, `quantity`)
+- [ ] Flyway migration V16
+- [ ] `CartService` interface + `CartServiceImpl`
+- [ ] All endpoints require ROLE_USER; user resolved via `@AuthenticationPrincipal UserDetails`
+- [ ] `CartResponse` DTO: `id`, `List<CartItemResponse> items`, `total` (sum computed server-side)
+- [ ] `AddCartItemRequest` / `UpdateCartItemRequest` DTOs with validation
+- [ ] Unit tests (Mockito) + MockMvc controller tests
+
+### Configuration notes
+
+- **Cart is created lazily** on first `GET /api/v1/cart` for a user who has none.
+- **`total` is computed by the service layer** from live product prices, never stored.
+- Branch starts from `feature/user-management` (needs `AppUser`) and merges `feature/orders` (needs `Order` schema context for checkout).
+
+## feature/order-checkout
+
+Atomic cart-to-order conversion: a single `POST /api/v1/orders` drains the cart and creates a fully populated `Order` with `OrderItem` lines.
+
+### Endpoints
+
+| Method | URL | Description |
+|---|---|---|
+| POST | `/api/v1/orders` | Checkout: convert cart to order (ROLE_USER) |
+| GET | `/api/v1/orders` | List the current user's orders, paginated |
+| GET | `/api/v1/orders/{id}` | Order detail with items |
+
+### Tasks
+
+- [ ] `OrderItem` entity (`order_id`, `product_id`, `quantity`, `unit_price` snapshot)
+- [ ] `Order` refactor: add `user_id`, `order_number` (UUID), `status` enum (PENDING/CONFIRMED/SHIPPED/DELIVERED/CANCELLED), `total_amount NUMERIC(12,2)`
+- [ ] Flyway migration V14 (new columns, `order_items` table, historical data migration)
+- [ ] `CheckoutService` or `OrderService.checkout(UserDetails)`: `@Transactional`, loads cart, creates `Order` + `OrderItem` lines (price snapshot), clears cart
+- [ ] `CheckoutRequest` DTO (optional `notes` field)
+- [ ] `OrderResponse` DTO: `id`, `orderNumber`, `status`, `totalAmount`, `List<OrderItemResponse> items`, `createdAt`
+- [ ] Service unit tests (atomic write, empty-cart 422, out-of-stock 422)
+- [ ] MockMvc controller tests
+
+### Configuration notes
+
+- **Price snapshot**: `OrderItem.unitPrice` captures `Product.unitPrice` at checkout time so future price changes do not alter historical orders.
+- **Empty cart returns 422** (`BusinessRuleException`), not 400.
+- **`order_number` is a UUID** generated by the service, never supplied by the client.
+
+## feature/order-notifications
+
+Sends an email to the user and to the admin when an order is placed, using the existing Spring Mail infrastructure (`JavaMailSender`, MailHog on dev).
+
+### Tasks
+
+- [ ] `NotificationProperties` record (`@ConfigurationProperties(prefix = "app.notifications")`, `adminEmail`)
+- [ ] `OrderEmailService` interface + `OrderEmailServiceImpl`: `sendOrderConfirmationToUser(Order)` and `sendOrderAlertToAdmin(Order)`, both `@Async("emailTaskExecutor")`
+- [ ] `OrderCreatedEventListener` updated to call `OrderEmailService` after commit (`@TransactionalEventListener(AFTER_COMMIT)`)
+- [ ] Email templates (plain text, inline in the service or as `src/main/resources/templates/*.txt`)
+- [ ] Unit tests (mock `JavaMailSender`, verify `MimeMessage` recipients)
+
+### Configuration notes
+
+- **Same async executor as `feature/token-management`** (`emailTaskExecutor` defined in `AsyncConfig`).
+- **`NotificationProperties.adminEmail`** is supplied via `APP_NOTIFICATION_ADMIN_EMAIL` env var; added to `.env.example`.
+
+## feature/order-authorization
+
+Restricts order visibility and status mutation by role.
+
+### Endpoints
+
+| Method | URL | Description |
+|---|---|---|
+| GET | `/api/v1/orders` | ROLE_USER sees only their own orders; ROLE_ADMIN sees all |
+| GET | `/api/v1/orders/{id}` | Returns 404 (not 403) if the order belongs to another user |
+| PATCH | `/api/v1/orders/{id}/status` | Update order status (ROLE_ADMIN only) |
+
+### Tasks
+
+- [ ] `SecurityConfig` rules: `GET /api/v1/orders/**` → authenticated; ownership enforced in service
+- [ ] `OrderService.findAll(UserDetails, Pageable)` and `findById(Long, UserDetails)`: admin bypasses ownership check, user gets 404 on others' orders
+- [ ] `PATCH /api/v1/orders/{id}/status` → `@PreAuthorize("hasRole('ADMIN')")`, body `OrderStatusUpdateRequest` with `@NotNull OrderStatus status`
+- [ ] `OrderStatusUpdateRequest` DTO
+- [ ] `@SpringBootTest` authorization tests: user isolation, admin override, status update access
+
+### Configuration notes
+
+- **404 instead of 403 on ownership mismatch**: returning 403 leaks the existence of the resource; a consistent 404 is safer.
+- **Status transitions are not validated** (any admin can set any status): validation logic can be added later without breaking the API.
+
+## feature/integration
+
+Final integration branch: merges `feature/product-images` into the main chain and validates the complete e-commerce flow end-to-end.
+
+### Tasks
+
+- [ ] Merge `feature/product-images` (resolve conflicts on `ProductResponse`, `ProductController`, `application.yml`)
+- [ ] `EcommerceIntegrationTest` (`@SpringBootTest` + Testcontainers): register, login, browse catalogue, upload image (admin), add items to cart, checkout, verify order, admin status update, user isolation (user A cannot see user B's order)
+- [ ] `docker-compose.yml` updated: volume `./uploads:/app/uploads`, env vars `APP_STORAGE_UPLOAD_DIR`, `APP_NOTIFICATION_ADMIN_EMAIL`
+- [ ] `.env.example` updated with all new variables
+- [ ] README updated with the full e-commerce endpoint table and configuration instructions
+
+### Configuration notes
+
+- **This is the only PR to `develop`** for the entire e-commerce extension chain (phases 3–8); the intermediate branches (`shopping-cart` through `order-authorization`) are merged feature-to-feature.
+- **`feature/product-images` is the only side branch** and is merged here rather than through the main chain.
