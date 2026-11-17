@@ -28,12 +28,13 @@ import org.mapstruct.MappingTarget;
 public interface CustomerMapper {
 
     @Mapping(target = "products", expression = "java(java.util.List.of())")
-    @Mapping(target = "total", constant = "0.0")
+    @Mapping(target = "total", expression = "java(java.math.BigDecimal.ZERO)")
     CustomerResponse toResponse(Customer customer);
 
     @Mapping(target = "products", source = "products")
     @Mapping(target = "total", source = "total")
-    CustomerResponse toResponseWithOrders(Customer customer, List<OrderedProductResponse> products, double total);
+    CustomerResponse toResponseWithOrders(Customer customer, List<OrderedProductResponse> products,
+                                          java.math.BigDecimal total);
 
     @Mapping(target = "id", ignore = true)
     Customer toEntity(CustomerRequest request);
