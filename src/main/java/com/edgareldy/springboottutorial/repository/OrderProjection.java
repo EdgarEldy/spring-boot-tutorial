@@ -1,5 +1,7 @@
 package com.edgareldy.springboottutorial.repository;
 
+import java.math.BigDecimal;
+
 /**
  * Flat DTO projection selected directly by a JPQL constructor expression in
  * {@link OrderRepository#findAllProjected}, so listing orders never loads
@@ -8,7 +10,8 @@ package com.edgareldy.springboottutorial.repository;
  * (used for the single-item detail view), this technique lets the database
  * return exactly the columns the list endpoint needs, carrying every field
  * required to build the full {@code CustomerResponse}/{@code ProductResponse}
- * nested inside an {@code OrderResponse}.
+ * nested inside an {@code OrderResponse}. {@code productActive} is included
+ * so the list view reflects the product's current active state accurately.
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
  * Author : edgar.muhamyangabo
@@ -25,10 +28,13 @@ public record OrderProjection(
         String customerAddress,
         Long productId,
         String productName,
-        float productUnitPrice,
+        BigDecimal productUnitPrice,
+        boolean productActive,
         Long productCategoryId,
         String productCategoryName,
         int quantity,
-        double total
+        BigDecimal totalAmount,
+        String status,
+        String orderNumber
 ) {
 }
