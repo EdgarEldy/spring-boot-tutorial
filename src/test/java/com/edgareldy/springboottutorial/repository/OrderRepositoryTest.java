@@ -156,6 +156,29 @@ class OrderRepositoryTest {
         assertThat(found.get().getItems().get(0).getUnitPrice()).isEqualByComparingTo(new BigDecimal("50.00"));
     }
 
+    @Test
+    void _05_ShouldReturnTrue_WhenOrderExistsForCustomer() {
+        assertThat(orderRepository.existsByCustomerId(ada.getId())).isTrue();
+        assertThat(orderRepository.existsByCustomerId(ada.getId() + 999L)).isFalse();
+    }
+
+    @Test
+    void _06_ShouldReturnTrue_WhenOrderExistsForProduct() {
+        assertThat(orderRepository.existsByProductId(keyboard.getId())).isTrue();
+        assertThat(orderRepository.existsByProductId(keyboard.getId() + 999L)).isFalse();
+    }
+
+    @Test
+    void _07_ShouldReturnOrdersForCustomer_WhenPagingByCustomerId() {
+        saveOrderWithItem(ada, desk, 1, new BigDecimal("200.00"), "ORD-TEST-ADA-2");
+
+        var page = orderRepository.findByCustomerId(ada.getId(), PageRequest.of(0, 10));
+
+        assertThat(page.getTotalElements()).isEqualTo(2);
+        assertThat(page.getContent()).allSatisfy(o ->
+                assertThat(o.getCustomer().getId()).isEqualTo(ada.getId()));
+    }
+
     private Order saveOrderWithItem(Customer c, Product p, int qty, BigDecimal total, String orderNum) {
         BigDecimal subtotal = p.getUnitPrice().multiply(BigDecimal.valueOf(qty));
         OrderItem item = OrderItem.builder()
