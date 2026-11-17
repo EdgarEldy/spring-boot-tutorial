@@ -58,7 +58,7 @@ public class ProductImage {
     private String altText;
 
     @Column(name = "is_primary", nullable = false)
-    private boolean isPrimary;
+    private boolean primary;
 
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
