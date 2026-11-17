@@ -82,7 +82,7 @@ class OrderMapperTest {
         OrderProjection projection = new OrderProjection(
                 7L, 3L, "Grace", "Hopper", "+1 202-555-0101", "grace@example.com", "2 Compiler Street",
                 1L, "Desk", new BigDecimal("200.00"), true, 2L, "Office",
-                1, new BigDecimal("200.00"), "CONFIRMED", "ORD-TEST-007");
+                1, new BigDecimal("200.00"), OrderStatus.CONFIRMED, "ORD-TEST-007");
 
         OrderResponse response = orderMapper.toResponse(projection);
 
@@ -105,10 +105,10 @@ class OrderMapperTest {
         List<OrderProjection> projections = List.of(
                 new OrderProjection(1L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com",
                         "1 Analytical Engine Way", 2L, "Keyboard", new BigDecimal("50.00"), true,
-                        3L, "Electronics", 2, new BigDecimal("100.00"), "PENDING", "ORD-TEST-001"),
+                        3L, "Electronics", 2, new BigDecimal("100.00"), OrderStatus.PENDING, "ORD-TEST-001"),
                 new OrderProjection(2L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com",
                         "1 Analytical Engine Way", 4L, "Desk", new BigDecimal("200.00"), true,
-                        3L, "Electronics", 1, new BigDecimal("200.00"), "PENDING", "ORD-TEST-002"));
+                        3L, "Electronics", 1, new BigDecimal("200.00"), OrderStatus.PENDING, "ORD-TEST-002"));
 
         CustomerOrdersResponse response = orderMapper.toCustomerOrdersResponse(
                 customer, projections, new BigDecimal("300.00"));
