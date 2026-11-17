@@ -2,8 +2,10 @@ package com.edgareldy.springboottutorial.controller;
 
 import com.edgareldy.springboottutorial.dto.common.ApiResponse;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
+import com.edgareldy.springboottutorial.dto.product.ProductImageResponse;
 import com.edgareldy.springboottutorial.dto.product.ProductRequest;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
+import com.edgareldy.springboottutorial.service.ProductImageService;
 import com.edgareldy.springboottutorial.service.ProductService;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * REST controller exposing CRUD endpoints for products. Delegates every
@@ -36,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductImageService productImageService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> findAll(
@@ -71,5 +75,24 @@ public class ProductController {
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         productService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Product deleted successfully"));
+    }
+
+    @PostMapping("/{id}/images")
+    public ResponseEntity<ApiResponse<ProductImageResponse>> addImage(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "altText", required = false) String altText,
+            @RequestParam(value = "isPrimary", defaultValue = "false") boolean isPrimary) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(
+                        productImageService.addImage(id, file, altText, isPrimary),
+                        "Image uploaded successfully"));
+    }
+
+    @DeleteMapping("/{id}/images/{imageId}")
+    public ResponseEntity<ApiResponse<Void>> deleteImage(
+            @PathVariable Long id, @PathVariable Long imageId) {
+        productImageService.deleteImage(id, imageId);
+        return ResponseEntity.ok(ApiResponse.success(null, "Image deleted successfully"));
     }
 }
