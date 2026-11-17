@@ -1,5 +1,6 @@
 package com.edgareldy.springboottutorial.repository;
 
+import com.edgareldy.springboottutorial.entity.OrderStatus;
 import java.math.BigDecimal;
 
 /**
@@ -34,7 +35,7 @@ public record OrderProjection(
         String productCategoryName,
         int quantity,
         BigDecimal totalAmount,
-        String status,
+        OrderStatus status,
         String orderNumber
 ) {
 }
