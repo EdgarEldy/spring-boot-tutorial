@@ -99,7 +99,6 @@ class ProductImageServiceImplTest {
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(productImageRepository.findByProductIdAndPrimaryTrue(1L))
                 .thenReturn(Optional.of(existingPrimary));
-        when(productImageRepository.save(existingPrimary)).thenReturn(existingPrimary);
         when(fileStorageService.store(file, "products")).thenReturn("/uploads/products/new.jpg");
         when(productImageRepository.save(any(ProductImage.class))).thenReturn(saved);
         when(productImageMapper.toResponse(saved)).thenReturn(response);
