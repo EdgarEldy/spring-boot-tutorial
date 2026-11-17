@@ -17,6 +17,7 @@ import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.product.ProductImageResponse;
 import com.edgareldy.springboottutorial.dto.product.ProductRequest;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
+import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.service.ProductImageService;
 import com.edgareldy.springboottutorial.service.ProductService;
@@ -230,5 +231,41 @@ class ProductControllerTest {
         mockMvc.perform(delete("/api/v1/products/1/images/10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void _16_ShouldReturn404_WhenProductNotFoundOnAddImage() throws Exception {
+        when(productImageService.addImage(eq(99L), any(), any(), eq(false)))
+                .thenThrow(new ResourceNotFoundException("Product not found with id 99"));
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "photo.jpg", MediaType.IMAGE_JPEG_VALUE, "jpg-bytes".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/products/99/images").file(file))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void _17_ShouldReturn422_WhenImageFileInvalidOnAdd() throws Exception {
+        when(productImageService.addImage(eq(1L), any(), any(), eq(false)))
+                .thenThrow(new BusinessRuleException("File type not allowed"));
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "photo.jpg", MediaType.IMAGE_JPEG_VALUE, "jpg-bytes".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/products/1/images").file(file))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void _18_ShouldReturn404_WhenImageNotFoundOnDelete() throws Exception {
+        doThrow(new ResourceNotFoundException("Image not found with id 99"))
+                .when(productImageService).deleteImage(1L, 99L);
+
+        mockMvc.perform(delete("/api/v1/products/1/images/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false));
     }
 }
