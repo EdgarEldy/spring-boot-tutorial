@@ -100,7 +100,7 @@ class OrderServiceImplTest {
         OrderProjection projection = new OrderProjection(
                 1L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
                 1L, "Keyboard", new BigDecimal("50.00"), true, 1L, "Electronics",
-                2, new BigDecimal("100.00"), "PENDING", "ORD-HIST-000001");
+                2, new BigDecimal("100.00"), OrderStatus.PENDING, "ORD-HIST-000001");
         when(orderRepository.findAllProjected(null, null, pageable))
                 .thenReturn(new PageImpl<>(List.of(projection), pageable, 1));
         when(orderMapper.toResponse(projection)).thenReturn(orderResponse);
@@ -118,15 +118,15 @@ class OrderServiceImplTest {
         OrderProjection adaKeyboard = new OrderProjection(
                 1L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
                 1L, "Keyboard", new BigDecimal("19.99"), true, 1L, "Electronics",
-                1, new BigDecimal("19.99"), "PENDING", "ORD-TEST-001");
+                1, new BigDecimal("19.99"), OrderStatus.PENDING, "ORD-TEST-001");
         OrderProjection adaDesk = new OrderProjection(
                 2L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
                 2L, "Desk", new BigDecimal("0.10"), true, 1L, "Electronics",
-                2, new BigDecimal("0.20"), "PENDING", "ORD-TEST-002");
+                2, new BigDecimal("0.20"), OrderStatus.PENDING, "ORD-TEST-002");
         OrderProjection graceDesk = new OrderProjection(
                 3L, 2L, "Grace", "Hopper", "+1 202-555-0101", "grace@example.com", "2 Compiler Street",
                 2L, "Desk", new BigDecimal("200.00"), true, 1L, "Electronics",
-                1, new BigDecimal("200.00"), "PENDING", "ORD-TEST-003");
+                1, new BigDecimal("200.00"), OrderStatus.PENDING, "ORD-TEST-003");
         CustomerOrdersResponse adaEntry = new CustomerOrdersResponse(null, List.of(), new BigDecimal("20.19"));
         CustomerOrdersResponse graceEntry = new CustomerOrdersResponse(null, List.of(), new BigDecimal("200.00"));
         when(orderRepository.findCustomersWithOrders(null, null, pageable))
