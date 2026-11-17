@@ -6,6 +6,7 @@ import com.edgareldy.springboottutorial.dto.product.ProductRequest;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
 import com.edgareldy.springboottutorial.service.ProductService;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -40,8 +41,8 @@ public class ProductController {
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> findAll(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String productName,
-            @RequestParam(required = false) Float minPrice,
-            @RequestParam(required = false) Float maxPrice,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
             Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(
                 productService.findAll(categoryId, productName, minPrice, maxPrice, pageable),
