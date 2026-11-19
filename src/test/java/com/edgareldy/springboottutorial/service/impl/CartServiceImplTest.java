@@ -115,7 +115,8 @@ class CartServiceImplTest {
         CartResponse result = cartService.addItem("alice", new CartItemRequest(1L, 2));
 
         assertThat(result).isEqualTo(filledResponse);
-        verify(cartRepository).save(any(Cart.class));
+        // save is called twice: once to create the new empty cart, once to persist the new item
+        verify(cartRepository, org.mockito.Mockito.times(2)).save(any(Cart.class));
     }
 
     @Test
