@@ -4,20 +4,28 @@ import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.order.CustomerOrdersResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderRequest;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
+import com.edgareldy.springboottutorial.entity.Cart;
+import com.edgareldy.springboottutorial.entity.CartItem;
 import com.edgareldy.springboottutorial.entity.Customer;
 import com.edgareldy.springboottutorial.entity.Order;
 import com.edgareldy.springboottutorial.entity.OrderItem;
 import com.edgareldy.springboottutorial.entity.OrderStatus;
 import com.edgareldy.springboottutorial.entity.Product;
+import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.event.OrderCreatedEvent;
+import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.mapper.OrderMapper;
+import com.edgareldy.springboottutorial.repository.AppUserRepository;
+import com.edgareldy.springboottutorial.repository.CartItemRepository;
+import com.edgareldy.springboottutorial.repository.CartRepository;
 import com.edgareldy.springboottutorial.repository.CustomerRepository;
 import com.edgareldy.springboottutorial.repository.OrderProjection;
 import com.edgareldy.springboottutorial.repository.OrderRepository;
 import com.edgareldy.springboottutorial.repository.ProductRepository;
 import com.edgareldy.springboottutorial.service.OrderService;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +56,9 @@ public class OrderServiceImpl implements OrderService {
     private final ProductRepository productRepository;
     private final OrderMapper orderMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final AppUserRepository appUserRepository;
+    private final CartRepository cartRepository;
+    private final CartItemRepository cartItemRepository;
 
     @Override
     public PageResponse<OrderResponse> findAll(Long customerId, Long productId, Pageable pageable) {
@@ -78,6 +89,65 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id " + id));
         return orderMapper.toResponse(order);
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse checkout(String username) {
+        AppUser user = appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+        Cart cart = cartRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user: " + username));
+        if (cart.getItems().isEmpty()) {
+            throw new BusinessRuleException("Cart is empty");
+        }
+
+        List<OrderItem> orderItems = new ArrayList<>();
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        int totalQuantity = 0;
+
+        for (CartItem cartItem : cart.getItems()) {
+            Product product = productRepository.findByIdWithCategory(cartItem.getProduct().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Product not found with id " + cartItem.getProduct().getId()));
+            if (!product.isActive()) {
+                throw new BusinessRuleException(
+                        "Product '" + product.getProductName() + "' is not active and cannot be checked out");
+            }
+            BigDecimal subtotal = product.getUnitPrice()
+                    .multiply(BigDecimal.valueOf(cartItem.getQuantity()))
+                    .setScale(2, RoundingMode.HALF_UP);
+            orderItems.add(OrderItem.builder()
+                    .product(product)
+                    .productName(product.getProductName())
+                    .unitPrice(product.getUnitPrice())
+                    .quantity(cartItem.getQuantity())
+                    .subtotal(subtotal)
+                    .build());
+            totalAmount = totalAmount.add(subtotal);
+            totalQuantity += cartItem.getQuantity();
+        }
+        totalAmount = totalAmount.setScale(2, RoundingMode.HALF_UP);
+
+        String orderNumber = "ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+        Order order = Order.builder()
+                .user(user)
+                .status(OrderStatus.PENDING)
+                .orderNumber(orderNumber)
+                .totalAmount(totalAmount)
+                .quantity(totalQuantity)
+                .items(new ArrayList<>(orderItems))
+                .build();
+        orderItems.forEach(item -> item.setOrder(order));
+
+        Order saved = orderRepository.save(order);
+        cartItemRepository.deleteAllByCartId(cart.getId());
+
+        eventPublisher.publishEvent(new OrderCreatedEvent(
+                saved.getId(), null, null, saved.getQuantity(),
+                saved.getTotalAmount(), saved.getOrderNumber()));
+        return orderMapper.toResponse(saved);
     }
 
     @Override
