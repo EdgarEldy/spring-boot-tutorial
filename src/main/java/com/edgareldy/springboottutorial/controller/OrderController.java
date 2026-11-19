@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -53,9 +55,12 @@ public class OrderController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<OrderResponse>> create(@Valid @RequestBody OrderRequest request) {
+    public ResponseEntity<ApiResponse<OrderResponse>> checkout(
+            @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(orderService.create(request), "Order created successfully"));
+                .body(ApiResponse.success(
+                        orderService.checkout(userDetails.getUsername()),
+                        "Order created successfully"));
     }
 
     @PutMapping("/{id}")
