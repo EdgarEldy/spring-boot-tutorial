@@ -380,7 +380,19 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void _checkout_05_ShouldUsePriceFromDB_NotFromCachedCartItem() {
+    void _checkout_05_ShouldThrow404_WhenUserNotFound() {
+        when(appUserRepository.findByUsername("unknown")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.checkout("unknown"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("User not found");
+
+        verify(cartRepository, never()).findByUserId(any());
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void _checkout_06_ShouldUsePriceFromDB_NotFromCachedCartItem() {
         AppUser user = checkoutUser();
         // CartItem has a product with a stale in-memory price, but service re-fetches from DB
         Product stale = Product.builder().id(1L).productName("Keyboard")
