@@ -581,6 +581,52 @@ Admin-facing user management: list, view, activate/deactivate accounts, assign r
 - [x] `UserResponse` exposes `account_locked` field so the Angular users list can show lock status on initial load
 - [x] Unit and integration tests (service, repository, controller, security authorization)
 
+## feature/shopping-cart
+
+Persistent shopping cart: one cart per authenticated user, lazily created on first add.
+
+### Model
+
+- `Cart` entity: `@OneToOne(LAZY)` to `AppUser` (unique, ON DELETE CASCADE), `@OneToMany(cascade=ALL, orphanRemoval=true)` to `CartItem`. Audited (`@CreatedDate`/`@LastModifiedDate`).
+- `CartItem` entity: `@ManyToOne(LAZY)` to `Cart` and to `Product`. Quantity is a positive integer. The composite unique constraint `uq_cart_product(cart_id, product_id)` ensures each product appears at most once per cart.
+- Migration `V16__create_cart_tables.sql`: creates `carts` and `cart_items` with FK and unique constraints and two indexes.
+- `CartRepository` uses `@EntityGraph(attributePaths = {"items", "items.product"})` on both finders to load the full item graph in one query.
+
+### Response shapes
+
+- `CartItemResponse`: `id`, `product_id`, `product_name`, `unit_price`, `quantity`, `subtotal` (computed as `unitPrice * quantity`).
+- `CartResponse`: `id`, `items`, `total` (sum of item subtotals).
+- All monetary amounts are `BigDecimal`.
+
+### Endpoints
+
+| Method | URL | Description | Access |
+|---|---|---|---|
+| GET | `/api/v1/cart` | View the authenticated user's cart | USER |
+| POST | `/api/v1/cart/items` | Add a product to the cart (increments quantity if already present) | USER |
+| PATCH | `/api/v1/cart/items/{itemId}` | Update the quantity of a cart item | USER |
+| DELETE | `/api/v1/cart/items/{itemId}` | Remove one item from the cart | USER |
+| DELETE | `/api/v1/cart/items` | Clear the entire cart | USER |
+
+### Business rules
+
+- Only active products (`active = true`) may be added to the cart (422 if inactive).
+- Adding the same product twice increments the existing item's quantity rather than creating a duplicate row.
+- `updateItem` and `removeItem` verify the item belongs to the caller's cart (404 otherwise).
+- The user is always resolved from `@AuthenticationPrincipal UserDetails`, never from the payload.
+
+### Tasks
+
+- [x] Migration `V16__create_cart_tables.sql`
+- [x] `Cart` and `CartItem` entities
+- [x] `CartItemRequest`, `CartItemUpdateRequest`, `CartItemResponse`, `CartResponse` DTOs
+- [x] `CartMapper` with computed `subtotal` per item and `total` for the cart
+- [x] `CartRepository` and `CartItemRepository`
+- [x] `CartService` interface and `CartServiceImpl`
+- [x] `CartController` with 5 endpoints at `/api/v1/cart`
+- [x] `SecurityConfig` updated: `/api/v1/cart/**` requires `ROLE_USER`
+- [x] Unit tests (`CartServiceImplTest`), controller tests (`CartControllerTest`), repository tests (`CartRepositoryTest`)
+
 ## Order of work
 
 1. `feature/core-architecture` → Pull Request to `develop`
@@ -591,7 +637,8 @@ Admin-facing user management: list, view, activate/deactivate accounts, assign r
 6. `feature/roles-permissions` (fine-grained RBAC) → Pull Request to `develop`
 7. `feature/token-management` (token lifecycle, async email, scheduled cleanup) → Pull Request to `develop`
 8. `feature/user-management` (admin user CRUD, activation/reset flows) → Pull Request to `develop`
-9. `develop` → `master` once everything is tested and validated
+9. `feature/shopping-cart` (persistent cart per user) → Pull Request to `develop`
+10. `develop` → `master` once everything is tested and validated
 
 ## Code conventions
 
