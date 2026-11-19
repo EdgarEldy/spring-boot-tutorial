@@ -589,7 +589,7 @@ Persistent shopping cart: one cart per authenticated user, lazily created on fir
 
 - `Cart` entity: `@OneToOne(LAZY)` to `AppUser` (unique, ON DELETE CASCADE), `@OneToMany(cascade=ALL, orphanRemoval=true)` to `CartItem`. Audited (`@CreatedDate`/`@LastModifiedDate`).
 - `CartItem` entity: `@ManyToOne(LAZY)` to `Cart` and to `Product`. Quantity is a positive integer. The composite unique constraint `uq_cart_product(cart_id, product_id)` ensures each product appears at most once per cart.
-- Migration `V16__create_cart_tables.sql`: creates `carts` and `cart_items` with FK and unique constraints and two indexes.
+- Migration `V17__create_cart_tables.sql`: creates `carts` and `cart_items` with FK and unique constraints and two indexes.
 - `CartRepository` uses `@EntityGraph(attributePaths = {"items", "items.product"})` on both finders to load the full item graph in one query.
 
 ### Response shapes
@@ -617,7 +617,7 @@ Persistent shopping cart: one cart per authenticated user, lazily created on fir
 
 ### Tasks
 
-- [x] Migration `V16__create_cart_tables.sql`
+- [x] Migration `V17__create_cart_tables.sql`
 - [x] `Cart` and `CartItem` entities
 - [x] `CartItemRequest`, `CartItemUpdateRequest`, `CartItemResponse`, `CartResponse` DTOs
 - [x] `CartMapper` with computed `subtotal` per item and `total` for the cart
@@ -626,6 +626,52 @@ Persistent shopping cart: one cart per authenticated user, lazily created on fir
 - [x] `CartController` with 5 endpoints at `/api/v1/cart`
 - [x] `SecurityConfig` updated: `/api/v1/cart/**` requires `ROLE_USER`
 - [x] Unit tests (`CartServiceImplTest`), controller tests (`CartControllerTest`), repository tests (`CartRepositoryTest`)
+
+## feature/order-checkout
+
+Converts the authenticated user's cart into a confirmed order in a single atomic transaction.
+
+### Checkout flow
+
+1. `POST /api/v1/orders` (no body) is called by an authenticated user with `ROLE_USER`.
+2. The service loads the user's cart (404 if none exists, 422 if empty).
+3. For each `CartItem`, the product is **re-fetched from the database** to obtain the current price. The service never trusts any price stored in the cart or supplied by the client.
+4. Each item is validated: 422 if the product is inactive.
+5. An `Order` is created with one `OrderItem` snapshot per cart line. The `Order.user` FK links to the authenticated `AppUser` (no `Customer` record is required).
+6. `totalAmount` is computed server-side from the re-fetched prices.
+7. The cart items are deleted **in the same transaction**. If the `Order` save fails and rolls back, the cart is left untouched.
+8. `OrderCreatedEvent` is published after the transaction commits.
+
+### Model additions
+
+- `Order` gains a nullable `user_id` FK to `app_users` (migration `V18`). Legacy orders created via the old CRUD endpoint keep `customer_id` only; checkout orders set `user_id` only.
+- `CheckoutRequest` is an intentionally empty record: the request body carries no data.
+
+### Endpoint
+
+| Method | URL | Description | Access |
+|---|---|---|---|
+| POST | `/api/v1/orders` | Checkout: convert cart to order | USER |
+
+The `PUT /api/v1/orders/{id}` and `DELETE /api/v1/orders/{id}` endpoints remain for ADMIN-only legacy CRUD.
+
+### Security rules
+
+- `POST /api/v1/orders` requires `ROLE_USER` (changed from ADMIN-only).
+- `PUT` and `DELETE` on orders still require `ROLE_ADMIN`.
+- The user is always resolved from `@AuthenticationPrincipal UserDetails`, never from an HTTP parameter.
+
+### Tasks
+
+- [x] Migration `V18__add_user_id_to_orders.sql`
+- [x] `AppUser user` field added to `Order` entity
+- [x] `CheckoutRequest` DTO
+- [x] `checkout(String username)` added to `OrderService` interface
+- [x] `checkout` implemented in `OrderServiceImpl` with atomic cart-to-order conversion
+- [x] `OrderController.checkout()` replaces `create(@RequestBody OrderRequest)`
+- [x] `deleteAllByCartId` added to `CartItemRepository`
+- [x] `SecurityConfig` updated: `POST /api/v1/orders` now requires `ROLE_USER`
+- [x] Unit tests (`OrderServiceImplTest` +5 checkout cases), controller tests (`OrderControllerTest` updated)
 
 ## Order of work
 
@@ -638,7 +684,8 @@ Persistent shopping cart: one cart per authenticated user, lazily created on fir
 7. `feature/token-management` (token lifecycle, async email, scheduled cleanup) → Pull Request to `develop`
 8. `feature/user-management` (admin user CRUD, activation/reset flows) → Pull Request to `develop`
 9. `feature/shopping-cart` (persistent cart per user) → Pull Request to `develop`
-10. `develop` → `master` once everything is tested and validated
+10. `feature/order-checkout` (cart to order atomic conversion) → Pull Request to `develop`
+11. `develop` → `master` once everything is tested and validated
 
 ## Code conventions
 
