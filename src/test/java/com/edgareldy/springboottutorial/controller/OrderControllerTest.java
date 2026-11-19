@@ -16,10 +16,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.order.CustomerOrdersResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderCustomerResponse;
+import com.edgareldy.springboottutorial.dto.order.OrderItemResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderRequest;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderedProductResponse;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
+import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.security.JwtService;
 import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
@@ -32,6 +34,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -82,6 +85,13 @@ class OrderControllerTest {
                 1L, "Keyboard", new BigDecimal("50.00"), null, true, 1L, "Electronics");
         return new OrderResponse(1L, sampleCustomer(), product, 2,
                 "ORD-TEST-0001", "PENDING", new BigDecimal("100.00"), List.of());
+    }
+
+    private static OrderResponse sampleCheckoutResponse() {
+        OrderItemResponse item = new OrderItemResponse(
+                1L, 1L, "Keyboard", new BigDecimal("50.00"), 2, new BigDecimal("100.00"));
+        return new OrderResponse(1L, null, null, 2,
+                "ORD-TEST-0001", "PENDING", new BigDecimal("100.00"), List.of(item));
     }
 
     private static PageResponse<CustomerOrdersResponse> sampleGroupedPage() {
@@ -142,36 +152,38 @@ class OrderControllerTest {
     }
 
     @Test
-    void _04_ShouldReturn201_WhenCreateRequestValid() throws Exception {
-        when(orderService.create(any())).thenReturn(sampleResponse());
+    @WithMockUser(username = "alice", roles = "USER")
+    void _04_ShouldReturn201_WhenCheckoutSucceeds() throws Exception {
+        when(orderService.checkout("alice")).thenReturn(sampleCheckoutResponse());
 
-        mockMvc.perform(post("/api/v1/orders")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new OrderRequest(1L, 1L, 2))))
+        mockMvc.perform(post("/api/v1/orders"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.product.product_name").value("Keyboard"))
                 .andExpect(jsonPath("$.data.order_number").value("ORD-TEST-0001"))
                 .andExpect(jsonPath("$.data.status").value("PENDING"))
-                .andExpect(jsonPath("$.data.total_amount").value(100.00));
+                .andExpect(jsonPath("$.data.total_amount").value(100.00))
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items[0].product_name").value("Keyboard"));
     }
 
     @Test
-    void _05_ShouldReturn400_WhenQuantityNotPositive() throws Exception {
-        mockMvc.perform(post("/api/v1/orders")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new OrderRequest(1L, 1L, 0))))
-                .andExpect(status().isBadRequest())
+    @WithMockUser(username = "alice", roles = "USER")
+    void _05_ShouldReturn422_WhenCartIsEmpty() throws Exception {
+        when(orderService.checkout("alice")).thenThrow(new BusinessRuleException("Cart is empty"));
+
+        mockMvc.perform(post("/api/v1/orders"))
+                .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
-    void _06_ShouldReturn404_WhenCustomerMissingOnCreate() throws Exception {
-        when(orderService.create(any())).thenThrow(new ResourceNotFoundException("Customer not found with id 99"));
+    @WithMockUser(username = "alice", roles = "USER")
+    void _06_ShouldReturn404_WhenCartNotFound() throws Exception {
+        when(orderService.checkout("alice"))
+                .thenThrow(new ResourceNotFoundException("Cart not found for user: alice"));
 
-        mockMvc.perform(post("/api/v1/orders")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new OrderRequest(99L, 1L, 2))))
-                .andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/v1/orders"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
