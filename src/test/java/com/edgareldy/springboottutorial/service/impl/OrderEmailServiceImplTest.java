@@ -48,7 +48,6 @@ class OrderEmailServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        when(notificationProperties.adminEmail()).thenReturn("admin@example.com");
         service = new OrderEmailServiceImpl(mailSender, notificationProperties, "noreply@example.com");
     }
 
@@ -96,6 +95,7 @@ class OrderEmailServiceImplTest {
 
     @Test
     void _02_ShouldSendNotificationToAdmin_WhenOrderCreated() {
+        when(notificationProperties.adminEmail()).thenReturn("admin@example.com");
         Order order = sampleOrder();
 
         service.sendAdminNotification(order);
@@ -110,6 +110,7 @@ class OrderEmailServiceImplTest {
 
     @Test
     void _03_ShouldNotPropagateSmtpException_WhenMailFails() {
+        when(notificationProperties.adminEmail()).thenReturn("admin@example.com");
         doThrow(new MailSendException("SMTP unavailable")).when(mailSender).send(any(SimpleMailMessage.class));
         Order order = sampleOrder();
         AppUser user = sampleUser();
