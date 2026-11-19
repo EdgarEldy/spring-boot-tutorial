@@ -83,10 +83,10 @@ class CartRepositoryTest {
         cartRepository.save(Cart.builder().user(user).build());
         entityManager.flush();
 
+        // IDENTITY strategy triggers an immediate INSERT on save(), so the unique
+        // constraint violation is thrown there, not deferred to entityManager.flush()
         Cart duplicate = Cart.builder().user(user).build();
-        cartRepository.save(duplicate);
-
-        assertThatThrownBy(() -> entityManager.flush())
+        assertThatThrownBy(() -> cartRepository.save(duplicate))
                 .isInstanceOf(Exception.class);
     }
 
@@ -97,10 +97,10 @@ class CartRepositoryTest {
         cartItemRepository.save(item1);
         entityManager.flush();
 
+        // IDENTITY strategy triggers an immediate INSERT on save(), so the unique
+        // constraint violation is thrown there, not deferred to entityManager.flush()
         CartItem duplicate = CartItem.builder().cart(cart).product(product).quantity(2).build();
-        cartItemRepository.save(duplicate);
-
-        assertThatThrownBy(() -> entityManager.flush())
+        assertThatThrownBy(() -> cartItemRepository.save(duplicate))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
