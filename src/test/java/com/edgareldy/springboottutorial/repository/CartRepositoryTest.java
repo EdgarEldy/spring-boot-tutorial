@@ -87,7 +87,7 @@ class CartRepositoryTest {
         // constraint violation is thrown there, not deferred to entityManager.flush()
         Cart duplicate = Cart.builder().user(user).build();
         assertThatThrownBy(() -> cartRepository.save(duplicate))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
