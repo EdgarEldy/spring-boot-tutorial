@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Order Received</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 32px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .header h1 {
+            color: #4F46E5;
+            font-size: 24px;
+            margin: 0;
+        }
+        .order-number {
+            text-align: center;
+            font-size: 13px;
+            color: #6B7280;
+            margin-top: 8px;
+        }
+        .customer-block {
+            margin: 20px 0;
+            padding: 16px;
+            background-color: #F3F4F6;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #374151;
+        }
+        .customer-block p {
+            margin: 4px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 24px;
+        }
+        th {
+            background-color: #F3F4F6;
+            color: #374151;
+            font-size: 13px;
+            text-align: left;
+            padding: 10px 12px;
+        }
+        td {
+            font-size: 14px;
+            color: #374151;
+            padding: 10px 12px;
+            border-bottom: 1px solid #E5E7EB;
+        }
+        .total-row td {
+            font-weight: 700;
+            font-size: 15px;
+            border-bottom: none;
+            padding-top: 16px;
+        }
+        .footer {
+            margin-top: 32px;
+            padding-top: 20px;
+            border-top: 1px solid #E5E7EB;
+            font-size: 12px;
+            color: #9CA3AF;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Spring Boot Tutorial</h1>
+        <div class="order-number">New order: <strong th:text="${orderNumber}">ORD-XXXXXXXX</strong></div>
+    </div>
+    <div class="customer-block">
+        <p><strong>Customer:</strong> <span th:text="${customerName}">N/A</span></p>
+        <p th:if="${customerEmail != null}">
+            <strong>Email:</strong> <span th:text="${customerEmail}">customer@example.com</span>
+        </p>
+    </div>
+    <table>
+        <thead>
+        <tr>
+            <th>Product</th>
+            <th>Unit price</th>
+            <th>Qty</th>
+            <th>Subtotal</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="item : ${items}">
+            <td th:text="${item.productName}">Product name</td>
+            <td th:text="${'$' + item.unitPrice}">$0.00</td>
+            <td th:text="${item.quantity}">1</td>
+            <td th:text="${'$' + item.subtotal}">$0.00</td>
+        </tr>
+        </tbody>
+        <tfoot>
+        <tr class="total-row">
+            <td colspan="3">Total</td>
+            <td th:text="${'$' + totalAmount}">$0.00</td>
+        </tr>
+        </tfoot>
+    </table>
+    <div class="footer">
+        &copy; 2026 Spring Boot Tutorial. All rights reserved.
+    </div>
+</div>
+</body>
+</html>
