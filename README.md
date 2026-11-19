@@ -673,6 +673,64 @@ The `PUT /api/v1/orders/{id}` and `DELETE /api/v1/orders/{id}` endpoints remain 
 - [x] `SecurityConfig` updated: `POST /api/v1/orders` now requires `ROLE_USER`
 - [x] Unit tests (`OrderServiceImplTest` +5 checkout cases), controller tests (`OrderControllerTest` updated)
 
+## feature/order-notifications
+
+Post-commit email notifications sent after a successful checkout. The order
+is already durable when these emails are sent; an SMTP failure logs an error
+but never affects the order or the HTTP response returned to the client.
+
+### How it works
+
+1. `OrderServiceImpl.checkout()` publishes `OrderCreatedEvent` after saving the order.
+2. `OrderCreatedEventListener.onOrderCreated()` is annotated with both
+   `@TransactionalEventListener(AFTER_COMMIT)` and `@Async("emailTaskExecutor")`:
+   - `AFTER_COMMIT` ensures the event only fires once the row is durable.
+   - `@Async` moves the work to the email thread pool, decoupling SMTP latency
+     from the event dispatch thread.
+3. The listener reloads the full order (items + `AppUser`) from the database using
+   `OrderRepository.findByIdWithItemsAndUser`. Re-loading is necessary because the
+   original transaction is closed and accessing lazy associations on a detached
+   entity would raise `LazyInitializationException`.
+4. `OrderEmailServiceImpl.sendOrderConfirmation` sends a plain-text confirmation to
+   the customer's email address (skipped when the order has no `AppUser`).
+5. `OrderEmailServiceImpl.sendAdminNotification` sends a plain-text alert to the
+   configured admin address.
+
+### Configuration
+
+| Property | Env variable | Default |
+|---|---|---|
+| `app.notifications.admin-email` | `APP_NOTIFICATION_ADMIN_EMAIL` | `admin@example.com` |
+| `app.mail.from` | `MAIL_FROM` | `noreply@spring-boot-tutorial.com` |
+
+#### MailHog in dev (docker-compose)
+
+The `docker-compose.yml` runs MailHog on port 1025 (SMTP) and 8025 (web UI).
+Point a browser at `http://localhost:8025` to see captured emails.
+
+#### Behaviour on SMTP failure
+
+`MailException` is caught inside each email method and logged at `ERROR` level.
+The exception is never re-thrown. The order is unaffected by an email failure.
+
+### New files
+
+- `NotificationProperties` - `@ConfigurationProperties(prefix = "app.notifications")`
+- `OrderEmailService` - contract for the two email methods
+- `OrderEmailServiceImpl` - `@Async("emailTaskExecutor")`, plain-text bodies
+
+### Tasks
+
+- [x] `NotificationProperties` with `adminEmail` field
+- [x] `@EnableConfigurationProperties(NotificationProperties.class)` registered in `AsyncConfig`
+- [x] `app.notifications.admin-email` added to `application.yml` and `.env.example`
+- [x] `OrderEmailService` interface
+- [x] `OrderEmailServiceImpl` with SMTP error handling
+- [x] `findByIdWithItemsAndUser` added to `OrderRepository` (LEFT JOIN FETCH, works for checkout and legacy orders)
+- [x] `OrderCreatedEventListener` extended with `@Async` + email calls
+- [x] `OrderEmailServiceImplTest` (3 cases: confirmation, admin notification, SMTP exception swallowed)
+- [x] `OrderCreatedEventListenerTest` (2 cases: with user, without user)
+
 ## Order of work
 
 1. `feature/core-architecture` → Pull Request to `develop`
@@ -685,7 +743,8 @@ The `PUT /api/v1/orders/{id}` and `DELETE /api/v1/orders/{id}` endpoints remain 
 8. `feature/user-management` (admin user CRUD, activation/reset flows) → Pull Request to `develop`
 9. `feature/shopping-cart` (persistent cart per user) → Pull Request to `develop`
 10. `feature/order-checkout` (cart to order atomic conversion) → Pull Request to `develop`
-11. `develop` → `master` once everything is tested and validated
+11. `feature/order-notifications` (post-commit email notifications) → Pull Request to `develop`
+12. `develop` → `master` once everything is tested and validated
 
 ## Code conventions
 
