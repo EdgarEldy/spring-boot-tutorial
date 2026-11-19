@@ -16,6 +16,11 @@ import com.edgareldy.springboottutorial.dto.cart.CartResponse;
  */
 public interface CartService {
 
+    /**
+     * Returns the cart for the given user. If the user has no cart yet, returns a
+     * transient in-memory cart with {@code id = null} and an empty item list; the
+     * cart row is created in the database only on the first {@link #addItem} call.
+     */
     CartResponse getCart(String username);
 
     CartResponse addItem(String username, CartItemRequest request);
