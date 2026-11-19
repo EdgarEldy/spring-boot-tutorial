@@ -1,5 +1,6 @@
 package com.edgareldy.springboottutorial.event;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -7,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.edgareldy.springboottutorial.entity.Order;
 import com.edgareldy.springboottutorial.entity.OrderItem;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
+import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.repository.OrderRepository;
 import com.edgareldy.springboottutorial.service.OrderEmailService;
 import java.math.BigDecimal;
@@ -92,5 +94,14 @@ class OrderCreatedEventListenerTest {
 
         verify(orderEmailService, never()).sendOrderConfirmation(null, order);
         verify(orderEmailService).sendAdminNotification(order);
+    }
+
+    @Test
+    void _03_ShouldThrowResourceNotFoundException_WhenOrderNotFoundAfterCommit() {
+        OrderCreatedEvent event = new OrderCreatedEvent(99L, null, null, 1, new BigDecimal("10.00"), "ORD-MISSING");
+        when(orderRepository.findByIdWithItemsAndUser(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> listener.onOrderCreated(event))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 }
