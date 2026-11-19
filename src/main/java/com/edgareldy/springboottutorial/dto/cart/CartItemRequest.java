@@ -1,5 +1,6 @@
 package com.edgareldy.springboottutorial.dto.cart;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
@@ -13,6 +14,7 @@ import jakarta.validation.constraints.Positive;
  * Project : spring-boot-tutorial
  */
 public record CartItemRequest(
+        @JsonProperty("product_id")
         @NotNull(message = "Product ID must not be null")
         Long productId,
 
