@@ -13,19 +13,27 @@ import com.edgareldy.springboottutorial.dto.order.OrderCustomerResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderRequest;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
+import com.edgareldy.springboottutorial.entity.Cart;
+import com.edgareldy.springboottutorial.entity.CartItem;
 import com.edgareldy.springboottutorial.entity.Category;
 import com.edgareldy.springboottutorial.entity.Customer;
 import com.edgareldy.springboottutorial.entity.Order;
 import com.edgareldy.springboottutorial.entity.OrderStatus;
 import com.edgareldy.springboottutorial.entity.Product;
+import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.event.OrderCreatedEvent;
+import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.mapper.OrderMapper;
+import com.edgareldy.springboottutorial.repository.AppUserRepository;
+import com.edgareldy.springboottutorial.repository.CartItemRepository;
+import com.edgareldy.springboottutorial.repository.CartRepository;
 import com.edgareldy.springboottutorial.repository.CustomerRepository;
 import com.edgareldy.springboottutorial.repository.OrderProjection;
 import com.edgareldy.springboottutorial.repository.OrderRepository;
 import com.edgareldy.springboottutorial.repository.ProductRepository;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,20 +61,14 @@ import org.springframework.data.domain.Pageable;
 @ExtendWith(MockitoExtension.class)
 class OrderServiceImplTest {
 
-    @Mock
-    private OrderRepository orderRepository;
-
-    @Mock
-    private CustomerRepository customerRepository;
-
-    @Mock
-    private ProductRepository productRepository;
-
-    @Mock
-    private OrderMapper orderMapper;
-
-    @Mock
-    private ApplicationEventPublisher eventPublisher;
+    @Mock private OrderRepository orderRepository;
+    @Mock private CustomerRepository customerRepository;
+    @Mock private ProductRepository productRepository;
+    @Mock private OrderMapper orderMapper;
+    @Mock private ApplicationEventPublisher eventPublisher;
+    @Mock private AppUserRepository appUserRepository;
+    @Mock private CartRepository cartRepository;
+    @Mock private CartItemRepository cartItemRepository;
 
     @InjectMocks
     private OrderServiceImpl orderService;
@@ -279,5 +281,133 @@ class OrderServiceImplTest {
                 .isInstanceOf(ResourceNotFoundException.class);
 
         verify(orderRepository, never()).deleteById(any());
+    }
+
+    // --- checkout ---
+
+    private AppUser checkoutUser() {
+        return AppUser.builder().id(10L).username("alice").email("alice@example.com").build();
+    }
+
+    private Product checkoutProduct(Long id, String name, String price) {
+        Category cat = Category.builder().id(1L).categoryName("Electronics").build();
+        return Product.builder().id(id).productName(name)
+                .unitPrice(new BigDecimal(price)).category(cat).active(true).build();
+    }
+
+    @Test
+    void _checkout_01_ShouldCreateOrderFromCart_WhenCartIsValid() {
+        AppUser user = checkoutUser();
+        Product p1 = checkoutProduct(1L, "Keyboard", "79.99");
+        Product p2 = checkoutProduct(2L, "Mouse", "29.99");
+        CartItem item1 = CartItem.builder().id(1L).product(p1).quantity(2).build();
+        CartItem item2 = CartItem.builder().id(2L).product(p2).quantity(1).build();
+        Cart cart = Cart.builder().id(5L).user(user)
+                .items(new ArrayList<>(List.of(item1, item2))).build();
+
+        Order savedOrder = Order.builder().id(100L).user(user)
+                .status(OrderStatus.PENDING).orderNumber("ORD-ABCD1234")
+                .totalAmount(new BigDecimal("189.97")).quantity(3).build();
+        OrderResponse expectedResponse = new OrderResponse(
+                100L, null, null, 3, "ORD-ABCD1234", "PENDING",
+                new BigDecimal("189.97"), List.of());
+
+        when(appUserRepository.findByUsername("alice")).thenReturn(Optional.of(user));
+        when(cartRepository.findByUserId(10L)).thenReturn(Optional.of(cart));
+        when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(p1));
+        when(productRepository.findByIdWithCategory(2L)).thenReturn(Optional.of(p2));
+        when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
+        when(orderMapper.toResponse(savedOrder)).thenReturn(expectedResponse);
+
+        OrderResponse result = orderService.checkout("alice");
+
+        assertThat(result).isEqualTo(expectedResponse);
+
+        ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
+        verify(orderRepository).save(captor.capture());
+        Order built = captor.getValue();
+        assertThat(built.getItems()).hasSize(2);
+        assertThat(built.getTotalAmount()).isEqualByComparingTo(new BigDecimal("189.97")); // 2*79.99 + 1*29.99
+        assertThat(built.getQuantity()).isEqualTo(3); // 2 + 1
+        verify(cartItemRepository).deleteAllByCartId(5L);
+        verify(eventPublisher).publishEvent(any(OrderCreatedEvent.class));
+    }
+
+    @Test
+    void _checkout_02_ShouldThrow422_WhenCartIsEmpty() {
+        AppUser user = checkoutUser();
+        Cart emptyCart = Cart.builder().id(5L).user(user).items(new ArrayList<>()).build();
+        when(appUserRepository.findByUsername("alice")).thenReturn(Optional.of(user));
+        when(cartRepository.findByUserId(10L)).thenReturn(Optional.of(emptyCart));
+
+        assertThatThrownBy(() -> orderService.checkout("alice"))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("empty");
+
+        verify(orderRepository, never()).save(any());
+        verify(cartItemRepository, never()).deleteAllByCartId(any());
+    }
+
+    @Test
+    void _checkout_03_ShouldThrow422_WhenProductIsInactive() {
+        AppUser user = checkoutUser();
+        Product inactive = checkoutProduct(1L, "Keyboard", "79.99");
+        inactive.setActive(false);
+        CartItem item = CartItem.builder().id(1L).product(inactive).quantity(1).build();
+        Cart cart = Cart.builder().id(5L).user(user).items(new ArrayList<>(List.of(item))).build();
+        when(appUserRepository.findByUsername("alice")).thenReturn(Optional.of(user));
+        when(cartRepository.findByUserId(10L)).thenReturn(Optional.of(cart));
+        when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(inactive));
+
+        assertThatThrownBy(() -> orderService.checkout("alice"))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("not active");
+
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void _checkout_04_ShouldThrow404_WhenCartNotFound() {
+        AppUser user = checkoutUser();
+        when(appUserRepository.findByUsername("alice")).thenReturn(Optional.of(user));
+        when(cartRepository.findByUserId(10L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.checkout("alice"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Cart not found");
+
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void _checkout_05_ShouldUsePriceFromDB_NotFromCachedCartItem() {
+        AppUser user = checkoutUser();
+        // CartItem has a product with a stale in-memory price, but service re-fetches from DB
+        Product stale = Product.builder().id(1L).productName("Keyboard")
+                .unitPrice(new BigDecimal("1.00")) // old price
+                .category(Category.builder().id(1L).categoryName("Electronics").build())
+                .active(true).build();
+        CartItem item = CartItem.builder().id(1L).product(stale).quantity(2).build();
+        Cart cart = Cart.builder().id(5L).user(user).items(new ArrayList<>(List.of(item))).build();
+
+        // DB price is higher
+        Product dbProduct = checkoutProduct(1L, "Keyboard", "79.99");
+        Order savedOrder = Order.builder().id(100L).user(user)
+                .status(OrderStatus.PENDING).orderNumber("ORD-XYZ").
+                totalAmount(new BigDecimal("159.98")).quantity(2).build();
+
+        when(appUserRepository.findByUsername("alice")).thenReturn(Optional.of(user));
+        when(cartRepository.findByUserId(10L)).thenReturn(Optional.of(cart));
+        when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(dbProduct));
+        when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
+        when(orderMapper.toResponse(savedOrder)).thenReturn(null);
+
+        orderService.checkout("alice");
+
+        ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
+        verify(orderRepository).save(captor.capture());
+        // subtotal must be 2 * 79.99, not 2 * 1.00
+        assertThat(captor.getValue().getTotalAmount())
+                .isEqualByComparingTo(new BigDecimal("159.98"));
     }
 }
