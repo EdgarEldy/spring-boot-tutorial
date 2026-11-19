@@ -94,6 +94,8 @@ public class SecurityConfig {
                         .hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/customers/**", "/api/v1/orders/**")
                         .hasRole("ADMIN")
+                        .requestMatchers("/api/v1/cart/**")
+                        .hasRole("USER")
                         .anyRequest()
                         .authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
