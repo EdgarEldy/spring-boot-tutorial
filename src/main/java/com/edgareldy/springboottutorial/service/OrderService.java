@@ -29,6 +29,14 @@ public interface OrderService {
 
     OrderResponse findById(Long id);
 
+    /**
+     * Converts the authenticated user's cart into a new Order atomically.
+     * The cart is cleared only if the Order is persisted successfully;
+     * a rollback leaves the cart untouched. Prices are always re-read from
+     * the database, never trusted from the cart items.
+     */
+    OrderResponse checkout(String username);
+
     OrderResponse create(OrderRequest request);
 
     OrderResponse update(Long id, OrderRequest request);
