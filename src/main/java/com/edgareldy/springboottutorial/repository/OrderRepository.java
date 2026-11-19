@@ -68,6 +68,18 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             + "WHERE o.id = :id")
     Optional<Order> findByIdWithDetails(@Param("id") Long id);
 
+    /**
+     * Loads the order with its items and owner ({@code AppUser}) for
+     * notification purposes. Uses LEFT JOIN FETCH for customer and product
+     * so it works for both legacy orders (which have a customer/product FK)
+     * and checkout orders (which may not).
+     */
+    @Query("SELECT o FROM Order o "
+            + "LEFT JOIN FETCH o.user "
+            + "LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.product "
+            + "WHERE o.id = :id")
+    Optional<Order> findByIdWithItemsAndUser(@Param("id") Long id);
+
     Page<Order> findByCustomerId(Long customerId, Pageable pageable);
 
     boolean existsByCustomerId(Long customerId);
