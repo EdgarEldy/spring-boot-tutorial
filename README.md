@@ -82,7 +82,9 @@ customers (id, first_name, last_name, telephone, email, address)
 | id | BIGINT | PK, auto-increment |
 | category_id | BIGINT | FK → categories.id, NOT NULL |
 | product_name | VARCHAR(255) | NOT NULL |
-| unit_price | FLOAT | NOT NULL, > 0 |
+| description | VARCHAR(500) | nullable |
+| unit_price | NUMERIC(12,2) | NOT NULL, > 0 |
+| active | BOOLEAN | NOT NULL, default TRUE |
 
 **customers**
 | Column | Type | Constraints |
@@ -346,6 +348,8 @@ Includes `Category` and `Product`, given their direct link in the model.
 - [x] `Category`, `Product` entities with `@OneToMany`/`@ManyToOne` relation (`LAZY` loading)
 - [x] `CategoryRepository`, `ProductRepository` (Spring Data JPA) with derived queries (`findByCategoryId`) and one `@Query` using `JOIN FETCH`
 - [x] DTOs `CategoryRequest`/`CategoryResponse`, `ProductRequest`/`ProductResponse`
+- [x] `Product.unitPrice` uses `BigDecimal` (Java) backed by `NUMERIC(12,2)` (SQL, V13 migration) for exact monetary arithmetic
+- [x] `Product.description` (nullable `VARCHAR(500)`) and `Product.active` (boolean, default `true`, V13 migration)
 - [x] Corresponding MapStruct mappers
 - [x] `CategoryService`, `ProductService` interfaces (contracts) and their `CategoryServiceImpl`, `ProductServiceImpl` implementations in `service/impl`, annotated `@Service`, with `@Transactional` on writes
 - [x] Business rule: a category containing products cannot be deleted (`BusinessRuleException`)
@@ -364,8 +368,10 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 - **`CategoryResponse.products` is only populated by `GET /api/v1/categories/{id}`, never by the paginated list.** `CategoryRepository.findByIdWithProducts` (`LEFT JOIN FETCH`) backs the detail endpoint; the list endpoint's `CategoryMapper.toResponse` explicitly sets `products` to an empty list rather than touching the entity's lazy, unfetched collection, avoiding an N+1 across a full page of categories.
 - **Snake_case JSON via `@JsonProperty` per field, not a global Jackson naming strategy.** Keeps every Java field/record component camelCase (idiomatic, and MapStruct keeps matching DTO fields to entity fields by name automatically) while the public JSON contract is snake_case.
-- **Flyway migrations on this branch are numbered `V3`/`V4`, skipping `V2`.** `V2` is reserved for `feature/auth`'s `V2__init_users_and_roles.sql`, not present on this branch yet; Flyway version numbers must stay unique and ordered across the whole project regardless of merge order.
+- **Flyway migrations on this branch are numbered `V3`, `V4` and `V13`, skipping `V2` and `V5-V12`.** `V2` is reserved for `feature/auth`; `V5-V12` are reserved for branches from `feature/auth` through `feature/user-management` that appear further up the merge chain. `V13` adds `description`, `active` and migrates `unit_price` from `REAL` to `NUMERIC(12,2)` on the products table.
 - **`ProductServiceImpl.findAll` only falls back to a `Specification`-based query when `productName`/`minPrice`/`maxPrice` is supplied.** The plain and `categoryId`-only cases keep using the existing `@EntityGraph`-backed repository methods; the `Specification` path has no fetch join for `category`, an accepted N+1 risk kept simple rather than complicating `ProductSpecifications` with one, and scoped only to requests that actually use the new filters.
+- **`minPrice`/`maxPrice` query parameters and `unitPrice` throughout the stack use `BigDecimal`.** `ProductSpecifications.priceBetween`, `ProductService.findAll`, `ProductController.findAll` and all DTOs have been updated from `Float`/`float` to `BigDecimal` to prevent rounding at the HTTP deserialization boundary.
+- **`Product.active` is not writable from `ProductRequest`.** `ProductMapper.toEntity` and `updateEntityFromRequest` both ignore `active` to prevent a create/update call from accidentally clearing the flag. Activation and deactivation are managed separately.
 
 ## feature/customers
 
@@ -396,35 +402,47 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 ## feature/orders
 
+### Model
+
+- `Order` entity: `@ManyToOne` to `Customer` and `Product` (both nullable for historical compatibility), `@OneToMany(cascade = ALL, orphanRemoval = true)` to `OrderItem`, `@Enumerated(EnumType.STRING) OrderStatus status` (default `PENDING`), `BigDecimal totalAmount`, `String orderNumber` (unique, generated as `ORD-` + 8-char UUID prefix on create).
+- `OrderItem` entity: product snapshot at order time (`productName`, `unitPrice` as `NUMERIC(12,2)`), `quantity`, `subtotal`; child of `Order` with `@ManyToOne(optional = false)` back-reference. Product snapshot decouples order history from future price changes.
+- `OrderStatus` enum: `PENDING`, `CONFIRMED`, `CANCELLED`.
+- Migration `V14__evolve_orders_domain.sql`: adds `order_number`, `status`, `total_amount` to `orders`; makes `customer_id`/`product_id` nullable; creates `order_items` table; backfills one `OrderItem` per historical order using the product snapshot; backfills `total_amount` from the legacy `total` column; generates `ORD-HIST-000001`-style order numbers for historical rows.
+- Migration `V15__make_orders_total_legacy_nullable.sql`: drops the `NOT NULL` constraint on the legacy `total DOUBLE PRECISION` column, which V14 stopped mapping in the `Order` entity. The column is kept for schema-level backward compatibility but is no longer written by Hibernate.
+- All monetary amounts are `BigDecimal` mapped to `NUMERIC(12,2)`. `totalAmount = unitPrice * quantity` computed in `OrderServiceImpl` using `BigDecimal.multiply`, never via floating-point arithmetic.
+
 ### Response shapes
 
-- `OrderResponse` (one order) embeds the customer's contact details (`OrderCustomerResponse`) and the full `ProductResponse`, on both the detail endpoint (`OrderRepository.findByIdWithDetails`, entity fetch join) and the paginated list (`OrderRepository.findAllProjected`, a flat JPQL constructor-expression projection extended with every column both DTOs need, still avoiding N+1 on a page of results).
-- `CustomerResponse` (`GET /api/v1/customers` and `GET /api/v1/customers/{id}`) carries the customer's orders: `products`, one line per order (`order_id`, `product_id`, `product_name`, `unit_price`, `quantity`, `total`), and `total`, the sum of those totals. On the paginated list the orders of every customer of the page are loaded with a single `OrderRepository.findAllProjectedByCustomerIds` query (an `IN` on the page's customer ids), not one query per customer, and no JPA relationship is added on `Customer`.
-- `GET /api/v1/orders` returns the same lines grouped by customer (`CustomerOrdersResponse`), paginated by customer via `OrderRepository.findCustomersWithOrders`.
-- `OrderController` returns `ResponseEntity<ApiResponse<T>>`; `OrderRequest`/`OrderResponse` fields exposed in JSON as snake_case via `@JsonProperty` (`customer_id`, `product_id`).
+- `OrderResponse` (one order) embeds `OrderCustomerResponse` and the full `ProductResponse`, plus `status` (String), `order_number`, `total_amount` (BigDecimal), and `items` (`List<OrderItemResponse>`). Two read paths: `findByIdWithDetails` (entity with `JOIN FETCH` on items, used for detail/create/update) and `findAllProjected` (17-field JPQL constructor-expression projection, used for the paginated list - no N+1).
+- `CustomerResponse` carries `products` (one `OrderedProductResponse` per order) and `total` (BigDecimal sum). Loaded with a single `findAllProjectedByCustomerIds` (`IN` on the page's customer ids) for both the list and the detail.
+- `GET /api/v1/orders` groups by customer (`CustomerOrdersResponse`), paginated via `findCustomersWithOrders`.
+- `OrderController` returns `ResponseEntity<ApiResponse<T>>`; snake_case JSON fields via `@JsonProperty`.
 
 ### Endpoints
 
 | Method | URL | Description |
 |---|---|---|
-| GET | `/api/v1/orders` | Orders grouped by customer: each customer once, with the products they ordered (quantity and total per order) and their overall total. Paginated by customer, filterable by `customerId`/`productId` |
-| GET | `/api/v1/orders/{id}` | Order detail |
-| POST | `/api/v1/orders` | Create an order (`total` computed automatically) |
-| PUT | `/api/v1/orders/{id}` | Update an order |
+| GET | `/api/v1/orders` | Orders grouped by customer (quantity and total per order, overall total). Paginated by customer, filterable by `customerId`/`productId` |
+| GET | `/api/v1/orders/{id}` | Order detail with items |
+| POST | `/api/v1/orders` | Create an order (`totalAmount` and `orderNumber` computed automatically) |
+| PUT | `/api/v1/orders/{id}` | Update an order (replaces items, recomputes total) |
 | DELETE | `/api/v1/orders/{id}` | Delete an order |
 | GET | `/api/v1/customers/{id}/orders` | Orders for a given customer |
 
 ### Tasks
 
-- [x] `Order` entity with `@ManyToOne` to `Customer` and `Product`
-- [x] `OrderRepository` with join queries (`@Query` with `JOIN`), DTO projection for lists
-- [x] DTOs `OrderRequest` (customerId, productId, quantity) / `OrderResponse` (`OrderCustomerResponse` + full `ProductResponse`), `CustomerOrdersResponse`/`OrderedProductResponse` for the grouped views
-- [x] `OrderMapper`
-- [x] `OrderService` interface and `OrderServiceImpl` implementation (in `service/impl`): computes `total = quantity * product.unitPrice`, checks that the customer and product exist
-- [x] `OrderCreatedEvent` application event published after creation, consumed by `OrderCreatedEventListener` (e.g. business logging, future email notification)
-- [x] `OrderController` returns `ResponseEntity<ApiResponse<T>>`
-- [x] `CustomerResponse` returns the customer's orders and their total on both the list and the detail (see Response shapes above)
-- [x] Unit tests (total computation, business rules) and integration tests
+- [x] `OrderStatus` enum (`PENDING`, `CONFIRMED`, `CANCELLED`)
+- [x] `OrderItem` entity with product snapshot (name + unit price at order time)
+- [x] `Order` entity evolved: `totalAmount` (BigDecimal), `orderNumber`, `status`, `items` (cascade + orphanRemoval)
+- [x] Migrations `V14` (multi-product schema + backfill) and `V15` (legacy `total` column nullable)
+- [x] `OrderItemResponse` DTO, `OrderItemMapper`
+- [x] `OrderResponse` updated with `status`, `total_amount`, `order_number`, `items`
+- [x] `OrderCreatedEvent` enriched with `totalAmount` and `orderNumber`
+- [x] `OrderRepository`: updated projections (17 fields), `findByIdWithDetails` with `JOIN FETCH` on items, `existsByCustomerId`, `existsByProductId`, `findByCustomerId`
+- [x] `OrderServiceImpl`: `create`/`update` compute BigDecimal subtotal, generate `orderNumber`, build `OrderItem` before save
+- [x] `OrderMapper`: `toResponse(Order)` with status enum-to-String expression; manual `toResponse(OrderProjection)` overload; `toOrderedProducts` helper; `OrderItemMapper` via `uses`
+- [x] `CustomerResponse` returns the customer's orders and their total on both the list and the detail
+- [x] Unit tests, repository tests (including `existsByCustomerId`, `existsByProductId`, `findByCustomerId`), controller tests, mapper tests
 
 ## feature/auth
 

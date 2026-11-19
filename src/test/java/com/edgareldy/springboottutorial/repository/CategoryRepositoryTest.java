@@ -7,6 +7,7 @@ import com.edgareldy.springboottutorial.config.JpaAuditingConfig;
 import com.edgareldy.springboottutorial.entity.Category;
 import com.edgareldy.springboottutorial.entity.Product;
 import jakarta.persistence.EntityManager;
+import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,9 +82,9 @@ class CategoryRepositoryTest {
     void _04_ShouldLoadProducts_WhenCategoryHasProducts() {
         Category saved = categoryRepository.saveAndFlush(Category.builder().categoryName("Electronics").build());
         productRepository.saveAndFlush(
-                Product.builder().category(saved).productName("Keyboard").unitPrice(79.99f).build());
+                Product.builder().category(saved).productName("Keyboard").unitPrice(new BigDecimal("79.99")).build());
         productRepository.saveAndFlush(
-                Product.builder().category(saved).productName("Mouse").unitPrice(29.99f).build());
+                Product.builder().category(saved).productName("Mouse").unitPrice(new BigDecimal("29.99")).build());
         entityManager.clear();
 
         Category found = categoryRepository.findByIdWithProducts(saved.getId()).orElseThrow();

@@ -14,7 +14,7 @@ import org.mapstruct.MappingTarget;
  * response methods exist: {@link #toResponse(Customer)} for a customer that
  * cannot have orders yet (just created), with an empty {@code products}
  * list and a total of 0, and
- * {@link #toResponseWithOrders(Customer, List, double)} which takes the
+ * {@link #toResponseWithOrders(Customer, List, java.math.BigDecimal)} which takes the
  * ordered products and their total from the caller. They are resolved by
  * the service layer via {@code OrderRepository}, since {@link Customer}
  * itself has no direct association to {@code Order}/{@code Product}.
@@ -28,12 +28,13 @@ import org.mapstruct.MappingTarget;
 public interface CustomerMapper {
 
     @Mapping(target = "products", expression = "java(java.util.List.of())")
-    @Mapping(target = "total", constant = "0.0")
+    @Mapping(target = "total", expression = "java(java.math.BigDecimal.ZERO)")
     CustomerResponse toResponse(Customer customer);
 
     @Mapping(target = "products", source = "products")
     @Mapping(target = "total", source = "total")
-    CustomerResponse toResponseWithOrders(Customer customer, List<OrderedProductResponse> products, double total);
+    CustomerResponse toResponseWithOrders(Customer customer, List<OrderedProductResponse> products,
+                                          java.math.BigDecimal total);
 
     @Mapping(target = "id", ignore = true)
     Customer toEntity(CustomerRequest request);
