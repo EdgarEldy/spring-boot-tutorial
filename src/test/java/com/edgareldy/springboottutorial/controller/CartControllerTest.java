@@ -3,7 +3,6 @@ package com.edgareldy.springboottutorial.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -28,14 +27,17 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * MockMvc integration tests for {@link CartController}, with
- * {@link CartService} mocked. Endpoints require an authenticated USER:
- * each request is decorated with {@code .with(user("alice").roles("USER"))}
- * to populate the SecurityContext, satisfying {@code @AuthenticationPrincipal}.
+ * {@link CartService} mocked. Security filters are disabled; the
+ * authenticated user is injected via {@code @WithMockUser} at class
+ * level, which populates {@code SecurityContextHolder} directly (not
+ * through the filter chain) so that {@code @AuthenticationPrincipal}
+ * resolves "alice" in every test.
  * <p>
  * Created edgar.muhamyangabo on 11/19/26
  * Author : edgar.muhamyangabo
@@ -44,6 +46,7 @@ import org.springframework.test.web.servlet.MockMvc;
  */
 @WebMvcTest(CartController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@WithMockUser(username = "alice", roles = "USER")
 class CartControllerTest {
 
     @Autowired private MockMvc mockMvc;
@@ -68,7 +71,7 @@ class CartControllerTest {
     void _01_ShouldReturn200_WhenGetCart() throws Exception {
         when(cartService.getCart("alice")).thenReturn(emptyCart());
 
-        mockMvc.perform(get("/api/v1/cart").with(user("alice").roles("USER")))
+        mockMvc.perform(get("/api/v1/cart"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(1))
@@ -80,7 +83,6 @@ class CartControllerTest {
         when(cartService.addItem(eq("alice"), any())).thenReturn(cartWithItem());
 
         mockMvc.perform(post("/api/v1/cart/items")
-                        .with(user("alice").roles("USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CartItemRequest(1L, 2))))
                 .andExpect(status().isCreated())
@@ -92,7 +94,6 @@ class CartControllerTest {
     @Test
     void _03_ShouldReturn400_WhenAddItemQuantityZero() throws Exception {
         mockMvc.perform(post("/api/v1/cart/items")
-                        .with(user("alice").roles("USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CartItemRequest(1L, 0))))
                 .andExpect(status().isBadRequest())
@@ -104,7 +105,6 @@ class CartControllerTest {
         when(cartService.updateItem(eq("alice"), eq(1L), any())).thenReturn(cartWithItem());
 
         mockMvc.perform(patch("/api/v1/cart/items/1")
-                        .with(user("alice").roles("USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CartItemUpdateRequest(5))))
                 .andExpect(status().isOk())
@@ -117,7 +117,6 @@ class CartControllerTest {
                 .thenThrow(new ResourceNotFoundException("Cart item not found with id 99"));
 
         mockMvc.perform(patch("/api/v1/cart/items/99")
-                        .with(user("alice").roles("USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CartItemUpdateRequest(1))))
                 .andExpect(status().isNotFound())
@@ -128,8 +127,7 @@ class CartControllerTest {
     void _06_ShouldReturn200_WhenRemoveItem() throws Exception {
         when(cartService.removeItem("alice", 1L)).thenReturn(emptyCart());
 
-        mockMvc.perform(delete("/api/v1/cart/items/1")
-                        .with(user("alice").roles("USER")))
+        mockMvc.perform(delete("/api/v1/cart/items/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items").isEmpty());
     }
@@ -138,8 +136,7 @@ class CartControllerTest {
     void _07_ShouldReturn200_WhenClearCart() throws Exception {
         when(cartService.clearCart("alice")).thenReturn(emptyCart());
 
-        mockMvc.perform(delete("/api/v1/cart/items")
-                        .with(user("alice").roles("USER")))
+        mockMvc.perform(delete("/api/v1/cart/items"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items").isEmpty());
     }
