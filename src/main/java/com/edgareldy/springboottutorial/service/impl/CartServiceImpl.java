@@ -41,7 +41,6 @@ public class CartServiceImpl implements CartService {
     private final CartMapper cartMapper;
 
     @Override
-    @Transactional(readOnly = true)
     public CartResponse getCart(String username) {
         AppUser user = getUserOrThrow(username);
         Cart cart = cartRepository.findByUserId(user.getId())
