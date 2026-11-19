@@ -1,5 +1,6 @@
 package com.edgareldy.springboottutorial.service.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -88,9 +89,8 @@ class OrderEmailServiceImplTest {
         ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(mailSender, times(1)).send(captor.capture());
         SimpleMailMessage sent = captor.getValue();
-        assert sent.getTo() != null;
-        assert sent.getTo()[0].equals("ada@example.com");
-        assert sent.getSubject() != null && sent.getSubject().contains("ORD-TEST-0001");
+        assertThat(sent.getTo()).isNotNull().containsExactly("ada@example.com");
+        assertThat(sent.getSubject()).isNotNull().contains("ORD-TEST-0001");
     }
 
     @Test
@@ -103,9 +103,8 @@ class OrderEmailServiceImplTest {
         ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(mailSender, times(1)).send(captor.capture());
         SimpleMailMessage sent = captor.getValue();
-        assert sent.getTo() != null;
-        assert sent.getTo()[0].equals("admin@example.com");
-        assert sent.getSubject() != null && sent.getSubject().contains("ORD-TEST-0001");
+        assertThat(sent.getTo()).isNotNull().containsExactly("admin@example.com");
+        assertThat(sent.getSubject()).isNotNull().contains("ORD-TEST-0001");
     }
 
     @Test
