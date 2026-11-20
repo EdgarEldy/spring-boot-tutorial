@@ -1,8 +1,8 @@
 package com.edgareldy.springboottutorial.service;
 
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
-import com.edgareldy.springboottutorial.dto.user.AssignRolesRequest;
 import com.edgareldy.springboottutorial.dto.user.UpdateProfileRequest;
+import com.edgareldy.springboottutorial.dto.user.UpdateUserRolesRequest;
 import org.springframework.data.domain.Pageable;
 
 /**
@@ -21,9 +21,12 @@ public interface UserService {
 
     UserResponse findById(Long id);
 
-    UserResponse assignRoles(Long userId, AssignRolesRequest request);
-
-    UserResponse removeRoleFromUser(Long userId, Long roleId);
+    /**
+     * Adds and removes roles on a user in a single transaction. Adding a role
+     * the user already has, or removing one they do not have, is a no-op
+     * rather than an error.
+     */
+    UserResponse updateRoles(Long userId, UpdateUserRolesRequest request);
 
     void delete(Long id);
 

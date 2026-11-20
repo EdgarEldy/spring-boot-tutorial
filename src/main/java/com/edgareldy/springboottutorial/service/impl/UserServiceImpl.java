@@ -2,8 +2,8 @@ package com.edgareldy.springboottutorial.service.impl;
 
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
-import com.edgareldy.springboottutorial.dto.user.AssignRolesRequest;
 import com.edgareldy.springboottutorial.dto.user.UpdateProfileRequest;
+import com.edgareldy.springboottutorial.dto.user.UpdateUserRolesRequest;
 import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
@@ -17,7 +17,9 @@ import com.edgareldy.springboottutorial.service.EmailService;
 import com.edgareldy.springboottutorial.service.PasswordResetTokenService;
 import com.edgareldy.springboottutorial.service.UserService;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -63,24 +65,24 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse assignRoles(Long userId, AssignRolesRequest request) {
+    public UserResponse updateRoles(Long userId, UpdateUserRolesRequest request) {
         AppUser user = getUserOrThrow(userId);
-        Set<Role> roles = new HashSet<>(roleRepository.findAllById(request.roleIds()));
-        if (roles.size() != request.roleIds().size()) {
-            throw new BusinessRuleException("One or more role IDs are invalid");
+        Set<Long> requestedIds = new HashSet<>(request.add());
+        requestedIds.addAll(request.remove());
+        List<Role> found = roleRepository.findAllById(requestedIds);
+        if (found.size() != requestedIds.size()) {
+            Set<Long> foundIds = found.stream().map(Role::getId).collect(Collectors.toSet());
+            List<Long> missingIds = requestedIds.stream()
+                    .filter(id -> !foundIds.contains(id))
+                    .sorted()
+                    .toList();
+            throw new ResourceNotFoundException("Roles not found with ids " + missingIds);
         }
-        user.getRoles().addAll(roles);
-        return appUserMapper.toResponse(appUserRepository.save(user));
-    }
-
-    @Override
-    @Transactional
-    public UserResponse removeRoleFromUser(Long userId, Long roleId) {
-        AppUser user = getUserOrThrow(userId);
-        boolean removed = user.getRoles().removeIf(r -> r.getId().equals(roleId));
-        if (!removed) {
-            throw new BusinessRuleException("User does not have role with id " + roleId);
-        }
+        Set<Role> roles = user.getRoles();
+        roles.removeIf(role -> request.remove().contains(role.getId()));
+        found.stream()
+                .filter(role -> request.add().contains(role.getId()))
+                .forEach(roles::add);
         return appUserMapper.toResponse(appUserRepository.save(user));
     }
 

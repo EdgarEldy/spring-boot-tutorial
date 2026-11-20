@@ -4,6 +4,7 @@ import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.validation.password.PasswordsMatch;
 import com.edgareldy.springboottutorial.validation.password.ValidPassword;
 import com.edgareldy.springboottutorial.validation.unique.Unique;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -24,10 +25,10 @@ import jakarta.validation.constraints.Size;
 public record RegisterRequest(
 
         @NotBlank(message = "First name must not be blank")
-        String firstName,
+        @JsonProperty("first_name") String firstName,
 
         @NotBlank(message = "Last name must not be blank")
-        String lastName,
+        @JsonProperty("last_name") String lastName,
 
         @NotBlank(message = "Username must not be blank")
         @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
@@ -46,7 +47,7 @@ public record RegisterRequest(
         String password,
 
         @NotBlank(message = "Password confirmation must not be blank")
-        String confirmPassword
+        @JsonProperty("confirm_password") String confirmPassword
 ) {
 
     // Overrides the compiler-generated toString(): LoggingAspect logs every

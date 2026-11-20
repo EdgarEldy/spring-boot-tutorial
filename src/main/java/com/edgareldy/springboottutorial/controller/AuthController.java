@@ -90,7 +90,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(claims, "Token claims retrieved successfully"));
     }
 
-    @GetMapping("/activate")
+    @GetMapping("/activate-account")
     public ResponseEntity<ApiResponse<UserResponse>> activate(@RequestParam String token) {
         return ResponseEntity.ok(ApiResponse.success(userService.activate(token), "Account activated successfully"));
     }

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.edgareldy.springboottutorial.dto.customer.CustomerResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderedProductResponse;
 import com.edgareldy.springboottutorial.entity.Customer;
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,14 +45,16 @@ class CustomerMapperTest {
 
     @Test
     void _02_ShouldMapSuppliedProductsAndTotal_WhenUsingResponseWithOrders() {
-        OrderedProductResponse keyboard = new OrderedProductResponse(100L, 10L, "Keyboard", 79.99f, 2, 159.98);
+        OrderedProductResponse keyboard = new OrderedProductResponse(
+                100L, 10L, "Keyboard", new BigDecimal("79.99"), 2, new BigDecimal("159.98"));
 
-        CustomerResponse response = customerMapper.toResponseWithOrders(customer(), List.of(keyboard), 159.98);
+        CustomerResponse response = customerMapper.toResponseWithOrders(
+                customer(), List.of(keyboard), new BigDecimal("159.98"));
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.lastName()).isEqualTo("Lovelace");
         assertThat(response.products()).containsExactly(keyboard);
-        assertThat(response.total()).isEqualTo(159.98);
+        assertThat(response.total()).isEqualByComparingTo(new BigDecimal("159.98"));
     }
 
 }

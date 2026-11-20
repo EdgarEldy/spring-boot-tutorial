@@ -11,8 +11,8 @@ import static org.mockito.Mockito.when;
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.role.RoleResponse;
-import com.edgareldy.springboottutorial.dto.user.AssignRolesRequest;
 import com.edgareldy.springboottutorial.dto.user.UpdateProfileRequest;
+import com.edgareldy.springboottutorial.dto.user.UpdateUserRolesRequest;
 import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
@@ -24,7 +24,6 @@ import com.edgareldy.springboottutorial.repository.RoleRepository;
 import com.edgareldy.springboottutorial.service.ActivationTokenService;
 import com.edgareldy.springboottutorial.service.EmailService;
 import com.edgareldy.springboottutorial.service.PasswordResetTokenService;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -40,7 +39,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
  * Unit tests for {@link UserServiceImpl}, with all dependencies mocked.
- * Covers admin user management (findAll, findById, assignRoles, delete,
+ * Covers admin user management (findAll, findById, updateRoles, delete,
  * lock, unlock, updateProfile) and the three token-driven flows (activate,
  * forgotPassword, resetPassword).
  * <p>
@@ -120,76 +119,84 @@ class UserServiceImplTest {
     }
 
     @Test
-    void _04_ShouldAssignRoles_WhenAllRoleIdsValid() {
+    void _04_ShouldAddSeveralRoles_WhenAllExist() {
         Role adminRole = Role.builder().id(2L).roleName("ADMIN").build();
-        AssignRolesRequest request = new AssignRolesRequest(Set.of(1L, 2L));
-        AppUser saved = AppUser.builder()
-                .id(1L).username("ada").email("ada@example.com").password("hashed")
-                .enabled(true).roles(Set.of(userRole, adminRole)).build();
-        UserResponse savedResponse = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", true, false,
-                List.of(new RoleResponse(1L, "USER", List.of()), new RoleResponse(2L, "ADMIN", List.of())));
-
+        Role managerRole = Role.builder().id(3L).roleName("MANAGER").build();
         when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
-        when(roleRepository.findAllById(Set.of(1L, 2L))).thenReturn(List.of(userRole, adminRole));
-        when(appUserRepository.save(appUser)).thenReturn(saved);
-        when(appUserMapper.toResponse(saved)).thenReturn(savedResponse);
-
-        assertThat(userService.assignRoles(1L, request)).isEqualTo(savedResponse);
-    }
-
-    @Test
-    void _04b_ShouldPreserveExistingRoles_WhenAssigningNewOnes() {
-        Role adminRole = Role.builder().id(2L).roleName("ADMIN").build();
-        AssignRolesRequest request = new AssignRolesRequest(Set.of(2L));
-        when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
-        when(roleRepository.findAllById(Set.of(2L))).thenReturn(List.of(adminRole));
+        when(roleRepository.findAllById(Set.of(2L, 3L))).thenReturn(List.of(adminRole, managerRole));
         when(appUserRepository.save(appUser)).thenReturn(appUser);
         when(appUserMapper.toResponse(appUser)).thenReturn(userResponse);
 
-        userService.assignRoles(1L, request);
+        assertThat(userService.updateRoles(1L, new UpdateUserRolesRequest(Set.of(2L, 3L), null)))
+                .isEqualTo(userResponse);
 
-        // existing userRole (id=1) must still be present alongside the newly added ADMIN
-        assertThat(appUser.getRoles()).contains(userRole, adminRole);
+        // existing userRole (id=1) must still be present alongside the newly added ones
+        assertThat(appUser.getRoles()).containsExactlyInAnyOrder(userRole, adminRole, managerRole);
     }
 
     @Test
-    void _05_ShouldThrowBusinessRule_WhenSomeRoleIdsInvalid() {
-        AssignRolesRequest request = new AssignRolesRequest(Set.of(1L, 99L));
+    void _04b_ShouldRemoveSeveralRoles_WhenUserHasThem() {
+        Role adminRole = Role.builder().id(2L).roleName("ADMIN").build();
+        appUser.getRoles().add(adminRole);
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
+        when(roleRepository.findAllById(Set.of(1L, 2L))).thenReturn(List.of(userRole, adminRole));
+        when(appUserRepository.save(appUser)).thenReturn(appUser);
+        when(appUserMapper.toResponse(appUser)).thenReturn(userResponse);
+
+        userService.updateRoles(1L, new UpdateUserRolesRequest(null, Set.of(1L, 2L)));
+
+        assertThat(appUser.getRoles()).isEmpty();
+    }
+
+    @Test
+    void _04c_ShouldAddAndRemoveInSameCall() {
+        Role adminRole = Role.builder().id(2L).roleName("ADMIN").build();
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
+        when(roleRepository.findAllById(Set.of(1L, 2L))).thenReturn(List.of(userRole, adminRole));
+        when(appUserRepository.save(appUser)).thenReturn(appUser);
+        when(appUserMapper.toResponse(appUser)).thenReturn(userResponse);
+
+        userService.updateRoles(1L, new UpdateUserRolesRequest(Set.of(2L), Set.of(1L)));
+
+        assertThat(appUser.getRoles()).containsExactly(adminRole);
+    }
+
+    @Test
+    void _05_ShouldBeNoOp_WhenAddingOwnedOrRemovingMissingRole() {
+        Role adminRole = Role.builder().id(2L).roleName("ADMIN").build();
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
+        when(roleRepository.findAllById(Set.of(1L, 2L))).thenReturn(List.of(userRole, adminRole));
+        when(appUserRepository.save(appUser)).thenReturn(appUser);
+        when(appUserMapper.toResponse(appUser)).thenReturn(userResponse);
+
+        userService.updateRoles(1L, new UpdateUserRolesRequest(Set.of(1L), Set.of(2L)));
+
+        assertThat(appUser.getRoles()).containsExactly(userRole);
+    }
+
+    @Test
+    void _05b_ShouldThrowNotFoundAndChangeNothing_WhenAnyRoleMissing() {
         when(appUserRepository.findById(1L)).thenReturn(Optional.of(appUser));
         when(roleRepository.findAllById(Set.of(1L, 99L))).thenReturn(List.of(userRole));
 
-        assertThatThrownBy(() -> userService.assignRoles(1L, request))
-                .isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> userService.updateRoles(
+                1L, new UpdateUserRolesRequest(Set.of(99L), Set.of(1L))))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("[99]");
 
+        assertThat(appUser.getRoles()).containsExactly(userRole);
         verify(appUserRepository, never()).save(any());
     }
 
     @Test
-    void _05b_ShouldRemoveRole_WhenUserHasIt() {
-        AppUser userWithRole = AppUser.builder()
-                .id(1L).username("ada").email("ada@example.com").password("hashed")
-                .enabled(true).roles(new HashSet<>(Set.of(userRole))).build();
-        UserResponse updatedResponse = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", true, false,
-                List.of());
-        when(appUserRepository.findById(1L)).thenReturn(Optional.of(userWithRole));
-        when(appUserRepository.save(userWithRole)).thenReturn(userWithRole);
-        when(appUserMapper.toResponse(userWithRole)).thenReturn(updatedResponse);
+    void _05c_ShouldThrowNotFound_WhenUpdatingRolesOfMissingUser() {
+        when(appUserRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThat(userService.removeRoleFromUser(1L, 1L)).isEqualTo(updatedResponse);
-        assertThat(userWithRole.getRoles()).isEmpty();
-    }
+        assertThatThrownBy(() -> userService.updateRoles(
+                99L, new UpdateUserRolesRequest(Set.of(1L), null)))
+                .isInstanceOf(ResourceNotFoundException.class);
 
-    @Test
-    void _05c_ShouldThrowBusinessRule_WhenUserDoesNotHaveRole() {
-        AppUser userWithRole = AppUser.builder()
-                .id(1L).username("ada").email("ada@example.com").password("hashed")
-                .enabled(true).roles(new HashSet<>(Set.of(userRole))).build();
-        when(appUserRepository.findById(1L)).thenReturn(Optional.of(userWithRole));
-
-        assertThatThrownBy(() -> userService.removeRoleFromUser(1L, 99L))
-                .isInstanceOf(BusinessRuleException.class);
-
-        verify(appUserRepository, never()).save(any());
+        verify(roleRepository, never()).findAllById(any());
     }
 
     @Test

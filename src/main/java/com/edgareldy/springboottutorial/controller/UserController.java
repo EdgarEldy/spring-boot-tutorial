@@ -3,8 +3,8 @@ package com.edgareldy.springboottutorial.controller;
 import com.edgareldy.springboottutorial.dto.auth.UserResponse;
 import com.edgareldy.springboottutorial.dto.common.ApiResponse;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
-import com.edgareldy.springboottutorial.dto.user.AssignRolesRequest;
 import com.edgareldy.springboottutorial.dto.user.UpdateProfileRequest;
+import com.edgareldy.springboottutorial.dto.user.UpdateUserRolesRequest;
 import com.edgareldy.springboottutorial.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * REST controller for admin user management: list, view, assign roles, and
+ * REST controller for admin user management: list, view, update roles, and
  * delete user accounts. Every endpoint requires the ADMIN role, enforced via
  * {@link PreAuthorize} at the class level so there is no risk of forgetting
  * the annotation on a newly added method.
@@ -58,19 +58,12 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(userService.findById(id), "User retrieved successfully"));
     }
 
-    @PutMapping("/{id}/roles")
-    public ResponseEntity<ApiResponse<UserResponse>> assignRoles(
+    @PatchMapping("/{id}/roles")
+    public ResponseEntity<ApiResponse<UserResponse>> updateRoles(
             @PathVariable Long id,
-            @Valid @RequestBody AssignRolesRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(userService.assignRoles(id, request), "Roles assigned successfully"));
-    }
-
-    @DeleteMapping("/{id}/roles/{roleId}")
-    public ResponseEntity<ApiResponse<UserResponse>> removeRole(
-            @PathVariable Long id,
-            @PathVariable Long roleId) {
+            @Valid @RequestBody UpdateUserRolesRequest request) {
         return ResponseEntity.ok(ApiResponse.success(
-                userService.removeRoleFromUser(id, roleId), "Role removed successfully"));
+                userService.updateRoles(id, request), "User roles updated successfully"));
     }
 
     @DeleteMapping("/{id}")

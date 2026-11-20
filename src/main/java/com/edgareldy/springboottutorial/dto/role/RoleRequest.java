@@ -6,8 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 /**
  * Payload accepted by {@code POST}/{@code PUT} {@code /api/v1/roles}. Permission
  * assignment goes through the dedicated
- * {@code /api/v1/roles/{roleId}/permissions/{permissionId}} endpoints, not this
- * request.
+ * {@code PATCH /api/v1/roles/{roleId}/permissions} endpoint, not this request.
  * <p>
  * Created edgar.muhamyangabo on 10/30/26
  * Author : edgar.muhamyangabo

@@ -59,7 +59,7 @@ public class EmailServiceImpl implements EmailService {
     @Override
     @Async("emailTaskExecutor")
     public void sendActivationEmail(AppUser user, String token) {
-        String link = frontendUrl + "/auth/activate?token=" + token;
+        String link = frontendUrl + "/auth/activate-account?token=" + token;
         Context context = new Context(Locale.ENGLISH);
         context.setVariable("username", user.getUsername());
         context.setVariable("activationLink", link);
