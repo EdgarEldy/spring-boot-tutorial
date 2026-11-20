@@ -97,17 +97,17 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void _01_ShouldDelegateToProjectedQuery_WhenListingOrders() {
+    void _01_ShouldDelegateToProjectedQuery_WhenListingOrdersByCustomer() {
         Pageable pageable = PageRequest.of(0, 10);
         OrderProjection projection = new OrderProjection(
                 1L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
                 1L, "Keyboard", new BigDecimal("50.00"), true, 1L, "Electronics",
                 2, new BigDecimal("100.00"), OrderStatus.PENDING, "ORD-HIST-000001");
-        when(orderRepository.findAllProjected(null, null, pageable))
+        when(orderRepository.findAllProjected(1L, null, pageable))
                 .thenReturn(new PageImpl<>(List.of(projection), pageable, 1));
         when(orderMapper.toResponse(projection)).thenReturn(orderResponse);
 
-        PageResponse<OrderResponse> result = orderService.findAll(null, null, pageable);
+        PageResponse<OrderResponse> result = orderService.findAllByCustomerId(1L, pageable);
 
         assertThat(result.content()).containsExactly(orderResponse);
     }
@@ -163,14 +163,14 @@ class OrderServiceImplTest {
         when(orderRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(order));
         when(orderMapper.toResponse(order)).thenReturn(orderResponse);
 
-        assertThat(orderService.findById(1L)).isEqualTo(orderResponse);
+        assertThat(orderService.findById(1L, "admin", true)).isEqualTo(orderResponse);
     }
 
     @Test
     void _03_ShouldThrowNotFound_WhenOrderMissing() {
         when(orderRepository.findByIdWithDetails(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> orderService.findById(99L))
+        assertThatThrownBy(() -> orderService.findById(99L, "admin", true))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
