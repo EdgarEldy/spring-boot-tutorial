@@ -198,7 +198,7 @@ class CustomerControllerTest {
     @Test
     void _11_ShouldReturn200_WhenListingOrdersOfExistingCustomer() throws Exception {
         ProductResponse product = new ProductResponse(
-                1L, "Keyboard", new BigDecimal("50.00"), null, true, 1L, "Electronics");
+                1L, "Keyboard", new BigDecimal("50.00"), null, true, 1L, "Electronics", List.of());
         OrderCustomerResponse customer = new OrderCustomerResponse(
                 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way");
         OrderResponse order = new OrderResponse(1L, customer, product, 2,
