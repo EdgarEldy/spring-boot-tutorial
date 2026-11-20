@@ -61,9 +61,15 @@ public class OrderServiceImpl implements OrderService {
     private final CartItemRepository cartItemRepository;
 
     @Override
-    public PageResponse<OrderResponse> findAll(Long customerId, Long productId, Pageable pageable) {
-        Page<OrderProjection> page = orderRepository.findAllProjected(customerId, productId, pageable);
-        return PageResponse.from(page.map(orderMapper::toResponse));
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> findAll(String username, boolean isAdmin, Pageable pageable) {
+        if (isAdmin) {
+            return PageResponse.from(orderRepository.findAll(pageable).map(orderMapper::toResponse));
+        }
+        return appUserRepository.findByUsername(username)
+                .map(user -> PageResponse.from(
+                        orderRepository.findByUserId(user.getId(), pageable).map(orderMapper::toResponse)))
+                .orElseGet(() -> PageResponse.from(Page.empty(pageable)));
     }
 
     @Override
@@ -85,10 +91,27 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderResponse findById(Long id) {
-        Order order = orderRepository.findByIdWithDetails(id)
+    public OrderResponse findById(Long id, String username, boolean isAdmin) {
+        if (isAdmin) {
+            Order order = orderRepository.findByIdWithDetails(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Order not found with id " + id));
+            return orderMapper.toResponse(order);
+        }
+        AppUser user = appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id " + id));
+        Order order = orderRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id " + id));
         return orderMapper.toResponse(order);
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse updateStatus(Long id, OrderStatus newStatus) {
+        Order order = orderRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id " + id));
+        validateTransition(order.getStatus(), newStatus);
+        order.setStatus(newStatus);
+        return orderMapper.toResponse(orderRepository.save(order));
     }
 
     @Override
@@ -219,6 +242,16 @@ public class OrderServiceImpl implements OrderService {
             throw new ResourceNotFoundException("Order not found with id " + id);
         }
         orderRepository.deleteById(id);
+    }
+
+    private void validateTransition(OrderStatus current, OrderStatus next) {
+        boolean valid = (current == OrderStatus.PENDING && next == OrderStatus.CONFIRMED)
+                || (current == OrderStatus.PENDING && next == OrderStatus.CANCELLED)
+                || (current == OrderStatus.CONFIRMED && next == OrderStatus.CANCELLED);
+        if (!valid) {
+            throw new BusinessRuleException(
+                    "Transition from " + current + " to " + next + " is not allowed");
+        }
     }
 
     private Customer getCustomerOrThrow(Long customerId) {
