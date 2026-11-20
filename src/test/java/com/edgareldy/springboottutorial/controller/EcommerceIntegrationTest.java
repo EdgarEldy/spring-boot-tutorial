@@ -139,6 +139,9 @@ class EcommerceIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.status").value("PENDING"))
                 .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items[0].product_name").value("IT_ECOM_Keyboard"))
+                .andExpect(jsonPath("$.data.items[0].quantity").value(3))
+                .andExpect(jsonPath("$.data.total_amount").value(239.97))
                 .andReturn();
 
         Long orderIdUserA = objectMapper
