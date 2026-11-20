@@ -24,6 +24,7 @@ import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.security.JwtService;
 import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import com.edgareldy.springboottutorial.service.OrderService;
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,16 +78,18 @@ class OrderControllerTest {
     }
 
     private static OrderResponse sampleResponse() {
-        ProductResponse product = new ProductResponse(1L, "Keyboard", 50.0f, 1L, "Electronics");
-        return new OrderResponse(1L, sampleCustomer(), product, 2, 100.0);
+        ProductResponse product = new ProductResponse(
+                1L, "Keyboard", new BigDecimal("50.00"), null, true, 1L, "Electronics");
+        return new OrderResponse(1L, sampleCustomer(), product, 2,
+                "ORD-TEST-0001", "PENDING", new BigDecimal("100.00"), List.of());
     }
 
     private static PageResponse<CustomerOrdersResponse> sampleGroupedPage() {
         CustomerOrdersResponse entry = new CustomerOrdersResponse(
                 sampleCustomer(),
-                List.of(new OrderedProductResponse(1L, 1L, "Keyboard", 50.0f, 2, 100.0),
-                        new OrderedProductResponse(2L, 2L, "Desk", 200.0f, 1, 200.0)),
-                300.0);
+                List.of(new OrderedProductResponse(1L, 1L, "Keyboard", new BigDecimal("50.00"), 2, new BigDecimal("100.00")),
+                        new OrderedProductResponse(2L, 2L, "Desk", new BigDecimal("200.00"), 1, new BigDecimal("200.00"))),
+                new BigDecimal("300.00"));
         return new PageResponse<>(List.of(entry), 0, 20, 1, 1);
     }
 
@@ -101,11 +104,11 @@ class OrderControllerTest {
                 .andExpect(jsonPath("$.data.content[0].products.length()").value(2))
                 .andExpect(jsonPath("$.data.content[0].products[0].order_id").value(1))
                 .andExpect(jsonPath("$.data.content[0].products[0].product_name").value("Keyboard"))
-                .andExpect(jsonPath("$.data.content[0].products[0].unit_price").value(50.0))
+                .andExpect(jsonPath("$.data.content[0].products[0].unit_price").value(50.00))
                 .andExpect(jsonPath("$.data.content[0].products[0].quantity").value(2))
-                .andExpect(jsonPath("$.data.content[0].products[0].total").value(100.0))
+                .andExpect(jsonPath("$.data.content[0].products[0].total").value(100.00))
                 .andExpect(jsonPath("$.data.content[0].products[1].product_id").value(2))
-                .andExpect(jsonPath("$.data.content[0].total").value(300.0));
+                .andExpect(jsonPath("$.data.content[0].total").value(300.00));
     }
 
     @Test
@@ -118,7 +121,19 @@ class OrderControllerTest {
     }
 
     @Test
-    void _03_ShouldReturn404_WhenOrderMissing() throws Exception {
+    void _03_ShouldReturn200_WhenOrderFound() throws Exception {
+        when(orderService.findById(1L)).thenReturn(sampleResponse());
+
+        mockMvc.perform(get("/api/v1/orders/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.order_number").value("ORD-TEST-0001"))
+                .andExpect(jsonPath("$.data.status").value("PENDING"))
+                .andExpect(jsonPath("$.data.total_amount").value(100.00))
+                .andExpect(jsonPath("$.data.items").isArray());
+    }
+
+    @Test
+    void _03b_ShouldReturn404_WhenOrderMissing() throws Exception {
         when(orderService.findById(99L)).thenThrow(new ResourceNotFoundException("Order not found with id 99"));
 
         mockMvc.perform(get("/api/v1/orders/99"))
@@ -134,7 +149,10 @@ class OrderControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new OrderRequest(1L, 1L, 2))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.product.product_name").value("Keyboard"));
+                .andExpect(jsonPath("$.data.product.product_name").value("Keyboard"))
+                .andExpect(jsonPath("$.data.order_number").value("ORD-TEST-0001"))
+                .andExpect(jsonPath("$.data.status").value("PENDING"))
+                .andExpect(jsonPath("$.data.total_amount").value(100.00));
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.edgareldy.springboottutorial.dto.order;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.math.BigDecimal;
 
 /**
  * One order of a customer, seen as "a product they ordered": the product,
@@ -20,8 +21,8 @@ public record OrderedProductResponse(
         @JsonProperty("product_name")
         String productName,
         @JsonProperty("unit_price")
-        float unitPrice,
+        BigDecimal unitPrice,
         int quantity,
-        double total
+        BigDecimal total
 ) {
 }

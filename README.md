@@ -24,6 +24,12 @@ Repository: https://github.com/EdgarEldy/spring-boot-tutorial
 - [feature/roles-permissions](#featureroles-permissions)
 - [feature/token-management](#featuretoken-management)
 - [feature/user-management](#featureuser-management)
+- [feature/product-images](#featureproduct-images)
+- [feature/shopping-cart](#featureshopping-cart)
+- [feature/order-checkout](#featureorder-checkout)
+- [feature/order-notifications](#featureorder-notifications)
+- [feature/order-authorization](#featureorder-authorization)
+- [feature/integration](#featureintegration)
 - [Order of work](#order-of-work)
 - [Code conventions](#code-conventions)
 - [Concepts covered](#concepts-covered)
@@ -52,6 +58,8 @@ Repository: https://github.com/EdgarEldy/spring-boot-tutorial
 
 ## Data model
 
+Base model (branches `feature/core-architecture` through `feature/orders`):
+
 ```
 categories (id, category_name)
     │ 1
@@ -68,6 +76,8 @@ orders (id, customer_id, product_id, quantity, total)
 customers (id, first_name, last_name, telephone, email, address)
 ```
 
+The e-commerce extension (branches `feature/auth` through `feature/integration`) adds `app_users`, `roles`, `permissions`, token tables, `product_images`, `carts`, `cart_items`, and replaces the single-line order model with an `order_items` snapshot table.
+
 ### Column details
 
 **categories**
@@ -82,7 +92,9 @@ customers (id, first_name, last_name, telephone, email, address)
 | id | BIGINT | PK, auto-increment |
 | category_id | BIGINT | FK → categories.id, NOT NULL |
 | product_name | VARCHAR(255) | NOT NULL |
-| unit_price | FLOAT | NOT NULL, > 0 |
+| unit_price | NUMERIC(12,2) | NOT NULL, > 0 — migrated from FLOAT in V13 for exact monetary arithmetic |
+| description | VARCHAR(500) | nullable — added in V13 |
+| active | BOOLEAN | NOT NULL DEFAULT TRUE — added in V13; excluded from create/update payloads |
 
 **customers**
 | Column | Type | Constraints |
@@ -94,14 +106,113 @@ customers (id, first_name, last_name, telephone, email, address)
 | email | VARCHAR(255) | NOT NULL, UNIQUE, valid email format |
 | address | VARCHAR(255) | NOT NULL |
 
-**orders**
+**orders** (extended in `feature/orders`, `feature/order-checkout`, and `feature/order-authorization`)
 | Column | Type | Constraints |
 |---|---|---|
 | id | BIGINT | PK, auto-increment |
-| customer_id | BIGINT | FK → customers.id, NOT NULL |
+| customer_id | BIGINT | FK → customers.id, nullable - legacy CRUD orders only |
+| product_id | BIGINT | FK → products.id, nullable - legacy CRUD orders only |
+| quantity | INT | nullable - legacy CRUD orders only |
+| total | NUMERIC(12,2) | nullable - legacy column, made nullable in V15 after backfill |
+| order_number | VARCHAR(36) | NOT NULL UNIQUE — UUID generated at creation, added in V14 |
+| status | VARCHAR(20) | NOT NULL DEFAULT 'PENDING' — PENDING, CONFIRMED, CANCELLED; added in V14 |
+| total_amount | NUMERIC(12,2) | NOT NULL — sum of all OrderItem lines; added in V14 |
+| user_id | BIGINT | FK → app_users.id, nullable — added in V18; set only for checkout orders; legacy CRUD orders have no user_id |
+
+**order_items** (added in V14)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| order_id | BIGINT | FK → orders.id, NOT NULL |
 | product_id | BIGINT | FK → products.id, NOT NULL |
 | quantity | INT | NOT NULL, > 0 |
-| total | DOUBLE | NOT NULL, computed = quantity × product unit_price |
+| unit_price | NUMERIC(12,2) | NOT NULL — snapshot at order time |
+
+**product_images** (added in V16)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| product_id | BIGINT | FK → products.id, NOT NULL |
+| filename | VARCHAR(255) | NOT NULL |
+| url | VARCHAR(512) | NOT NULL |
+| is_primary | BOOLEAN | NOT NULL DEFAULT FALSE — partial unique index enforces at most one primary per product |
+
+**carts** (added in V17)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| user_id | BIGINT | FK → app_users.id, NOT NULL UNIQUE — one cart per user |
+
+**cart_items** (added in V17)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| cart_id | BIGINT | FK → carts.id, NOT NULL |
+| product_id | BIGINT | FK → products.id, NOT NULL |
+| quantity | INT | NOT NULL, > 0 |
+
+**app_users** (V2: base columns; V7: role_user join; V8: account_locked; V9: first_name/last_name)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| username | VARCHAR(255) | NOT NULL UNIQUE |
+| email | VARCHAR(255) | NOT NULL UNIQUE |
+| password | VARCHAR(255) | NOT NULL |
+| enabled | BOOLEAN | NOT NULL DEFAULT FALSE |
+| account_locked | BOOLEAN | NOT NULL DEFAULT FALSE — added in V8 |
+| first_name | VARCHAR(100) | nullable — added in V9 |
+| last_name | VARCHAR(100) | nullable — added in V9 |
+
+**roles** (added in V5 as JPA entity, replacing the `Role` enum from `feature/auth`)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| name | VARCHAR(50) | NOT NULL UNIQUE |
+
+**permissions** (added in V5)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| resource | VARCHAR(100) | NOT NULL |
+| action | VARCHAR(50) | NOT NULL |
+| UNIQUE | (resource, action) | |
+
+**role_user** (join table, added in V7)
+| Column | Type | Constraints |
+|---|---|---|
+| role_id | BIGINT | FK → roles.id |
+| user_id | BIGINT | FK → app_users.id |
+
+**role_permission** (join table, added in V5)
+| Column | Type | Constraints |
+|---|---|---|
+| role_id | BIGINT | FK → roles.id |
+| permission_id | BIGINT | FK → permissions.id |
+
+**activation_tokens** (added in V6)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| token | VARCHAR(255) | NOT NULL UNIQUE |
+| user_id | BIGINT | FK → app_users.id, NOT NULL |
+| expires_at | TIMESTAMP | NOT NULL |
+| used | BOOLEAN | NOT NULL DEFAULT FALSE |
+
+**blacklisted_tokens** (added in V6 — no user FK; identifies revoked JWTs by jti)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| jti | VARCHAR(255) | NOT NULL UNIQUE |
+| invalidated_at | TIMESTAMP | NOT NULL |
+
+**password_reset_tokens** (added in V6)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| token | VARCHAR(255) | NOT NULL UNIQUE |
+| user_id | BIGINT | FK → app_users.id, NOT NULL |
+| expires_at | TIMESTAMP | NOT NULL |
+| used | BOOLEAN | NOT NULL DEFAULT FALSE |
 
 ## Branching strategy
 
@@ -117,10 +228,18 @@ customers (id, first_name, last_name, telephone, email, address)
 | `feature/roles-permissions` | Fine-grained Role/Permission CRUD and method-level security (`@PreAuthorize`, custom `PermissionEvaluator`). |
 | `feature/token-management` | Activation, blacklisted and password-reset tokens; async email (`@Async`); scheduled cleanup (`@Scheduled`). |
 | `feature/user-management` | `AppUser` CRUD (admin), user-role assignment (`role_user` join table, V7), account activation/password-reset flows. |
+| `feature/product-images` | Product image upload: `ProductImage` entity (V15), `FileStorageService`, `POST`/`DELETE /api/v1/products/{id}/images` (ROLE_ADMIN). |
+| `feature/shopping-cart` | Persistent shopping cart: `Cart`/`CartItem` entities (V16), full CRUD endpoints tied to the authenticated user (`@AuthenticationPrincipal`). |
+| `feature/order-checkout` | Atomic checkout: `POST /api/v1/orders` drains the cart and creates an `Order` with `OrderItem` lines in a single transaction. Introduces `order_items` table (V14), `order_number`, `status`, `total_amount`. |
+| `feature/order-notifications` | Email notification on order placement via `OrderEmailService` (`@Async`) and `NotificationProperties` (`@ConfigurationProperties`). |
+| `feature/order-authorization` | Role-based order access: users see only their own orders, admins see all; `PATCH /api/v1/orders/{id}/status` restricted to ROLE_ADMIN. |
+| `feature/integration` | Merges `feature/product-images` into the main chain; end-to-end `EcommerceIntegrationTest` covering the full flow from registration to order status update. |
 
 Each feature is developed on its own branch, then merged into `develop` via a documented **Pull Request** (even solo), to keep a clear, educational trace of each step. In practice, on this particular repository, merges have been done locally (`git merge`) rather than through an actual GitHub Pull Request: this section describes the intended workflow for anyone forking or following along, not necessarily every merge already present in this history.
 
 ## Project structure
+
+The tree below shows the full final state across all branches.
 
 ```
 spring-boot-tutorial/
@@ -131,69 +250,139 @@ spring-boot-tutorial/
 │   │   │   ├── config/
 │   │   │   │   ├── OpenApiConfig.java
 │   │   │   │   ├── SecurityConfig.java
+│   │   │   │   ├── MethodSecurityConfig.java
+│   │   │   │   ├── JacksonConfig.java
 │   │   │   │   ├── CorsConfig.java
 │   │   │   │   ├── CacheConfig.java
-│   │   │   │   └── JpaAuditingConfig.java
+│   │   │   │   ├── JpaAuditingConfig.java
+│   │   │   │   ├── AsyncConfig.java
+│   │   │   │   ├── SchedulingConfig.java
+│   │   │   │   └── StorageConfig.java
 │   │   │   ├── entity/
 │   │   │   │   ├── Category.java
 │   │   │   │   ├── Product.java
+│   │   │   │   ├── ProductImage.java
 │   │   │   │   ├── Customer.java
 │   │   │   │   ├── Order.java
+│   │   │   │   ├── OrderItem.java
+│   │   │   │   ├── OrderStatus.java (enum)
+│   │   │   │   ├── Cart.java
+│   │   │   │   ├── CartItem.java
 │   │   │   │   └── user/
 │   │   │   │       ├── AppUser.java
-│   │   │   │       └── Role.java
+│   │   │   │       ├── Role.java
+│   │   │   │       ├── Permission.java
+│   │   │   │       ├── ActivationToken.java
+│   │   │   │       ├── BlacklistedToken.java
+│   │   │   │       └── PasswordResetToken.java
 │   │   │   ├── repository/
 │   │   │   │   ├── CategoryRepository.java
 │   │   │   │   ├── ProductRepository.java
+│   │   │   │   ├── ProductImageRepository.java
 │   │   │   │   ├── CustomerRepository.java
 │   │   │   │   ├── OrderRepository.java
-│   │   │   │   └── AppUserRepository.java
+│   │   │   │   ├── CartRepository.java
+│   │   │   │   ├── CartItemRepository.java
+│   │   │   │   ├── AppUserRepository.java
+│   │   │   │   ├── RoleRepository.java
+│   │   │   │   ├── PermissionRepository.java
+│   │   │   │   ├── ActivationTokenRepository.java
+│   │   │   │   ├── BlacklistedTokenRepository.java
+│   │   │   │   └── PasswordResetTokenRepository.java
 │   │   │   ├── dto/
 │   │   │   │   ├── common/
 │   │   │   │   │   ├── ApiResponse.java
 │   │   │   │   │   └── PageResponse.java
 │   │   │   │   ├── category/ (CategoryRequest, CategoryResponse)
 │   │   │   │   ├── product/ (ProductRequest, ProductResponse)
+│   │   │   │   ├── image/ (ProductImageResponse)
 │   │   │   │   ├── customer/ (CustomerRequest, CustomerResponse)
-│   │   │   │   ├── order/ (OrderRequest, OrderResponse)
+│   │   │   │   ├── order/ (OrderRequest, OrderResponse, OrderItemResponse, OrderStatusUpdateRequest)
+│   │   │   │   ├── cart/ (CartItemRequest, CartItemUpdateRequest, CartItemResponse, CartResponse)
+│   │   │   │   ├── role/ (RoleRequest, RoleResponse, UpdateRolePermissionsRequest)
+│   │   │   │   ├── permission/ (PermissionRequest, PermissionResponse)
+│   │   │   │   ├── user/ (UserResponse, UpdateProfileRequest, UpdateUserRolesRequest)
 │   │   │   │   └── auth/ (RegisterRequest, LoginRequest, AuthResponse)
 │   │   │   ├── mapper/
 │   │   │   │   ├── CategoryMapper.java
 │   │   │   │   ├── ProductMapper.java
+│   │   │   │   ├── ProductImageMapper.java
 │   │   │   │   ├── CustomerMapper.java
-│   │   │   │   └── OrderMapper.java
+│   │   │   │   ├── OrderMapper.java
+│   │   │   │   ├── CartMapper.java
+│   │   │   │   ├── RoleMapper.java
+│   │   │   │   ├── PermissionMapper.java
+│   │   │   │   └── AppUserMapper.java
 │   │   │   ├── service/
 │   │   │   │   ├── CategoryService.java
 │   │   │   │   ├── ProductService.java
+│   │   │   │   ├── FileStorageService.java
+│   │   │   │   ├── ProductImageService.java
 │   │   │   │   ├── CustomerService.java
 │   │   │   │   ├── OrderService.java
+│   │   │   │   ├── OrderEmailService.java
+│   │   │   │   ├── CartService.java
 │   │   │   │   ├── AuthService.java
+│   │   │   │   ├── UserService.java
+│   │   │   │   ├── RoleService.java
+│   │   │   │   ├── PermissionService.java
+│   │   │   │   ├── EmailService.java
+│   │   │   │   ├── ActivationTokenService.java
+│   │   │   │   ├── PasswordResetTokenService.java
+│   │   │   │   ├── BlacklistedTokenService.java
 │   │   │   │   └── impl/
 │   │   │   │       ├── CategoryServiceImpl.java
 │   │   │   │       ├── ProductServiceImpl.java
+│   │   │   │       ├── LocalFileStorageService.java
+│   │   │   │       ├── ProductImageServiceImpl.java
 │   │   │   │       ├── CustomerServiceImpl.java
 │   │   │   │       ├── OrderServiceImpl.java
-│   │   │   │       └── AuthServiceImpl.java
+│   │   │   │       ├── OrderEmailServiceImpl.java
+│   │   │   │       ├── CartServiceImpl.java
+│   │   │   │       ├── AuthServiceImpl.java
+│   │   │   │       ├── UserServiceImpl.java
+│   │   │   │       ├── RoleServiceImpl.java
+│   │   │   │       ├── PermissionServiceImpl.java
+│   │   │   │       ├── EmailServiceImpl.java
+│   │   │   │       ├── ActivationTokenServiceImpl.java
+│   │   │   │       ├── PasswordResetTokenServiceImpl.java
+│   │   │   │       └── BlacklistedTokenServiceImpl.java
 │   │   │   ├── controller/
 │   │   │   │   ├── CategoryController.java
 │   │   │   │   ├── ProductController.java
 │   │   │   │   ├── CustomerController.java
 │   │   │   │   ├── OrderController.java
-│   │   │   │   └── AuthController.java
+│   │   │   │   ├── CartController.java
+│   │   │   │   ├── AuthController.java
+│   │   │   │   ├── UserController.java
+│   │   │   │   ├── RoleController.java
+│   │   │   │   └── PermissionController.java
 │   │   │   ├── exception/
 │   │   │   │   ├── ResourceNotFoundException.java
 │   │   │   │   ├── BusinessRuleException.java
+│   │   │   │   ├── InvalidTokenException.java
 │   │   │   │   └── GlobalExceptionHandler.java
 │   │   │   ├── security/
 │   │   │   │   ├── JwtService.java
+│   │   │   │   ├── JwtProperties.java
 │   │   │   │   ├── JwtAuthFilter.java
-│   │   │   │   └── UserDetailsServiceImpl.java
+│   │   │   │   ├── UserDetailsServiceImpl.java
+│   │   │   │   ├── JwtAuthenticationEntryPoint.java
+│   │   │   │   ├── JwtAccessDeniedHandler.java
+│   │   │   │   └── CustomPermissionEvaluator.java
+│   │   │   ├── validation/
+│   │   │   │   ├── password/ (ValidPassword, PasswordValidator, PasswordsMatch, PasswordsMatchValidator)
+│   │   │   │   └── unique/ (Unique, UniqueValidator)
 │   │   │   ├── event/
 │   │   │   │   ├── OrderCreatedEvent.java
 │   │   │   │   └── OrderCreatedEventListener.java
 │   │   │   ├── aspect/
 │   │   │   │   ├── LoggingAspect.java
-│   │   │   │   └── ExecutionTimeAspect.java
+│   │   │   │   ├── ExecutionTimeAspect.java
+│   │   │   │   └── RepositoryAuditAspect.java
+│   │   │   ├── token/
+│   │   │   │   ├── SecureTokenGenerator.java
+│   │   │   │   └── TokenCleanupScheduler.java
 │   │   │   └── actuator/
 │   │   │       └── AppInfoEndpoint.java
 │   │   └── resources/
@@ -203,12 +392,26 @@ spring-boot-tutorial/
 │   │       ├── application-prod.yml
 │   │       └── db/migration/
 │   │           ├── V1__init_schema.sql
-│   │           └── V2__init_users_and_roles.sql
+│   │           ├── V2__init_users_and_roles.sql
+│   │           ├── V3__add_product_version.sql
+│   │           ├── V4__add_category_audit_columns.sql
+│   │           ├── V5__roles_permissions.sql
+│   │           ├── V6__tokens.sql
+│   │           ├── V7__role_user.sql
+│   │           ├── V8__add_account_locked.sql
+│   │           ├── V9__add_name_fields_to_app_users.sql
+│   │           ├── V13__add_product_description_active_decimal_price.sql
+│   │           ├── V14__evolve_orders_domain.sql
+│   │           ├── V15__make_orders_total_legacy_nullable.sql
+│   │           ├── V16__create_product_images.sql
+│   │           ├── V17__create_cart_tables.sql
+│   │           └── V18__add_user_id_to_orders.sql
 │   └── test/
 │       └── java/com/edgareldy/springboottutorial/
 │           ├── controller/ (MockMvc tests)
 │           ├── service/ (Mockito unit tests)
-│           └── repository/ (@DataJpaTest / Testcontainers)
+│           ├── repository/ (@DataJpaTest / Testcontainers)
+│           └── integration/ (EcommerceIntegrationTest, OrderAuthorizationTest, SecurityAuthorizationTest)
 ├── docker-compose.yml
 ├── Dockerfile
 ├── .github/workflows/ci.yml
@@ -346,6 +549,8 @@ Includes `Category` and `Product`, given their direct link in the model.
 - [x] `Category`, `Product` entities with `@OneToMany`/`@ManyToOne` relation (`LAZY` loading)
 - [x] `CategoryRepository`, `ProductRepository` (Spring Data JPA) with derived queries (`findByCategoryId`) and one `@Query` using `JOIN FETCH`
 - [x] DTOs `CategoryRequest`/`CategoryResponse`, `ProductRequest`/`ProductResponse`
+- [x] `Product.unitPrice` uses `BigDecimal` (Java) backed by `NUMERIC(12,2)` (SQL, V13 migration) for exact monetary arithmetic
+- [x] `Product.description` (nullable `VARCHAR(500)`) and `Product.active` (boolean, default `true`, V13 migration)
 - [x] Corresponding MapStruct mappers
 - [x] `CategoryService`, `ProductService` interfaces (contracts) and their `CategoryServiceImpl`, `ProductServiceImpl` implementations in `service/impl`, annotated `@Service`, with `@Transactional` on writes
 - [x] Business rule: a category containing products cannot be deleted (`BusinessRuleException`)
@@ -364,8 +569,10 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 - **`CategoryResponse.products` is only populated by `GET /api/v1/categories/{id}`, never by the paginated list.** `CategoryRepository.findByIdWithProducts` (`LEFT JOIN FETCH`) backs the detail endpoint; the list endpoint's `CategoryMapper.toResponse` explicitly sets `products` to an empty list rather than touching the entity's lazy, unfetched collection, avoiding an N+1 across a full page of categories.
 - **Snake_case JSON via `@JsonProperty` per field, not a global Jackson naming strategy.** Keeps every Java field/record component camelCase (idiomatic, and MapStruct keeps matching DTO fields to entity fields by name automatically) while the public JSON contract is snake_case.
-- **Flyway migrations on this branch are numbered `V3`/`V4`, skipping `V2`.** `V2` is reserved for `feature/auth`'s `V2__init_users_and_roles.sql`, not present on this branch yet; Flyway version numbers must stay unique and ordered across the whole project regardless of merge order.
+- **Flyway migrations on this branch are numbered `V3`, `V4` and `V13`, skipping `V2` and `V5-V12`.** `V2` is reserved for `feature/auth`; `V5-V12` are reserved for branches from `feature/auth` through `feature/user-management` that appear further up the merge chain. `V13` adds `description`, `active` and migrates `unit_price` from `REAL` to `NUMERIC(12,2)` on the products table.
 - **`ProductServiceImpl.findAll` only falls back to a `Specification`-based query when `productName`/`minPrice`/`maxPrice` is supplied.** The plain and `categoryId`-only cases keep using the existing `@EntityGraph`-backed repository methods; the `Specification` path has no fetch join for `category`, an accepted N+1 risk kept simple rather than complicating `ProductSpecifications` with one, and scoped only to requests that actually use the new filters.
+- **`minPrice`/`maxPrice` query parameters and `unitPrice` throughout the stack use `BigDecimal`.** `ProductSpecifications.priceBetween`, `ProductService.findAll`, `ProductController.findAll` and all DTOs have been updated from `Float`/`float` to `BigDecimal` to prevent rounding at the HTTP deserialization boundary.
+- **`Product.active` is not writable from `ProductRequest`.** `ProductMapper.toEntity` and `updateEntityFromRequest` both ignore `active` to prevent a create/update call from accidentally clearing the flag. Activation and deactivation are managed separately.
 
 ## feature/customers
 
@@ -396,35 +603,47 @@ Includes `Category` and `Product`, given their direct link in the model.
 
 ## feature/orders
 
+### Model
+
+- `Order` entity: `@ManyToOne` to `Customer` and `Product` (both nullable for historical compatibility), `@OneToMany(cascade = ALL, orphanRemoval = true)` to `OrderItem`, `@Enumerated(EnumType.STRING) OrderStatus status` (default `PENDING`), `BigDecimal totalAmount`, `String orderNumber` (unique, generated as `ORD-` + 8-char UUID prefix on create).
+- `OrderItem` entity: product snapshot at order time (`productName`, `unitPrice` as `NUMERIC(12,2)`), `quantity`, `subtotal`; child of `Order` with `@ManyToOne(optional = false)` back-reference. Product snapshot decouples order history from future price changes.
+- `OrderStatus` enum: `PENDING`, `CONFIRMED`, `CANCELLED`.
+- Migration `V14__evolve_orders_domain.sql`: adds `order_number`, `status`, `total_amount` to `orders`; makes `customer_id`/`product_id` nullable; creates `order_items` table; backfills one `OrderItem` per historical order using the product snapshot; backfills `total_amount` from the legacy `total` column; generates `ORD-HIST-000001`-style order numbers for historical rows.
+- Migration `V15__make_orders_total_legacy_nullable.sql`: drops the `NOT NULL` constraint on the legacy `total DOUBLE PRECISION` column, which V14 stopped mapping in the `Order` entity. The column is kept for schema-level backward compatibility but is no longer written by Hibernate.
+- All monetary amounts are `BigDecimal` mapped to `NUMERIC(12,2)`. `totalAmount = unitPrice * quantity` computed in `OrderServiceImpl` using `BigDecimal.multiply`, never via floating-point arithmetic.
+
 ### Response shapes
 
-- `OrderResponse` (one order) embeds the customer's contact details (`OrderCustomerResponse`) and the full `ProductResponse`, on both the detail endpoint (`OrderRepository.findByIdWithDetails`, entity fetch join) and the paginated list (`OrderRepository.findAllProjected`, a flat JPQL constructor-expression projection extended with every column both DTOs need, still avoiding N+1 on a page of results).
-- `CustomerResponse` (`GET /api/v1/customers` and `GET /api/v1/customers/{id}`) carries the customer's orders: `products`, one line per order (`order_id`, `product_id`, `product_name`, `unit_price`, `quantity`, `total`), and `total`, the sum of those totals. On the paginated list the orders of every customer of the page are loaded with a single `OrderRepository.findAllProjectedByCustomerIds` query (an `IN` on the page's customer ids), not one query per customer, and no JPA relationship is added on `Customer`.
-- `GET /api/v1/orders` returns the same lines grouped by customer (`CustomerOrdersResponse`), paginated by customer via `OrderRepository.findCustomersWithOrders`.
-- `OrderController` returns `ResponseEntity<ApiResponse<T>>`; `OrderRequest`/`OrderResponse` fields exposed in JSON as snake_case via `@JsonProperty` (`customer_id`, `product_id`).
+- `OrderResponse` (one order) embeds `OrderCustomerResponse` and the full `ProductResponse`, plus `status` (String), `order_number`, `total_amount` (BigDecimal), and `items` (`List<OrderItemResponse>`). Two read paths: `findByIdWithDetails` (entity with `JOIN FETCH` on items, used for detail/create/update) and `findAllProjected` (17-field JPQL constructor-expression projection, used for the paginated list - no N+1).
+- `CustomerResponse` carries `products` (one `OrderedProductResponse` per order) and `total` (BigDecimal sum). Loaded with a single `findAllProjectedByCustomerIds` (`IN` on the page's customer ids) for both the list and the detail.
+- `GET /api/v1/orders` groups by customer (`CustomerOrdersResponse`), paginated via `findCustomersWithOrders`.
+- `OrderController` returns `ResponseEntity<ApiResponse<T>>`; snake_case JSON fields via `@JsonProperty`.
 
 ### Endpoints
 
 | Method | URL | Description |
 |---|---|---|
-| GET | `/api/v1/orders` | Orders grouped by customer: each customer once, with the products they ordered (quantity and total per order) and their overall total. Paginated by customer, filterable by `customerId`/`productId` |
-| GET | `/api/v1/orders/{id}` | Order detail |
-| POST | `/api/v1/orders` | Create an order (`total` computed automatically) |
-| PUT | `/api/v1/orders/{id}` | Update an order |
+| GET | `/api/v1/orders` | Orders grouped by customer (quantity and total per order, overall total). Paginated by customer, filterable by `customerId`/`productId` |
+| GET | `/api/v1/orders/{id}` | Order detail with items |
+| POST | `/api/v1/orders` | Create an order (`totalAmount` and `orderNumber` computed automatically) |
+| PUT | `/api/v1/orders/{id}` | Update an order (replaces items, recomputes total) |
 | DELETE | `/api/v1/orders/{id}` | Delete an order |
 | GET | `/api/v1/customers/{id}/orders` | Orders for a given customer |
 
 ### Tasks
 
-- [x] `Order` entity with `@ManyToOne` to `Customer` and `Product`
-- [x] `OrderRepository` with join queries (`@Query` with `JOIN`), DTO projection for lists
-- [x] DTOs `OrderRequest` (customerId, productId, quantity) / `OrderResponse` (`OrderCustomerResponse` + full `ProductResponse`), `CustomerOrdersResponse`/`OrderedProductResponse` for the grouped views
-- [x] `OrderMapper`
-- [x] `OrderService` interface and `OrderServiceImpl` implementation (in `service/impl`): computes `total = quantity * product.unitPrice`, checks that the customer and product exist
-- [x] `OrderCreatedEvent` application event published after creation, consumed by `OrderCreatedEventListener` (e.g. business logging, future email notification)
-- [x] `OrderController` returns `ResponseEntity<ApiResponse<T>>`
-- [x] `CustomerResponse` returns the customer's orders and their total on both the list and the detail (see Response shapes above)
-- [x] Unit tests (total computation, business rules) and integration tests
+- [x] `OrderStatus` enum (`PENDING`, `CONFIRMED`, `CANCELLED`)
+- [x] `OrderItem` entity with product snapshot (name + unit price at order time)
+- [x] `Order` entity evolved: `totalAmount` (BigDecimal), `orderNumber`, `status`, `items` (cascade + orphanRemoval)
+- [x] Migrations `V14` (multi-product schema + backfill) and `V15` (legacy `total` column nullable)
+- [x] `OrderItemResponse` DTO, `OrderItemMapper`
+- [x] `OrderResponse` updated with `status`, `total_amount`, `order_number`, `items`
+- [x] `OrderCreatedEvent` enriched with `totalAmount` and `orderNumber`
+- [x] `OrderRepository`: updated projections (17 fields), `findByIdWithDetails` with `JOIN FETCH` on items, `existsByCustomerId`, `existsByProductId`, `findByCustomerId`
+- [x] `OrderServiceImpl`: `create`/`update` compute BigDecimal subtotal, generate `orderNumber`, build `OrderItem` before save
+- [x] `OrderMapper`: `toResponse(Order)` with status enum-to-String expression; manual `toResponse(OrderProjection)` overload; `toOrderedProducts` helper; `OrderItemMapper` via `uses`
+- [x] `CustomerResponse` returns the customer's orders and their total on both the list and the detail
+- [x] Unit tests, repository tests (including `existsByCustomerId`, `existsByProductId`, `findByCustomerId`), controller tests, mapper tests
 
 ## feature/auth
 
@@ -573,7 +792,13 @@ Admin-facing user management: list, view, activate/deactivate accounts, assign r
 6. `feature/roles-permissions` (fine-grained RBAC) → Pull Request to `develop`
 7. `feature/token-management` (token lifecycle, async email, scheduled cleanup) → Pull Request to `develop`
 8. `feature/user-management` (admin user CRUD, activation/reset flows) → Pull Request to `develop`
-9. `develop` → `master` once everything is tested and validated
+9. `feature/product-images` (from `feature/products` HEAD — independent of the auth chain) — no PR, merged into `feature/integration` only
+10. `feature/shopping-cart` (from `feature/user-management`, merges `feature/orders`) — no PR, merged into next branch
+11. `feature/order-checkout` (from `feature/shopping-cart`) — no PR, merged into next branch
+12. `feature/order-notifications` (from `feature/order-checkout`) — no PR, merged into next branch
+13. `feature/order-authorization` (from `feature/order-notifications`) — no PR, merged into next branch
+14. `feature/integration` (from `feature/order-authorization`, merges `feature/product-images`) → **single Pull Request to `develop`** for the entire e-commerce chain
+15. `develop` → `master` once everything is tested and validated
 
 ## Code conventions
 
@@ -619,13 +844,165 @@ Admin-facing user management: list, view, activate/deactivate accounts, assign r
 - Local development tooling (Spring Boot DevTools)
 - Containerization (Docker, docker-compose)
 - Continuous integration (GitHub Actions)
+- File upload (`MultipartFile`, `FileStorageService`, disk storage with configurable path)
+- Persistent shopping cart (entity-backed cart tied to authenticated user)
+- Atomic checkout (multi-entity transactional write: cart drain + order creation)
+- Role-based data ownership (`@AuthenticationPrincipal`, users see only their own orders)
 
 ## How to follow this tutorial
 
 1. Clone the repository and check out `develop`
 2. Create/checkout the `feature/core-architecture` branch and follow its task checklist
-3. Continue with `feature/products`, `feature/customers`, `feature/orders`, `feature/auth`, `feature/roles-permissions`, `feature/token-management`, `feature/user-management` in that order
+3. Continue with `feature/products`, `feature/customers`, `feature/orders`, `feature/auth`, `feature/roles-permissions`, `feature/token-management`, `feature/user-management`, `feature/product-images`, `feature/shopping-cart`, `feature/order-checkout`, `feature/order-notifications`, `feature/order-authorization`, `feature/integration` in that order
 4. Open a Pull Request to `develop` at the end of each branch
 5. Copy `.env.example` to `.env` and fill in the required variables
 6. Run the project with `docker-compose up`, then open Swagger UI at `http://localhost:8080/swagger-ui.html`
 7. MailHog UI is available at `http://localhost:8025` to inspect outgoing emails in local dev
+
+## feature/product-images
+
+Adds image management to the product catalogue. Created from `feature/products` HEAD, independent of the main authentication/user chain.
+
+### Endpoints
+
+| Method | URL | Description |
+|---|---|---|
+| POST | `/api/v1/products/{id}/images` | Upload an image for a product (multipart/form-data, ROLE_ADMIN) |
+| DELETE | `/api/v1/products/{id}/images/{imageId}` | Delete a product image (ROLE_ADMIN) |
+
+### Tasks
+
+- [ ] `ProductImage` entity (`product_id`, `filename`, `url`, `sort_order`)
+- [ ] Flyway migration V15
+- [ ] `FileStorageService` interface + `LocalFileStorageService` impl (stores files under `${app.storage.upload-dir}`)
+- [ ] `StorageProperties` record (`@ConfigurationProperties(prefix = "app.storage")`, `uploadDir`, `maxFileSizeMb`)
+- [ ] `POST /api/v1/products/{id}/images`: receives `MultipartFile`, delegates to `FileStorageService`, persists `ProductImage`
+- [ ] `DELETE /api/v1/products/{id}/images/{imageId}`: deletes record and removes file from disk
+- [ ] `ProductResponse` gains `List<ProductImageResponse> images` (always populated)
+- [ ] Unit tests for `FileStorageService` (happy path, size limit, unsupported type)
+- [ ] MockMvc controller tests
+
+### Configuration notes
+
+- **Branch is independent of the auth chain** (`feature/auth` through `feature/user-management`). It is merged into `feature/integration` at the end, not cascaded through the main chain.
+- **`StorageProperties` is a `record` with `@ConfigurationProperties`**, consistent with `JwtProperties` from `feature/auth`.
+- **File type validation** rejects anything that is not `image/jpeg`, `image/png` or `image/webp`.
+
+## feature/shopping-cart
+
+Persistent shopping cart backed by JPA entities, one cart per authenticated user.
+
+### Endpoints
+
+| Method | URL | Description |
+|---|---|---|
+| GET | `/api/v1/cart` | Get the current user's cart (creates it if absent) |
+| POST | `/api/v1/cart/items` | Add a product to the cart |
+| PATCH | `/api/v1/cart/items/{itemId}` | Update item quantity |
+| DELETE | `/api/v1/cart/items/{itemId}` | Remove a single item |
+| DELETE | `/api/v1/cart` | Clear the entire cart |
+
+### Tasks
+
+- [ ] `Cart` entity (`user_id` FK → `app_users`, timestamps via `@CreatedDate`/`@LastModifiedDate`)
+- [ ] `CartItem` entity (`cart_id`, `product_id`, `quantity`)
+- [ ] Flyway migration V16
+- [ ] `CartService` interface + `CartServiceImpl`
+- [ ] All endpoints require ROLE_USER; user resolved via `@AuthenticationPrincipal UserDetails`
+- [ ] `CartResponse` DTO: `id`, `List<CartItemResponse> items`, `total` (sum computed server-side)
+- [ ] `AddCartItemRequest` / `UpdateCartItemRequest` DTOs with validation
+- [ ] Unit tests (Mockito) + MockMvc controller tests
+
+### Configuration notes
+
+- **Cart is created lazily** on first `GET /api/v1/cart` for a user who has none.
+- **`total` is computed by the service layer** from live product prices, never stored.
+- Branch starts from `feature/user-management` (needs `AppUser`) and merges `feature/orders` (needs `Order` schema context for checkout).
+
+## feature/order-checkout
+
+Atomic cart-to-order conversion: a single `POST /api/v1/orders` drains the cart and creates a fully populated `Order` with `OrderItem` lines.
+
+### Endpoints
+
+| Method | URL | Description |
+|---|---|---|
+| POST | `/api/v1/orders` | Checkout: convert cart to order (ROLE_USER) |
+| GET | `/api/v1/orders` | List the current user's orders, paginated |
+| GET | `/api/v1/orders/{id}` | Order detail with items |
+
+### Tasks
+
+- [ ] `OrderItem` entity (`order_id`, `product_id`, `quantity`, `unit_price` snapshot)
+- [ ] `Order` refactor: add `user_id`, `order_number` (UUID), `status` enum (PENDING/CONFIRMED/SHIPPED/DELIVERED/CANCELLED), `total_amount NUMERIC(12,2)`
+- [ ] Flyway migration V14 (new columns, `order_items` table, historical data migration)
+- [ ] `CheckoutService` or `OrderService.checkout(UserDetails)`: `@Transactional`, loads cart, creates `Order` + `OrderItem` lines (price snapshot), clears cart
+- [ ] `CheckoutRequest` DTO (optional `notes` field)
+- [ ] `OrderResponse` DTO: `id`, `orderNumber`, `status`, `totalAmount`, `List<OrderItemResponse> items`, `createdAt`
+- [ ] Service unit tests (atomic write, empty-cart 422, out-of-stock 422)
+- [ ] MockMvc controller tests
+
+### Configuration notes
+
+- **Price snapshot**: `OrderItem.unitPrice` captures `Product.unitPrice` at checkout time so future price changes do not alter historical orders.
+- **Empty cart returns 422** (`BusinessRuleException`), not 400.
+- **`order_number` is a UUID** generated by the service, never supplied by the client.
+
+## feature/order-notifications
+
+Sends an email to the user and to the admin when an order is placed, using the existing Spring Mail infrastructure (`JavaMailSender`, MailHog on dev).
+
+### Tasks
+
+- [ ] `NotificationProperties` record (`@ConfigurationProperties(prefix = "app.notifications")`, `adminEmail`)
+- [ ] `OrderEmailService` interface + `OrderEmailServiceImpl`: `sendOrderConfirmationToUser(Order)` and `sendOrderAlertToAdmin(Order)`, both `@Async("emailTaskExecutor")`
+- [ ] `OrderCreatedEventListener` updated to call `OrderEmailService` after commit (`@TransactionalEventListener(AFTER_COMMIT)`)
+- [ ] Email templates (plain text, inline in the service or as `src/main/resources/templates/*.txt`)
+- [ ] Unit tests (mock `JavaMailSender`, verify `MimeMessage` recipients)
+
+### Configuration notes
+
+- **Same async executor as `feature/token-management`** (`emailTaskExecutor` defined in `AsyncConfig`).
+- **`NotificationProperties.adminEmail`** is supplied via `APP_NOTIFICATION_ADMIN_EMAIL` env var; added to `.env.example`.
+
+## feature/order-authorization
+
+Restricts order visibility and status mutation by role.
+
+### Endpoints
+
+| Method | URL | Description |
+|---|---|---|
+| GET | `/api/v1/orders` | ROLE_USER sees only their own orders; ROLE_ADMIN sees all |
+| GET | `/api/v1/orders/{id}` | Returns 404 (not 403) if the order belongs to another user |
+| PATCH | `/api/v1/orders/{id}/status` | Update order status (ROLE_ADMIN only) |
+
+### Tasks
+
+- [ ] `SecurityConfig` rules: `GET /api/v1/orders/**` → authenticated; ownership enforced in service
+- [ ] `OrderService.findAll(UserDetails, Pageable)` and `findById(Long, UserDetails)`: admin bypasses ownership check, user gets 404 on others' orders
+- [ ] `PATCH /api/v1/orders/{id}/status` → `@PreAuthorize("hasRole('ADMIN')")`, body `OrderStatusUpdateRequest` with `@NotNull OrderStatus status`
+- [ ] `OrderStatusUpdateRequest` DTO
+- [ ] `@SpringBootTest` authorization tests: user isolation, admin override, status update access
+
+### Configuration notes
+
+- **404 instead of 403 on ownership mismatch**: returning 403 leaks the existence of the resource; a consistent 404 is safer.
+- **Status transitions are not validated** (any admin can set any status): validation logic can be added later without breaking the API.
+
+## feature/integration
+
+Final integration branch: merges `feature/product-images` into the main chain and validates the complete e-commerce flow end-to-end.
+
+### Tasks
+
+- [ ] Merge `feature/product-images` (resolve conflicts on `ProductResponse`, `ProductController`, `application.yml`)
+- [ ] `EcommerceIntegrationTest` (`@SpringBootTest` + Testcontainers): register, login, browse catalogue, upload image (admin), add items to cart, checkout, verify order, admin status update, user isolation (user A cannot see user B's order)
+- [ ] `docker-compose.yml` updated: volume `./uploads:/app/uploads`, env vars `APP_STORAGE_UPLOAD_DIR`, `APP_NOTIFICATION_ADMIN_EMAIL`
+- [ ] `.env.example` updated with all new variables
+- [ ] README updated with the full e-commerce endpoint table and configuration instructions
+
+### Configuration notes
+
+- **This is the only PR to `develop`** for the entire e-commerce extension chain (phases 3–8); the intermediate branches (`shopping-cart` through `order-authorization`) are merged feature-to-feature.
+- **`feature/product-images` is the only side branch** and is merged here rather than through the main chain.
