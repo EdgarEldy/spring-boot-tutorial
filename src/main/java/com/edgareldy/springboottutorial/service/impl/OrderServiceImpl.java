@@ -17,7 +17,6 @@ import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.mapper.OrderMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
-import com.edgareldy.springboottutorial.repository.CartItemRepository;
 import com.edgareldy.springboottutorial.repository.CartRepository;
 import com.edgareldy.springboottutorial.repository.CustomerRepository;
 import com.edgareldy.springboottutorial.repository.OrderProjection;
@@ -58,7 +57,6 @@ public class OrderServiceImpl implements OrderService {
     private final ApplicationEventPublisher eventPublisher;
     private final AppUserRepository appUserRepository;
     private final CartRepository cartRepository;
-    private final CartItemRepository cartItemRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -165,7 +163,7 @@ public class OrderServiceImpl implements OrderService {
         orderItems.forEach(item -> item.setOrder(order));
 
         Order saved = orderRepository.save(order);
-        cartItemRepository.deleteAllByCartId(cart.getId());
+        cart.getItems().clear();
 
         eventPublisher.publishEvent(new OrderCreatedEvent(
                 saved.getId(), null, null, saved.getQuantity(),
