@@ -28,7 +28,8 @@ public class OrderCreatedEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onOrderCreated(OrderCreatedEvent event) {
-        log.info("Order {} created for customer {} on product {}: quantity={}, total={}",
-                event.orderId(), event.customerId(), event.productId(), event.quantity(), event.total());
+        log.info("Order {} ({}) created for customer {} on product {}: quantity={}, total={}",
+                event.orderId(), event.orderNumber(), event.customerId(), event.productId(),
+                event.quantity(), event.totalAmount());
     }
 }

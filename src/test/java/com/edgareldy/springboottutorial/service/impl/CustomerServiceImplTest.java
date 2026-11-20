@@ -10,15 +10,17 @@ import static org.mockito.Mockito.when;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
 import com.edgareldy.springboottutorial.dto.customer.CustomerRequest;
 import com.edgareldy.springboottutorial.dto.customer.CustomerResponse;
+import com.edgareldy.springboottutorial.dto.order.OrderedProductResponse;
 import com.edgareldy.springboottutorial.entity.Customer;
+import com.edgareldy.springboottutorial.entity.OrderStatus;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
-import com.edgareldy.springboottutorial.dto.order.OrderedProductResponse;
 import com.edgareldy.springboottutorial.mapper.CustomerMapper;
 import com.edgareldy.springboottutorial.mapper.OrderMapper;
 import com.edgareldy.springboottutorial.repository.CustomerRepository;
 import com.edgareldy.springboottutorial.repository.OrderProjection;
 import com.edgareldy.springboottutorial.repository.OrderRepository;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,14 +69,15 @@ class CustomerServiceImplTest {
                 .id(1L).firstName("Ada").lastName("Lovelace").telephone("+1 202-555-0100")
                 .email("ada@example.com").address("1 Analytical Engine Way").build();
         customerResponse = new CustomerResponse(
-                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way", List.of(), 0.0);
+                1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com",
+                "1 Analytical Engine Way", List.of(), BigDecimal.ZERO);
     }
 
     @Test
     void _01_ShouldUsePlainFindAll_WhenNoSearchTermGiven() {
         Pageable pageable = PageRequest.of(0, 10);
         when(customerRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(customer), pageable, 1));
-        when(customerMapper.toResponseWithOrders(customer, List.of(), 0.0)).thenReturn(customerResponse);
+        when(customerMapper.toResponseWithOrders(customer, List.of(), BigDecimal.ZERO)).thenReturn(customerResponse);
 
         PageResponse<CustomerResponse> result = customerService.findAll(null, pageable);
 
@@ -87,7 +90,7 @@ class CustomerServiceImplTest {
         Pageable pageable = PageRequest.of(0, 10);
         when(customerRepository.search("lovelace", pageable))
                 .thenReturn(new PageImpl<>(List.of(customer), pageable, 1));
-        when(customerMapper.toResponseWithOrders(customer, List.of(), 0.0)).thenReturn(customerResponse);
+        when(customerMapper.toResponseWithOrders(customer, List.of(), BigDecimal.ZERO)).thenReturn(customerResponse);
 
         PageResponse<CustomerResponse> result = customerService.findAll("lovelace", pageable);
 
@@ -103,27 +106,29 @@ class CustomerServiceImplTest {
                 .email("grace@example.com").address("2 Compiler Street").build();
         OrderProjection adaKeyboard = new OrderProjection(
                 1L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
-                1L, "Keyboard", 19.99f, 1L, "Electronics", 1, 19.99);
+                1L, "Keyboard", new BigDecimal("19.99"), true, 1L, "Electronics",
+                1, new BigDecimal("19.99"), OrderStatus.PENDING, "ORD-TEST-001");
         OrderProjection adaDesk = new OrderProjection(
                 2L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
-                2L, "Desk", 0.1f, 1L, "Electronics", 2, 0.2);
+                2L, "Desk", new BigDecimal("0.10"), true, 1L, "Electronics",
+                2, new BigDecimal("0.20"), OrderStatus.PENDING, "ORD-TEST-002");
         List<OrderedProductResponse> adaLines = List.of(
-                new OrderedProductResponse(1L, 1L, "Keyboard", 19.99f, 1, 19.99),
-                new OrderedProductResponse(2L, 2L, "Desk", 0.1f, 2, 0.2));
+                new OrderedProductResponse(1L, 1L, "Keyboard", new BigDecimal("19.99"), 1, new BigDecimal("19.99")),
+                new OrderedProductResponse(2L, 2L, "Desk", new BigDecimal("0.10"), 2, new BigDecimal("0.20")));
         CustomerResponse adaResponse = new CustomerResponse(
                 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
-                adaLines, 20.19);
+                adaLines, new BigDecimal("20.19"));
         CustomerResponse graceResponse = new CustomerResponse(
-                2L, "Grace", "Hopper", "+1 202-555-0101", "grace@example.com", "2 Compiler Street", List.of(), 0.0);
+                2L, "Grace", "Hopper", "+1 202-555-0101", "grace@example.com", "2 Compiler Street",
+                List.of(), BigDecimal.ZERO);
         when(customerRepository.findAll(pageable))
                 .thenReturn(new PageImpl<>(List.of(customer, grace), pageable, 2));
         when(orderRepository.findAllProjectedByCustomerIds(List.of(1L, 2L), null))
                 .thenReturn(List.of(adaKeyboard, adaDesk));
         when(orderMapper.toOrderedProducts(List.of(adaKeyboard, adaDesk))).thenReturn(adaLines);
         when(orderMapper.toOrderedProducts(List.of())).thenReturn(List.of());
-        // 19.99 + 0.2 is 20.189999999999998 in double arithmetic: the service must round it to 20.19.
-        when(customerMapper.toResponseWithOrders(customer, adaLines, 20.19)).thenReturn(adaResponse);
-        when(customerMapper.toResponseWithOrders(grace, List.of(), 0.0)).thenReturn(graceResponse);
+        when(customerMapper.toResponseWithOrders(customer, adaLines, new BigDecimal("20.19"))).thenReturn(adaResponse);
+        when(customerMapper.toResponseWithOrders(grace, List.of(), BigDecimal.ZERO)).thenReturn(graceResponse);
 
         PageResponse<CustomerResponse> result = customerService.findAll(null, pageable);
 
@@ -145,16 +150,17 @@ class CustomerServiceImplTest {
     void _03_ShouldReturnResponseWithOrderedProducts_WhenCustomerFound() {
         OrderProjection keyboardOrder = new OrderProjection(
                 7L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
-                1L, "Keyboard", 79.99f, 1L, "Electronics", 2, 159.98);
-        List<OrderedProductResponse> lines =
-                List.of(new OrderedProductResponse(7L, 1L, "Keyboard", 79.99f, 2, 159.98));
+                1L, "Keyboard", new BigDecimal("79.99"), true, 1L, "Electronics",
+                2, new BigDecimal("159.98"), OrderStatus.PENDING, "ORD-TEST-007");
+        List<OrderedProductResponse> lines = List.of(
+                new OrderedProductResponse(7L, 1L, "Keyboard", new BigDecimal("79.99"), 2, new BigDecimal("159.98")));
         CustomerResponse detailResponse = new CustomerResponse(
                 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
-                lines, 159.98);
+                lines, new BigDecimal("159.98"));
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(orderRepository.findAllProjectedByCustomerIds(List.of(1L), null)).thenReturn(List.of(keyboardOrder));
         when(orderMapper.toOrderedProducts(List.of(keyboardOrder))).thenReturn(lines);
-        when(customerMapper.toResponseWithOrders(customer, lines, 159.98)).thenReturn(detailResponse);
+        when(customerMapper.toResponseWithOrders(customer, lines, new BigDecimal("159.98"))).thenReturn(detailResponse);
 
         assertThat(customerService.findById(1L)).isEqualTo(detailResponse);
     }
@@ -208,10 +214,11 @@ class CustomerServiceImplTest {
         CustomerRequest request = new CustomerRequest(
                 "Ada", "Byron", "+1 202-555-0100", "ada@example.com", "2 Analytical Engine Way");
         CustomerResponse updatedResponse = new CustomerResponse(
-                1L, "Ada", "Byron", "+1 202-555-0100", "ada@example.com", "2 Analytical Engine Way", List.of(), 0.0);
+                1L, "Ada", "Byron", "+1 202-555-0100", "ada@example.com",
+                "2 Analytical Engine Way", List.of(), BigDecimal.ZERO);
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(customerRepository.save(customer)).thenReturn(customer);
-        when(customerMapper.toResponseWithOrders(customer, List.of(), 0.0)).thenReturn(updatedResponse);
+        when(customerMapper.toResponseWithOrders(customer, List.of(), BigDecimal.ZERO)).thenReturn(updatedResponse);
 
         assertThat(customerService.update(1L, request)).isEqualTo(updatedResponse);
 
@@ -224,10 +231,11 @@ class CustomerServiceImplTest {
         CustomerRequest request = new CustomerRequest(
                 "Ada", "Byron", "+1 202-555-0100", "ADA@EXAMPLE.COM", "2 Analytical Engine Way");
         CustomerResponse updatedResponse = new CustomerResponse(
-                1L, "Ada", "Byron", "+1 202-555-0100", "ADA@EXAMPLE.COM", "2 Analytical Engine Way", List.of(), 0.0);
+                1L, "Ada", "Byron", "+1 202-555-0100", "ADA@EXAMPLE.COM",
+                "2 Analytical Engine Way", List.of(), BigDecimal.ZERO);
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(customerRepository.save(customer)).thenReturn(customer);
-        when(customerMapper.toResponseWithOrders(customer, List.of(), 0.0)).thenReturn(updatedResponse);
+        when(customerMapper.toResponseWithOrders(customer, List.of(), BigDecimal.ZERO)).thenReturn(updatedResponse);
 
         assertThat(customerService.update(1L, request)).isEqualTo(updatedResponse);
 
