@@ -23,8 +23,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT new com.edgareldy.springboottutorial.repository.OrderProjection("
             + "o.id, "
             + "c.id, c.firstName, c.lastName, c.telephone, c.email, c.address, "
-            + "p.id, p.productName, p.unitPrice, cat.id, cat.categoryName, "
-            + "o.quantity, o.total) "
+            + "p.id, p.productName, p.unitPrice, p.active, cat.id, cat.categoryName, "
+            + "o.quantity, o.totalAmount, o.status, o.orderNumber) "
             + "FROM Order o JOIN o.customer c JOIN o.product p JOIN p.category cat "
             + "WHERE (:customerId IS NULL OR c.id = :customerId) "
             + "AND (:productId IS NULL OR p.id = :productId)")
@@ -47,14 +47,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     /**
      * Loads, in a single query, every order row of the given customers (the
-     * ones of the current page), so grouping never costs one query per
-     * customer.
+     * ones of the current page), so grouping never costs one query per customer.
      */
     @Query("SELECT new com.edgareldy.springboottutorial.repository.OrderProjection("
             + "o.id, "
             + "c.id, c.firstName, c.lastName, c.telephone, c.email, c.address, "
-            + "p.id, p.productName, p.unitPrice, cat.id, cat.categoryName, "
-            + "o.quantity, o.total) "
+            + "p.id, p.productName, p.unitPrice, p.active, cat.id, cat.categoryName, "
+            + "o.quantity, o.totalAmount, o.status, o.orderNumber) "
             + "FROM Order o JOIN o.customer c JOIN o.product p JOIN p.category cat "
             + "WHERE c.id IN :customerIds "
             + "AND (:productId IS NULL OR p.id = :productId) "
@@ -62,8 +61,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<OrderProjection> findAllProjectedByCustomerIds(@Param("customerIds") List<Long> customerIds,
                                                         @Param("productId") Long productId);
 
-    @Query("SELECT o FROM Order o JOIN FETCH o.customer JOIN FETCH o.product p JOIN FETCH p.category WHERE o.id = :id")
+    @Query("SELECT o FROM Order o "
+            + "JOIN FETCH o.customer "
+            + "JOIN FETCH o.product p JOIN FETCH p.category "
+            + "LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.product "
+            + "WHERE o.id = :id")
     Optional<Order> findByIdWithDetails(@Param("id") Long id);
+
+    Page<Order> findByCustomerId(Long customerId, Pageable pageable);
 
     boolean existsByCustomerId(Long customerId);
 

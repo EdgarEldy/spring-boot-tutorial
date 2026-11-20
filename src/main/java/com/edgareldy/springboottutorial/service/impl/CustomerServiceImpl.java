@@ -12,6 +12,7 @@ import com.edgareldy.springboottutorial.repository.CustomerRepository;
 import com.edgareldy.springboottutorial.repository.OrderProjection;
 import com.edgareldy.springboottutorial.repository.OrderRepository;
 import com.edgareldy.springboottutorial.service.CustomerService;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -107,10 +108,10 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     private CustomerResponse toResponseWithOrders(Customer customer, List<OrderProjection> orders) {
-        double total = orders.stream().mapToDouble(OrderProjection::total).sum();
-        // Rounded to cents: summing doubles can leave noise such as 3949.9700000000003.
-        return customerMapper.toResponseWithOrders(
-                customer, orderMapper.toOrderedProducts(orders), Math.round(total * 100) / 100.0);
+        BigDecimal total = orders.stream()
+                .map(OrderProjection::totalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return customerMapper.toResponseWithOrders(customer, orderMapper.toOrderedProducts(orders), total);
     }
 
     private Customer getCustomerOrThrow(Long id) {
