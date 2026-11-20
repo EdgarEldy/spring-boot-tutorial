@@ -174,6 +174,13 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> findAllByCustomerId(Long customerId, Pageable pageable) {
+        return PageResponse.from(
+                orderRepository.findAllProjected(customerId, null, pageable).map(orderMapper::toResponse));
+    }
+
+    @Override
     @Transactional
     public OrderResponse create(OrderRequest request) {
         Customer customer = getCustomerOrThrow(request.customerId());
