@@ -307,6 +307,54 @@ collection:
             send: true
             store: true
           rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/products/1/images"
+        name: Upload product image
+        meta:
+          id: req_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4
+          created: 1794207000000
+          modified: 1794207000000
+          isPrivate: false
+          description: "Upload a product image (multipart/form-data). Requires ROLE_ADMIN."
+          sortKey: -1788200450000
+        method: POST
+        body:
+          mimeType: multipart/form-data
+          params:
+            - name: file
+              value: ""
+              type: file
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/products/1/images/1"
+        name: Delete product image
+        meta:
+          id: req_b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5
+          created: 1794207000000
+          modified: 1794207000000
+          isPrivate: false
+          description: "Delete a product image by id. Requires ROLE_ADMIN."
+          sortKey: -1788200425000
+        method: DELETE
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
       - url: "{{ baseUrl }}/api/v1/products/1"
         name: Get product by id
         meta:
@@ -1006,6 +1054,36 @@ collection:
             send: true
             store: true
           rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/orders/1/status"
+        name: Update order status (ADMIN)
+        meta:
+          id: req_c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6
+          created: 1794207000000
+          modified: 1794207000000
+          isPrivate: false
+          description: "Update the lifecycle status of an order. Allowed transitions: PENDING->CONFIRMED/CANCELLED, CONFIRMED->CANCELLED. Requires ROLE_ADMIN."
+          sortKey: -1788200350000
+        method: PATCH
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "status": "CONFIRMED"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
   - name: Customers
     meta:
       id: fld_b97520db2abf41dc8a6309997fec9413
@@ -1255,6 +1333,138 @@ collection:
           isPrivate: false
           description: ""
           sortKey: -1788200200000
+        method: DELETE
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Cart
+    meta:
+      id: fld_d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1
+      created: 1794207000000
+      modified: 1794207000000
+      sortKey: -1788200700011
+      description: ""
+    children:
+      - url: "{{ baseUrl }}/api/v1/cart"
+        name: Get cart
+        meta:
+          id: req_e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
+          created: 1794207000000
+          modified: 1794207000000
+          isPrivate: false
+          description: "View the current user's cart. Returns an empty cart if none exists yet. Requires ROLE_USER."
+          sortKey: -1788200000000
+        method: GET
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/cart/items"
+        name: Add item to cart
+        meta:
+          id: req_f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3
+          created: 1794207000000
+          modified: 1794207000000
+          isPrivate: false
+          description: "Add a product to the cart. Creates the cart on first call. Increments quantity if the product is already in the cart. Requires ROLE_USER."
+          sortKey: -1788200100000
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "product_id": 1,
+              "quantity": 2
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/cart/items/1"
+        name: Update item quantity
+        meta:
+          id: req_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d5
+          created: 1794207000000
+          modified: 1794207000000
+          isPrivate: false
+          description: "Update the quantity of a cart item. Requires ROLE_USER and ownership."
+          sortKey: -1788200200000
+        method: PATCH
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "quantity": 3
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/cart/items/1"
+        name: Remove item from cart
+        meta:
+          id: req_b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e6
+          created: 1794207000000
+          modified: 1794207000000
+          isPrivate: false
+          description: "Remove a single item from the cart. Requires ROLE_USER and ownership."
+          sortKey: -1788200300000
+        method: DELETE
+        authentication:
+          type: bearer
+          token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/cart"
+        name: Clear cart
+        meta:
+          id: req_c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f7
+          created: 1794207000000
+          modified: 1794207000000
+          isPrivate: false
+          description: "Remove all items from the cart. The cart row itself is kept. Requires ROLE_USER."
+          sortKey: -1788200400000
         method: DELETE
         authentication:
           type: bearer

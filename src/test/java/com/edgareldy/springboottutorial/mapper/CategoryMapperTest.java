@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.edgareldy.springboottutorial.dto.category.CategoryResponse;
 import com.edgareldy.springboottutorial.entity.Category;
 import com.edgareldy.springboottutorial.entity.Product;
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +31,7 @@ class CategoryMapperTest {
 
     private Category categoryWithProducts() {
         Category category = Category.builder().id(1L).categoryName("Electronics").build();
-        Product keyboard = Product.builder().id(10L).category(category).productName("Keyboard").unitPrice(79.99f).build();
+        Product keyboard = Product.builder().id(10L).category(category).productName("Keyboard").unitPrice(new BigDecimal("79.99")).build();
         category.setProducts(List.of(keyboard));
         return category;
     }

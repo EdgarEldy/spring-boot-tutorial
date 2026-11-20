@@ -1,19 +1,24 @@
 package com.edgareldy.springboottutorial.service.impl;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.edgareldy.springboottutorial.dto.product.ProductRequest;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
+import java.util.List;
 import com.edgareldy.springboottutorial.entity.Category;
 import com.edgareldy.springboottutorial.entity.Product;
+import com.edgareldy.springboottutorial.mapper.ProductImageMapper;
 import com.edgareldy.springboottutorial.mapper.ProductMapper;
 import com.edgareldy.springboottutorial.repository.CategoryRepository;
 import com.edgareldy.springboottutorial.repository.OrderRepository;
+import com.edgareldy.springboottutorial.repository.ProductImageRepository;
 import com.edgareldy.springboottutorial.repository.ProductRepository;
 import com.edgareldy.springboottutorial.service.ProductService;
+import java.math.BigDecimal;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -77,6 +82,12 @@ class ProductServiceCacheTest {
     @MockitoBean
     private OrderRepository orderRepository;
 
+    @MockitoBean
+    private ProductImageRepository productImageRepository;
+
+    @MockitoBean
+    private ProductImageMapper productImageMapper;
+
     @BeforeEach
     void clearCache() {
         Cache products = cacheManager.getCache("products");
@@ -87,15 +98,17 @@ class ProductServiceCacheTest {
 
     private static Product sampleProduct() {
         Category category = Category.builder().id(1L).categoryName("Electronics").build();
-        return Product.builder().id(1L).category(category).productName("Keyboard").unitPrice(79.99f).build();
+        return Product.builder().id(1L).category(category).productName("Keyboard")
+                .unitPrice(new BigDecimal("79.99")).build();
     }
 
     @Test
     void _01_ShouldHitRepositoryOnce_WhenFindByIdCalledTwice() {
         Product product = sampleProduct();
-        ProductResponse response = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
+        ProductResponse response =
+                new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics", List.of());
         when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(product));
-        when(productMapper.toResponse(product)).thenReturn(response);
+        when(productMapper.toDetailResponse(eq(product), any())).thenReturn(response);
 
         productService.findById(1L);
         productService.findById(1L);
@@ -106,15 +119,17 @@ class ProductServiceCacheTest {
     @Test
     void _02_ShouldEvictCache_WhenProductUpdated() {
         Product product = sampleProduct();
-        ProductResponse response = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
+        ProductResponse response =
+                new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics", List.of());
         when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(product));
+        when(productMapper.toDetailResponse(eq(product), any())).thenReturn(response);
         when(productMapper.toResponse(product)).thenReturn(response);
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(product.getCategory()));
         when(productRepository.save(any(Product.class))).thenReturn(product);
 
         productService.findById(1L);
-        productService.update(1L, new ProductRequest(1L, "Mechanical Keyboard", 99.99f));
+        productService.update(1L, new ProductRequest(1L, "Mechanical Keyboard", null, new BigDecimal("99.99")));
         productService.findById(1L);
 
         verify(productRepository, times(2)).findByIdWithCategory(1L);
@@ -123,9 +138,10 @@ class ProductServiceCacheTest {
     @Test
     void _03_ShouldEvictCache_WhenProductDeleted() {
         Product product = sampleProduct();
-        ProductResponse response = new ProductResponse(1L, "Keyboard", 79.99f, 1L, "Electronics");
+        ProductResponse response =
+                new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics", List.of());
         when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(product));
-        when(productMapper.toResponse(product)).thenReturn(response);
+        when(productMapper.toDetailResponse(eq(product), any())).thenReturn(response);
         when(productRepository.existsById(1L)).thenReturn(true);
         when(orderRepository.existsByProductId(1L)).thenReturn(false);
 

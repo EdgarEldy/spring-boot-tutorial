@@ -1,6 +1,7 @@
 package com.edgareldy.springboottutorial.repository.specification;
 
 import com.edgareldy.springboottutorial.entity.Product;
+import java.math.BigDecimal;
 import org.springframework.data.jpa.domain.Specification;
 
 /**
@@ -34,7 +35,7 @@ public final class ProductSpecifications {
                         criteriaBuilder.lower(root.get("productName")), "%" + productName.toLowerCase() + "%");
     }
 
-    public static Specification<Product> priceBetween(Float minPrice, Float maxPrice) {
+    public static Specification<Product> priceBetween(BigDecimal minPrice, BigDecimal maxPrice) {
         return (root, query, criteriaBuilder) -> {
             if (minPrice != null && maxPrice != null) {
                 return criteriaBuilder.between(root.get("unitPrice"), minPrice, maxPrice);

@@ -2,11 +2,11 @@ package com.edgareldy.springboottutorial.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -14,16 +14,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
-import com.edgareldy.springboottutorial.dto.order.CustomerOrdersResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderCustomerResponse;
+import com.edgareldy.springboottutorial.dto.order.OrderItemResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderRequest;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
-import com.edgareldy.springboottutorial.dto.order.OrderedProductResponse;
+import com.edgareldy.springboottutorial.dto.order.OrderStatusUpdateRequest;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
+import com.edgareldy.springboottutorial.entity.OrderStatus;
+import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.security.JwtService;
 import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
 import com.edgareldy.springboottutorial.service.OrderService;
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,15 +34,15 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * MockMvc integration tests for {@link OrderController}, with
- * {@link OrderService} mocked. Security filters are disabled: this
- * endpoint's authorization rules (authenticated GET, ADMIN-only writes) are
- * SecurityConfig's responsibility, not this controller's, and are covered
- * separately.
+ * {@link OrderService} mocked. Security filters are disabled: authorization
+ * rules (authenticated GET, ADMIN-only writes, ownership checks) are covered
+ * by {@code OrderAuthorizationTest} with a real security stack.
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
  * Author : edgar.muhamyangabo
@@ -59,9 +62,7 @@ class OrderControllerTest {
     @MockitoBean
     private OrderService orderService;
 
-    // Unused directly: JwtAuthFilter (a Filter, auto-included by @WebMvcTest
-    // regardless of addFilters) needs these to construct, even though the
-    // filter chain never actually runs in this test.
+    // Unused directly: JwtAuthFilter needs these to construct even when addFilters=false.
     @MockitoBean
     private JwtService jwtService;
 
@@ -77,49 +78,62 @@ class OrderControllerTest {
     }
 
     private static OrderResponse sampleResponse() {
-        ProductResponse product = new ProductResponse(1L, "Keyboard", 50.0f, 1L, "Electronics");
-        return new OrderResponse(1L, sampleCustomer(), product, 2, 100.0);
+        ProductResponse product = new ProductResponse(
+                1L, "Keyboard", new BigDecimal("50.00"), null, true, 1L, "Electronics", List.of());
+        return new OrderResponse(1L, sampleCustomer(), product, 2,
+                "ORD-TEST-0001", "PENDING", new BigDecimal("100.00"), List.of());
     }
 
-    private static PageResponse<CustomerOrdersResponse> sampleGroupedPage() {
-        CustomerOrdersResponse entry = new CustomerOrdersResponse(
-                sampleCustomer(),
-                List.of(new OrderedProductResponse(1L, 1L, "Keyboard", 50.0f, 2, 100.0),
-                        new OrderedProductResponse(2L, 2L, "Desk", 200.0f, 1, 200.0)),
-                300.0);
-        return new PageResponse<>(List.of(entry), 0, 20, 1, 1);
+    private static OrderResponse sampleCheckoutResponse() {
+        OrderItemResponse item = new OrderItemResponse(
+                1L, 1L, "Keyboard", new BigDecimal("50.00"), 2, new BigDecimal("100.00"));
+        return new OrderResponse(1L, null, null, 2,
+                "ORD-TEST-0001", "PENDING", new BigDecimal("100.00"), List.of(item));
+    }
+
+    private static PageResponse<OrderResponse> samplePage() {
+        return new PageResponse<>(List.of(sampleResponse()), 0, 20, 1, 1);
     }
 
     @Test
-    void _01_ShouldReturnOrdersGroupedByCustomer_WhenNoFilterGiven() throws Exception {
-        when(orderService.findAllGroupedByCustomer(isNull(), isNull(), any())).thenReturn(sampleGroupedPage());
+    @WithMockUser(username = "alice", roles = "USER")
+    void _01_ShouldReturnUserOrders_WhenAuthenticatedAsUser() throws Exception {
+        when(orderService.findAll(eq("alice"), eq(false), any())).thenReturn(samplePage());
 
         mockMvc.perform(get("/api/v1/orders"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].customer.first_name").value("Ada"))
-                .andExpect(jsonPath("$.data.content[0].customer.products").doesNotExist())
-                .andExpect(jsonPath("$.data.content[0].products.length()").value(2))
-                .andExpect(jsonPath("$.data.content[0].products[0].order_id").value(1))
-                .andExpect(jsonPath("$.data.content[0].products[0].product_name").value("Keyboard"))
-                .andExpect(jsonPath("$.data.content[0].products[0].unit_price").value(50.0))
-                .andExpect(jsonPath("$.data.content[0].products[0].quantity").value(2))
-                .andExpect(jsonPath("$.data.content[0].products[0].total").value(100.0))
-                .andExpect(jsonPath("$.data.content[0].products[1].product_id").value(2))
-                .andExpect(jsonPath("$.data.content[0].total").value(300.0));
+                .andExpect(jsonPath("$.data.content[0].order_number").value("ORD-TEST-0001"))
+                .andExpect(jsonPath("$.data.totalElements").value(1));
     }
 
     @Test
-    void _02_ShouldForwardFilters_WhenCustomerAndProductGiven() throws Exception {
-        when(orderService.findAllGroupedByCustomer(eq(1L), eq(1L), any())).thenReturn(sampleGroupedPage());
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void _02_ShouldReturnAllOrders_WhenAuthenticatedAsAdmin() throws Exception {
+        when(orderService.findAll(eq("admin"), eq(true), any())).thenReturn(samplePage());
 
-        mockMvc.perform(get("/api/v1/orders").param("customerId", "1").param("productId", "1"))
+        mockMvc.perform(get("/api/v1/orders"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].customer.first_name").value("Ada"));
+                .andExpect(jsonPath("$.data.content[0].order_number").value("ORD-TEST-0001"));
     }
 
     @Test
-    void _03_ShouldReturn404_WhenOrderMissing() throws Exception {
-        when(orderService.findById(99L)).thenThrow(new ResourceNotFoundException("Order not found with id 99"));
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void _03_ShouldReturn200_WhenOrderFound() throws Exception {
+        when(orderService.findById(eq(1L), eq("admin"), eq(true))).thenReturn(sampleResponse());
+
+        mockMvc.perform(get("/api/v1/orders/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.order_number").value("ORD-TEST-0001"))
+                .andExpect(jsonPath("$.data.status").value("PENDING"))
+                .andExpect(jsonPath("$.data.total_amount").value(100.00))
+                .andExpect(jsonPath("$.data.items").isArray());
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void _03b_ShouldReturn404_WhenOrderMissing() throws Exception {
+        when(orderService.findById(eq(99L), eq("alice"), eq(false)))
+                .thenThrow(new ResourceNotFoundException("Order not found with id 99"));
 
         mockMvc.perform(get("/api/v1/orders/99"))
                 .andExpect(status().isNotFound())
@@ -127,36 +141,42 @@ class OrderControllerTest {
     }
 
     @Test
-    void _04_ShouldReturn201_WhenCreateRequestValid() throws Exception {
-        when(orderService.create(any())).thenReturn(sampleResponse());
+    @WithMockUser(username = "alice", roles = "USER")
+    void _04_ShouldReturn201_WhenCheckoutSucceeds() throws Exception {
+        when(orderService.checkout("alice")).thenReturn(sampleCheckoutResponse());
 
-        mockMvc.perform(post("/api/v1/orders")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new OrderRequest(1L, 1L, 2))))
+        mockMvc.perform(post("/api/v1/orders"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.product.product_name").value("Keyboard"));
+                .andExpect(jsonPath("$.data.order_number").value("ORD-TEST-0001"))
+                .andExpect(jsonPath("$.data.status").value("PENDING"))
+                .andExpect(jsonPath("$.data.total_amount").value(100.00))
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items[0].product_name").value("Keyboard"));
     }
 
     @Test
-    void _05_ShouldReturn400_WhenQuantityNotPositive() throws Exception {
-        mockMvc.perform(post("/api/v1/orders")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new OrderRequest(1L, 1L, 0))))
-                .andExpect(status().isBadRequest())
+    @WithMockUser(username = "alice", roles = "USER")
+    void _05_ShouldReturn422_WhenCartIsEmpty() throws Exception {
+        when(orderService.checkout("alice")).thenThrow(new BusinessRuleException("Cart is empty"));
+
+        mockMvc.perform(post("/api/v1/orders"))
+                .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
-    void _06_ShouldReturn404_WhenCustomerMissingOnCreate() throws Exception {
-        when(orderService.create(any())).thenThrow(new ResourceNotFoundException("Customer not found with id 99"));
+    @WithMockUser(username = "alice", roles = "USER")
+    void _06_ShouldReturn404_WhenCartNotFound() throws Exception {
+        when(orderService.checkout("alice"))
+                .thenThrow(new ResourceNotFoundException("Cart not found for user: alice"));
 
-        mockMvc.perform(post("/api/v1/orders")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new OrderRequest(99L, 1L, 2))))
-                .andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/v1/orders"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void _07_ShouldReturn200_WhenUpdateRequestValid() throws Exception {
         when(orderService.update(eq(1L), any())).thenReturn(sampleResponse());
 
@@ -168,6 +188,7 @@ class OrderControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void _08_ShouldReturn404_WhenOrderMissingOnUpdate() throws Exception {
         when(orderService.update(eq(99L), any()))
                 .thenThrow(new ResourceNotFoundException("Order not found with id 99"));
@@ -179,6 +200,7 @@ class OrderControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void _09_ShouldReturn200_WhenDeleteSucceeds() throws Exception {
         mockMvc.perform(delete("/api/v1/orders/1"))
                 .andExpect(status().isOk())
@@ -186,12 +208,42 @@ class OrderControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void _10_ShouldReturn404_WhenOrderMissingOnDelete() throws Exception {
         doThrow(new ResourceNotFoundException("Order not found with id 99"))
                 .when(orderService).delete(99L);
 
         mockMvc.perform(delete("/api/v1/orders/99"))
                 .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void _11_ShouldReturn200_WhenStatusUpdateSucceeds() throws Exception {
+        OrderResponse confirmed = new OrderResponse(1L, sampleCustomer(), null, 2,
+                "ORD-TEST-0001", "CONFIRMED", new BigDecimal("100.00"), List.of());
+        when(orderService.updateStatus(eq(1L), eq(OrderStatus.CONFIRMED))).thenReturn(confirmed);
+
+        mockMvc.perform(patch("/api/v1/orders/1/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new OrderStatusUpdateRequest(OrderStatus.CONFIRMED))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("CONFIRMED"));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void _12_ShouldReturn422_WhenStatusTransitionIsInvalid() throws Exception {
+        when(orderService.updateStatus(eq(1L), eq(OrderStatus.PENDING)))
+                .thenThrow(new BusinessRuleException("Transition from CONFIRMED to PENDING is not allowed"));
+
+        mockMvc.perform(patch("/api/v1/orders/1/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new OrderStatusUpdateRequest(OrderStatus.PENDING))))
+                .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.success").value(false));
     }
 }

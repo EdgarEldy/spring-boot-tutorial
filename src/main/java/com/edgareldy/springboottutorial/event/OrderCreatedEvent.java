@@ -1,5 +1,7 @@
 package com.edgareldy.springboottutorial.event;
 
+import java.math.BigDecimal;
+
 /**
  * Application event published by {@code OrderServiceImpl} once a new order
  * has been persisted. A plain record, not a subclass of
@@ -18,6 +20,7 @@ public record OrderCreatedEvent(
         Long customerId,
         Long productId,
         int quantity,
-        double total
+        BigDecimal totalAmount,
+        String orderNumber
 ) {
 }
