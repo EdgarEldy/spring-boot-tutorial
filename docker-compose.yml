@@ -35,8 +35,12 @@ services:
       MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
       MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-false}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+      APP_NOTIFICATION_ADMIN_EMAIL: ${APP_NOTIFICATION_ADMIN_EMAIL:-admin@example.com}
+      APP_STORAGE_UPLOAD_DIR: ${APP_STORAGE_UPLOAD_DIR:-./uploads/products}
     ports:
       - "8080:8080"
+    volumes:
+      - ./uploads:/app/uploads
 
   mailhog:
     image: mailhog/mailhog
