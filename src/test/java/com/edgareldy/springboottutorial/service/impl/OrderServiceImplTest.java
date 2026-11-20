@@ -91,7 +91,7 @@ class OrderServiceImplTest {
         OrderCustomerResponse customerResponse = new OrderCustomerResponse(
                 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way");
         ProductResponse productResponse = new ProductResponse(
-                1L, "Keyboard", new BigDecimal("50.00"), null, true, 1L, "Electronics");
+                1L, "Keyboard", new BigDecimal("50.00"), null, true, 1L, "Electronics", List.of());
         orderResponse = new OrderResponse(1L, customerResponse, productResponse, 2,
                 "ORD-HIST-000001", "PENDING", new BigDecimal("100.00"), List.of());
     }
