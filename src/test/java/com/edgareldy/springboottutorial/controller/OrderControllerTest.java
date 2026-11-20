@@ -103,7 +103,7 @@ class OrderControllerTest {
         mockMvc.perform(get("/api/v1/orders"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content[0].order_number").value("ORD-TEST-0001"))
-                .andExpect(jsonPath("$.data.total_elements").value(1));
+                .andExpect(jsonPath("$.data.totalElements").value(1));
     }
 
     @Test
