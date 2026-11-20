@@ -79,7 +79,7 @@ class OrderControllerTest {
 
     private static OrderResponse sampleResponse() {
         ProductResponse product = new ProductResponse(
-                1L, "Keyboard", new BigDecimal("50.00"), null, true, 1L, "Electronics");
+                1L, "Keyboard", new BigDecimal("50.00"), null, true, 1L, "Electronics", List.of());
         return new OrderResponse(1L, sampleCustomer(), product, 2,
                 "ORD-TEST-0001", "PENDING", new BigDecimal("100.00"), List.of());
     }
