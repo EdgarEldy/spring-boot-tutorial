@@ -26,7 +26,6 @@ import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.mapper.OrderMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
-import com.edgareldy.springboottutorial.repository.CartItemRepository;
 import com.edgareldy.springboottutorial.repository.CartRepository;
 import com.edgareldy.springboottutorial.repository.CustomerRepository;
 import com.edgareldy.springboottutorial.repository.OrderProjection;
@@ -68,7 +67,6 @@ class OrderServiceImplTest {
     @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private AppUserRepository appUserRepository;
     @Mock private CartRepository cartRepository;
-    @Mock private CartItemRepository cartItemRepository;
 
     @InjectMocks
     private OrderServiceImpl orderService;
@@ -422,7 +420,7 @@ class OrderServiceImplTest {
         assertThat(built.getItems()).hasSize(2);
         assertThat(built.getTotalAmount()).isEqualByComparingTo(new BigDecimal("189.97")); // 2*79.99 + 1*29.99
         assertThat(built.getQuantity()).isEqualTo(3); // 2 + 1
-        verify(cartItemRepository).deleteAllByCartId(5L);
+        assertThat(cart.getItems()).isEmpty();
         verify(eventPublisher).publishEvent(any(OrderCreatedEvent.class));
     }
 
@@ -438,7 +436,6 @@ class OrderServiceImplTest {
                 .hasMessageContaining("empty");
 
         verify(orderRepository, never()).save(any());
-        verify(cartItemRepository, never()).deleteAllByCartId(any());
     }
 
     @Test
