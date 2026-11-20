@@ -205,7 +205,7 @@ class CustomerControllerTest {
                 "ORD-TEST-0001", "PENDING", new BigDecimal("100.00"), List.of());
         PageResponse<OrderResponse> page = new PageResponse<>(List.of(order), 0, 20, 1, 1);
         when(customerService.findById(1L)).thenReturn(savedResponse());
-        when(orderService.findAll(eq(1L), isNull(), any())).thenReturn(page);
+        when(orderService.findAllByCustomerId(eq(1L), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/customers/1/orders"))
                 .andExpect(status().isOk())
