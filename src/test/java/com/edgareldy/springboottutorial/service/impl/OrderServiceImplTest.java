@@ -159,6 +159,45 @@ class OrderServiceImplTest {
     }
 
     @Test
+    void _01d_ShouldReturnAllOrders_WhenAdminPathRequested() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(orderRepository.findAll(pageable))
+                .thenReturn(new PageImpl<>(List.of(order), pageable, 1));
+        when(orderMapper.toResponse(order)).thenReturn(orderResponse);
+
+        PageResponse<OrderResponse> result = orderService.findAll("admin", true, pageable);
+
+        assertThat(result.content()).containsExactly(orderResponse);
+        verify(appUserRepository, never()).findByUsername(any());
+    }
+
+    @Test
+    void _01e_ShouldReturnUserOrders_WhenUserPathRequested() {
+        Pageable pageable = PageRequest.of(0, 10);
+        AppUser alice = AppUser.builder().id(42L).username("alice").build();
+        when(appUserRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
+        when(orderRepository.findByUserId(42L, pageable))
+                .thenReturn(new PageImpl<>(List.of(order), pageable, 1));
+        when(orderMapper.toResponse(order)).thenReturn(orderResponse);
+
+        PageResponse<OrderResponse> result = orderService.findAll("alice", false, pageable);
+
+        assertThat(result.content()).containsExactly(orderResponse);
+        verify(orderRepository, never()).findAll(pageable);
+    }
+
+    @Test
+    void _01f_ShouldReturnEmptyPage_WhenUserNotFound() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(appUserRepository.findByUsername("unknown")).thenReturn(Optional.empty());
+
+        PageResponse<OrderResponse> result = orderService.findAll("unknown", false, pageable);
+
+        assertThat(result.content()).isEmpty();
+        assertThat(result.totalElements()).isEqualTo(0);
+    }
+
+    @Test
     void _02_ShouldReturnResponse_WhenOrderFound() {
         when(orderRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(order));
         when(orderMapper.toResponse(order)).thenReturn(orderResponse);
@@ -171,6 +210,60 @@ class OrderServiceImplTest {
         when(orderRepository.findByIdWithDetails(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderService.findById(99L, "admin", true))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void _03b_ShouldReturnOrder_WhenUserOwnsIt() {
+        AppUser alice = AppUser.builder().id(42L).username("alice").build();
+        when(appUserRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
+        when(orderRepository.findByIdAndUserId(1L, 42L)).thenReturn(Optional.of(order));
+        when(orderMapper.toResponse(order)).thenReturn(orderResponse);
+
+        assertThat(orderService.findById(1L, "alice", false)).isEqualTo(orderResponse);
+    }
+
+    @Test
+    void _03c_ShouldThrowNotFound_WhenUserDoesNotOwnOrder() {
+        AppUser alice = AppUser.builder().id(42L).username("alice").build();
+        when(appUserRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
+        when(orderRepository.findByIdAndUserId(99L, 42L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.findById(99L, "alice", false))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void _updateStatus_01_ShouldConfirmOrder_WhenTransitionValid() {
+        Order pendingOrder = Order.builder().id(1L).status(OrderStatus.PENDING)
+                .orderNumber("ORD-TEST-001").totalAmount(new BigDecimal("100.00")).build();
+        when(orderRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(pendingOrder));
+        when(orderRepository.save(pendingOrder)).thenReturn(pendingOrder);
+        when(orderMapper.toResponse(pendingOrder)).thenReturn(orderResponse);
+
+        orderService.updateStatus(1L, OrderStatus.CONFIRMED);
+
+        assertThat(pendingOrder.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+        verify(orderRepository).save(pendingOrder);
+    }
+
+    @Test
+    void _updateStatus_02_ShouldThrowBusinessRuleException_WhenTransitionInvalid() {
+        Order confirmedOrder = Order.builder().id(1L).status(OrderStatus.CONFIRMED)
+                .orderNumber("ORD-TEST-001").totalAmount(new BigDecimal("100.00")).build();
+        when(orderRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(confirmedOrder));
+
+        assertThatThrownBy(() -> orderService.updateStatus(1L, OrderStatus.PENDING))
+                .isInstanceOf(BusinessRuleException.class);
+
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void _updateStatus_03_ShouldThrowNotFound_WhenOrderMissing() {
+        when(orderRepository.findByIdWithDetails(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.updateStatus(99L, OrderStatus.CONFIRMED))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
