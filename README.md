@@ -18,6 +18,7 @@ Repository: https://github.com/EdgarEldy/spring-boot-tutorial
 - [Spring AOP](#spring-aop)
 - [feature/core-architecture](#featurecore-architecture)
 - [feature/products](#featureproducts)
+- [feature/product-images](#featureproduct-images)
 - [feature/customers](#featurecustomers)
 - [feature/orders](#featureorders)
 - [feature/auth](#featureauth)
@@ -372,6 +373,61 @@ Includes `Category` and `Product`, given their direct link in the model.
 - **`ProductServiceImpl.findAll` only falls back to a `Specification`-based query when `productName`/`minPrice`/`maxPrice` is supplied.** The plain and `categoryId`-only cases keep using the existing `@EntityGraph`-backed repository methods; the `Specification` path has no fetch join for `category`, an accepted N+1 risk kept simple rather than complicating `ProductSpecifications` with one, and scoped only to requests that actually use the new filters.
 - **`minPrice`/`maxPrice` query parameters and `unitPrice` throughout the stack use `BigDecimal`.** `ProductSpecifications.priceBetween`, `ProductService.findAll`, `ProductController.findAll` and all DTOs have been updated from `Float`/`float` to `BigDecimal` to prevent rounding at the HTTP deserialization boundary.
 - **`Product.active` is not writable from `ProductRequest`.** `ProductMapper.toEntity` and `updateEntityFromRequest` both ignore `active` to prevent a create/update call from accidentally clearing the flag. Activation and deactivation are managed separately.
+
+## feature/product-images
+
+Adds image upload and management for products. Branches from `feature/products` and is
+independent of `feature/orders`. Introduces a local file storage abstraction that can be
+replaced by S3 or any other backend by swapping the `FileStorageService` implementation.
+
+### Endpoints
+
+| Method | URL | Description |
+|---|---|---|
+| POST | `/api/v1/products/{id}/images` | Upload an image for a product (multipart/form-data) |
+| DELETE | `/api/v1/products/{id}/images/{imageId}` | Remove an image from a product |
+
+`GET /api/v1/products/{id}` now includes an `images` array in the response (empty on the
+paginated list, populated on the detail endpoint).
+
+### Tasks
+
+- [x] Migration `V16__create_product_images.sql`: `product_images` table with `is_primary`
+  partial unique index (`WHERE is_primary = TRUE`), `ON DELETE CASCADE` to products
+- [x] `ProductImage` entity with `@ManyToOne(LAZY)` to `Product`, JPA auditing
+- [x] `StorageProperties` (`@ConfigurationProperties(prefix = "app.storage")`) and `StorageConfig`
+- [x] `FileStorageService` interface + `LocalFileStorageService` implementation
+  (UUID filenames, extension and MIME type validation, size limit, path traversal guard)
+- [x] `ProductImageRepository` with `findByProductIdOrderByDisplayOrderAsc` and `findByProductIdAndPrimaryTrue`
+- [x] `ProductImageResponse` DTO (snake_case JSON via `@JsonProperty`)
+- [x] `ProductImageMapper`
+- [x] `ProductImageService` interface + `ProductImageServiceImpl`: upload, primary-flag swap, ownership check on delete
+- [x] `ProductServiceImpl.findById` updated to load images and delegate to `ProductMapper.toDetailResponse`
+- [x] `ProductResponse` gains `List<ProductImageResponse> images` (empty on list, populated on detail)
+- [x] `ProductController` gains `POST /{id}/images` and `DELETE /{id}/images/{imageId}` endpoints
+- [x] Tests: `ProductImageServiceImplTest`, `LocalFileStorageServiceTest`, image endpoint tests in `ProductControllerTest`
+
+### Configuration notes
+
+- **`app.storage.upload-dir`** defaults to `./uploads/products` (overridable via `APP_STORAGE_UPLOAD_DIR`).
+  In a Docker deployment, mount a persistent volume at that path so uploaded files survive container restarts.
+- **`app.storage.max-file-size-mb`** is set to 5. Accepted formats: `jpg`, `jpeg`, `png`, `webp`.
+- **`ProductResponse.images` is populated only on `GET /api/v1/products/{id}`.** The paginated list
+  (`findAll`) uses `ProductMapper.toResponse`, which always returns an empty list, keeping list
+  requests free of an N+1 on `product_images`. The detail endpoint loads images via
+  `ProductImageRepository.findByProductIdOrderByDisplayOrderAsc` and passes the list to
+  `ProductMapper.toDetailResponse`.
+- **`findById` result is cached (`@Cacheable("products")`) including the image list.** A cache eviction
+  on `update`/`delete` ensures stale image data does not linger, but adding or removing an image does
+  not evict the product cache. The product detail will serve the cached (stale) image list until the
+  cache entry expires (TTL from `CacheConfig`). This is an accepted simplification for this tutorial.
+- **`boolean primary` on `ProductImage` (column `is_primary`).** Lombok generates `isPrimary()`
+  as the getter (JavaBeans convention), which MapStruct maps as property `primary`, matching the
+  record component name in `ProductImageResponse`. Naming the field `isPrimary` would have caused a
+  mismatch and an unmapped-property warning.
+- **Migration is `V16`, not `V15`.** `V14` and `V15` are reserved for `feature/orders` (this branch
+  does not depend on `feature/orders`). Using `V16` avoids a Flyway conflict when both branches
+  merge into an integration branch.
 
 ## feature/customers
 

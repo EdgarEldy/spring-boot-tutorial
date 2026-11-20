@@ -1,19 +1,23 @@
 package com.edgareldy.springboottutorial.service.impl;
 
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
+import com.edgareldy.springboottutorial.dto.product.ProductImageResponse;
 import com.edgareldy.springboottutorial.dto.product.ProductRequest;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
 import com.edgareldy.springboottutorial.entity.Category;
 import com.edgareldy.springboottutorial.entity.Product;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
+import com.edgareldy.springboottutorial.mapper.ProductImageMapper;
 import com.edgareldy.springboottutorial.mapper.ProductMapper;
 import com.edgareldy.springboottutorial.repository.CategoryRepository;
 import com.edgareldy.springboottutorial.repository.OrderRepository;
+import com.edgareldy.springboottutorial.repository.ProductImageRepository;
 import com.edgareldy.springboottutorial.repository.ProductRepository;
 import com.edgareldy.springboottutorial.repository.specification.ProductSpecifications;
 import com.edgareldy.springboottutorial.service.ProductService;
 import java.math.BigDecimal;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -50,6 +54,8 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
     private final OrderRepository orderRepository;
+    private final ProductImageRepository productImageRepository;
+    private final ProductImageMapper productImageMapper;
 
     @Override
     public PageResponse<ProductResponse> findAll(
@@ -78,7 +84,12 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponse findById(Long id) {
         Product product = productRepository.findByIdWithCategory(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + id));
-        return productMapper.toResponse(product);
+        List<ProductImageResponse> images = productImageRepository
+                .findByProductIdOrderByDisplayOrderAsc(id)
+                .stream()
+                .map(productImageMapper::toResponse)
+                .toList();
+        return productMapper.toDetailResponse(product, images);
     }
 
     @Override

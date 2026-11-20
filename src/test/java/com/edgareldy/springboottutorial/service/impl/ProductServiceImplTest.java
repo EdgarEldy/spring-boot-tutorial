@@ -3,6 +3,7 @@ package com.edgareldy.springboottutorial.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -15,9 +16,11 @@ import com.edgareldy.springboottutorial.entity.Category;
 import com.edgareldy.springboottutorial.entity.Product;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
+import com.edgareldy.springboottutorial.mapper.ProductImageMapper;
 import com.edgareldy.springboottutorial.mapper.ProductMapper;
 import com.edgareldy.springboottutorial.repository.CategoryRepository;
 import com.edgareldy.springboottutorial.repository.OrderRepository;
+import com.edgareldy.springboottutorial.repository.ProductImageRepository;
 import com.edgareldy.springboottutorial.repository.ProductRepository;
 import java.math.BigDecimal;
 import java.util.List;
@@ -57,6 +60,12 @@ class ProductServiceImplTest {
     @Mock
     private OrderRepository orderRepository;
 
+    @Mock
+    private ProductImageRepository productImageRepository;
+
+    @Mock
+    private ProductImageMapper productImageMapper;
+
     @InjectMocks
     private ProductServiceImpl productService;
 
@@ -69,7 +78,7 @@ class ProductServiceImplTest {
         category = Category.builder().id(1L).categoryName("Electronics").build();
         product = Product.builder().id(1L).category(category).productName("Keyboard")
                 .unitPrice(new BigDecimal("79.99")).active(true).build();
-        productResponse = new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics");
+        productResponse = new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics", List.of());
     }
 
     @Test
@@ -114,7 +123,7 @@ class ProductServiceImplTest {
     @Test
     void _04_ShouldReturnResponse_WhenProductFound() {
         when(productRepository.findByIdWithCategory(1L)).thenReturn(Optional.of(product));
-        when(productMapper.toResponse(product)).thenReturn(productResponse);
+        when(productMapper.toDetailResponse(eq(product), anyList())).thenReturn(productResponse);
 
         assertThat(productService.findById(1L)).isEqualTo(productResponse);
     }
@@ -153,7 +162,7 @@ class ProductServiceImplTest {
     void _08_ShouldResolveCategoryAndSave_WhenUpdatingProduct() {
         ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", null, new BigDecimal("99.99"));
         ProductResponse updatedResponse =
-                new ProductResponse(1L, "Mechanical Keyboard", new BigDecimal("99.99"), null, true, 1L, "Electronics");
+                new ProductResponse(1L, "Mechanical Keyboard", new BigDecimal("99.99"), null, true, 1L, "Electronics", List.of());
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(productRepository.save(product)).thenReturn(product);

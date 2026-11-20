@@ -92,7 +92,7 @@ class CategoryControllerTest {
 
     @Test
     void _03_ShouldIncludeProducts_WhenFindingCategoryById() throws Exception {
-        ProductResponse keyboard = new ProductResponse(10L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics");
+        ProductResponse keyboard = new ProductResponse(10L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics", List.of());
         when(categoryService.findById(1L))
                 .thenReturn(new CategoryResponse(1L, "Electronics", null, null, List.of(keyboard)));
 

@@ -14,11 +14,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.edgareldy.springboottutorial.dto.common.PageResponse;
+import com.edgareldy.springboottutorial.dto.product.ProductImageResponse;
 import com.edgareldy.springboottutorial.dto.product.ProductRequest;
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
+import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.security.JwtService;
 import com.edgareldy.springboottutorial.service.BlacklistedTokenService;
+import com.edgareldy.springboottutorial.service.ProductImageService;
 import com.edgareldy.springboottutorial.service.ProductService;
 import java.math.BigDecimal;
 import java.util.List;
@@ -26,11 +29,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 
 /**
  * MockMvc integration tests for {@link ProductController}, with
@@ -69,10 +75,13 @@ class ProductControllerTest {
     @MockitoBean
     private BlacklistedTokenService blacklistedTokenService;
 
+    @MockitoBean
+    private ProductImageService productImageService;
+
     @Test
     void _01_ShouldPassNullCategoryId_WhenNoFilterGiven() throws Exception {
         ProductResponse product =
-                new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics");
+                new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics", List.of());
         PageResponse<ProductResponse> page = new PageResponse<>(List.of(product), 0, 20, 1, 1);
         when(productService.findAll(isNull(), isNull(), isNull(), isNull(), any())).thenReturn(page);
 
@@ -84,7 +93,7 @@ class ProductControllerTest {
     @Test
     void _02_ShouldForwardCategoryFilter_WhenCategoryIdGiven() throws Exception {
         ProductResponse product =
-                new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics");
+                new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics", List.of());
         PageResponse<ProductResponse> page = new PageResponse<>(List.of(product), 0, 20, 1, 1);
         when(productService.findAll(eq(1L), isNull(), isNull(), isNull(), any())).thenReturn(page);
 
@@ -96,7 +105,7 @@ class ProductControllerTest {
     @Test
     void _03_ShouldForwardNameAndPriceFilters_WhenAdvancedFiltersGiven() throws Exception {
         ProductResponse product =
-                new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics");
+                new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics", List.of());
         PageResponse<ProductResponse> page = new PageResponse<>(List.of(product), 0, 20, 1, 1);
         when(productService.findAll(isNull(), eq("key"), eq(new BigDecimal("50")), eq(new BigDecimal("100")), any()))
                 .thenReturn(page);
@@ -122,7 +131,7 @@ class ProductControllerTest {
     void _05_ShouldReturn201_WhenCreateRequestValid() throws Exception {
         ProductRequest request = new ProductRequest(1L, "Keyboard", null, new BigDecimal("79.99"));
         when(productService.create(any()))
-                .thenReturn(new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics"));
+                .thenReturn(new ProductResponse(1L, "Keyboard", new BigDecimal("79.99"), null, true, 1L, "Electronics", List.of()));
 
         mockMvc.perform(post("/api/v1/products")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -158,7 +167,7 @@ class ProductControllerTest {
         ProductRequest request = new ProductRequest(1L, "Mechanical Keyboard", null, new BigDecimal("99.99"));
         when(productService.update(eq(1L), any()))
                 .thenReturn(new ProductResponse(
-                        1L, "Mechanical Keyboard", new BigDecimal("99.99"), null, true, 1L, "Electronics"));
+                        1L, "Mechanical Keyboard", new BigDecimal("99.99"), null, true, 1L, "Electronics", List.of()));
 
         mockMvc.perform(put("/api/v1/products/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -212,10 +221,68 @@ class ProductControllerTest {
     @Test
     void _13_ShouldSerializeActiveFalse_WhenProductIsInactive() throws Exception {
         when(productService.findById(2L))
-                .thenReturn(new ProductResponse(2L, "Legacy Keyboard", new BigDecimal("49.99"), "Discontinued model", false, 1L, "Electronics"));
+                .thenReturn(new ProductResponse(2L, "Legacy Keyboard", new BigDecimal("49.99"), "Discontinued model", false, 1L, "Electronics", List.of()));
 
         mockMvc.perform(get("/api/v1/products/2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.active").value(false));
+    }
+
+    @Test
+    void _14_ShouldReturn201_WhenImageUploaded() throws Exception {
+        ProductImageResponse imageResponse = new ProductImageResponse(1L, "/uploads/products/uuid.jpg", null, true, 0);
+        when(productImageService.addImage(eq(1L), any(), any(), eq(true))).thenReturn(imageResponse);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "photo.jpg", MediaType.IMAGE_JPEG_VALUE, "jpg-bytes".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/products/1/images")
+                        .file(file)
+                        .param("isPrimary", "true"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.is_primary").value(true));
+    }
+
+    @Test
+    void _15_ShouldReturn200_WhenImageDeleted() throws Exception {
+        mockMvc.perform(delete("/api/v1/products/1/images/10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void _16_ShouldReturn404_WhenProductNotFoundOnAddImage() throws Exception {
+        when(productImageService.addImage(eq(99L), any(), any(), eq(false)))
+                .thenThrow(new ResourceNotFoundException("Product not found with id 99"));
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "photo.jpg", MediaType.IMAGE_JPEG_VALUE, "jpg-bytes".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/products/99/images").file(file))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void _17_ShouldReturn422_WhenImageFileInvalidOnAdd() throws Exception {
+        when(productImageService.addImage(eq(1L), any(), any(), eq(false)))
+                .thenThrow(new BusinessRuleException("File type not allowed"));
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "photo.jpg", MediaType.IMAGE_JPEG_VALUE, "jpg-bytes".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/products/1/images").file(file))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void _18_ShouldReturn404_WhenImageNotFoundOnDelete() throws Exception {
+        doThrow(new ResourceNotFoundException("Image not found with id 99"))
+                .when(productImageService).deleteImage(1L, 99L);
+
+        mockMvc.perform(delete("/api/v1/products/1/images/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false));
     }
 }
