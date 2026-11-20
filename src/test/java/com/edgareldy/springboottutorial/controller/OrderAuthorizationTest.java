@@ -108,7 +108,7 @@ class OrderAuthorizationTest {
     void _01_UserA_CanSeeOnlyOwnOrders() throws Exception {
         mockMvc.perform(get("/api/v1/orders").header("Authorization", "Bearer " + tokenUserA))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.total_elements").value(1))
+                .andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.content[0].order_number").value("ORD-AUTH-TEST-A"));
     }
 
@@ -123,7 +123,7 @@ class OrderAuthorizationTest {
     void _03_Admin_CanSeeAllOrders() throws Exception {
         mockMvc.perform(get("/api/v1/orders").header("Authorization", "Bearer " + tokenAdmin))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.total_elements",
+                .andExpect(jsonPath("$.data.totalElements",
                         Matchers.greaterThanOrEqualTo(2)));
     }
 
