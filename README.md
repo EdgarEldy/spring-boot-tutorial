@@ -25,6 +25,11 @@ Repository: https://github.com/EdgarEldy/spring-boot-tutorial
 - [feature/roles-permissions](#featureroles-permissions)
 - [feature/token-management](#featuretoken-management)
 - [feature/user-management](#featureuser-management)
+- [feature/shopping-cart](#featureshopping-cart)
+- [feature/order-checkout](#featureorder-checkout)
+- [feature/order-notifications](#featureorder-notifications)
+- [feature/order-authorization](#featureorder-authorization)
+- [feature/integration](#featureintegration)
 - [Order of work](#order-of-work)
 - [Code conventions](#code-conventions)
 - [Concepts covered](#concepts-covered)
@@ -842,20 +847,90 @@ Only a `ROLE_ADMIN` may change an order's status. Allowed transitions:
 - [x] `OrderControllerTest` updated (12 cases including `updateStatus` happy/error paths)
 - [x] `OrderAuthorizationTest` (8 cases: ownership, admin access, status transitions, 401)
 
+## feature/integration
+
+Final integration branch combining `feature/order-authorization` (the main chain)
+and `feature/product-images` (independent image management branch).
+
+### Purpose
+
+The goal of this branch is to verify that the two independent e-commerce lines
+compile and test together cleanly before they are merged into `develop`.
+
+### Merge conflicts resolved
+
+| File | Conflict | Resolution |
+|---|---|---|
+| `application.yml` | `app.notifications` block vs `app.storage` block | Both sections kept under the same `app:` root |
+| `.env.example` | `APP_NOTIFICATION_ADMIN_EMAIL` vs `APP_STORAGE_UPLOAD_DIR` | Both variables kept |
+| `ProductServiceImpl.java` | `OrderRepository` (delete guard) vs `ProductImageRepository`/`ProductImageMapper` (image loading) | All three dependencies kept |
+| `ProductControllerTest.java` | Different `@MockitoBean` sets | All four mocks kept: `JwtService`, `UserDetailsService`, `BlacklistedTokenService`, `ProductImageService` |
+| `ProductServiceCacheTest.java` | `OrderRepository` mock vs `ProductImageRepository`/`ProductImageMapper` mocks | All three mocks kept |
+| `ProductServiceImplTest.java` | `OrderRepository` mock vs image mocks | All three mocks kept |
+
+### Bugs fixed during integration
+
+**`OrderServiceImpl.checkout()` did not clear the cart after checkout.** Root cause:
+`cartItemRepository.deleteAllByCartId(cart.getId())` was called while the `Cart` entity
+was managed in the Hibernate persistence context with its `items` collection still populated.
+`Cart.items` has `cascade = CascadeType.ALL, orphanRemoval = true`: at flush time, the
+`cascade PERSIST` from the managed Cart re-inserted the rows that the repository delete
+had just removed. Fixed by replacing the repository call with `cart.getItems().clear()`,
+which uses the orphan-removal mechanism correctly and avoids the cascade conflict.
+
+**Three test classes used the 7-argument `ProductResponse` constructor** after the merge
+introduced an 8th field (`images`): `CustomerControllerTest`, `OrderControllerTest`,
+`OrderServiceImplTest`. Fixed by adding `List.of()` as the 8th argument in each class.
+
+**`OrderMapper.toResponse(OrderProjection)` used the same 7-argument constructor.**
+Fixed by passing `List.of()` for the `images` field (projections carry no image data).
+
+### End-to-end test
+
+`EcommerceIntegrationTest` covers the full buyer flow with a real PostgreSQL database
+(Testcontainers) and the real security filter chain:
+
+1. Public catalogue visible without authentication
+2. Add a product to the cart
+3. View cart, extract cart item id
+4. Update item quantity
+5. Checkout - order created (`PENDING`), cart emptied; item name, quantity, and total asserted
+6. Verify cart is empty after checkout
+7. User sees their own order in the list
+8. User can read their own order detail (status = `PENDING`)
+9. Admin promotes order to `CONFIRMED`
+10. User sees the updated status
+11. A different user gets 404 on the first user's order
+
+### Tasks
+
+- [x] Create branch from `feature/order-authorization`
+- [x] Merge `feature/product-images`, resolve 6 conflicts
+- [x] Fix `OrderMapper.toResponse(OrderProjection)`: add missing 8th `images` arg
+- [x] Fix `CustomerControllerTest`, `OrderControllerTest`, `OrderServiceImplTest`: add missing 8th `images` arg
+- [x] Fix `OrderServiceImpl.checkout()`: replace `cartItemRepository.deleteAllByCartId` with `cart.getItems().clear()`
+- [x] Add `APP_NOTIFICATION_ADMIN_EMAIL` and `APP_STORAGE_UPLOAD_DIR` to `docker-compose.yml`; add uploads volume
+- [x] Add `EcommerceIntegrationTest` (11-step end-to-end scenario)
+- [x] Code review (no blocking findings)
+- [x] 454/454 tests green
+
 ## Order of work
 
 1. `feature/core-architecture` → Pull Request to `develop`
 2. `feature/products` (depends on `core-architecture`) → Pull Request to `develop`
-3. `feature/customers` → Pull Request to `develop`
-4. `feature/orders` (depends on `products` and `customers`) → Pull Request to `develop`
-5. `feature/auth` (secures everything) → Pull Request to `develop`
-6. `feature/roles-permissions` (fine-grained RBAC) → Pull Request to `develop`
-7. `feature/token-management` (token lifecycle, async email, scheduled cleanup) → Pull Request to `develop`
-8. `feature/user-management` (admin user CRUD, activation/reset flows) → Pull Request to `develop`
-9. `feature/shopping-cart` (persistent cart per user) → Pull Request to `develop`
-10. `feature/order-checkout` (cart to order atomic conversion) → Pull Request to `develop`
-11. `feature/order-notifications` (post-commit email notifications) → Pull Request to `develop`
-12. `develop` → `master` once everything is tested and validated
+3. `feature/product-images` (depends on `products`) → merged via `feature/integration`
+4. `feature/customers` → Pull Request to `develop`
+5. `feature/orders` (depends on `products` and `customers`) → Pull Request to `develop`
+6. `feature/auth` (secures everything) → Pull Request to `develop`
+7. `feature/roles-permissions` (fine-grained RBAC) → Pull Request to `develop`
+8. `feature/token-management` (token lifecycle, async email, scheduled cleanup) → Pull Request to `develop`
+9. `feature/user-management` (admin user CRUD, activation/reset flows) → Pull Request to `develop`
+10. `feature/shopping-cart` (persistent cart per user) → builds on `user-management`
+11. `feature/order-checkout` (cart to order atomic conversion) → builds on `shopping-cart`
+12. `feature/order-notifications` (post-commit email notifications) → builds on `order-checkout`
+13. `feature/order-authorization` (role-aware access control, status lifecycle) → builds on `order-notifications`
+14. `feature/integration` (merge `order-authorization` + `product-images`, e2e test) → Pull Request to `develop`
+15. `develop` → `master` once everything is tested and validated
 
 ## Code conventions
 
