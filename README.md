@@ -58,6 +58,8 @@ Repository: https://github.com/EdgarEldy/spring-boot-tutorial
 
 ## Data model
 
+Base model (branches `feature/core-architecture` through `feature/orders`):
+
 ```
 categories (id, category_name)
     │ 1
@@ -73,6 +75,8 @@ orders (id, customer_id, product_id, quantity, total)
     │ 1
 customers (id, first_name, last_name, telephone, email, address)
 ```
+
+The e-commerce extension (branches `feature/auth` through `feature/integration`) adds `app_users`, `roles`, `permissions`, token tables, `product_images`, `carts`, `cart_items`, and replaces the single-line order model with an `order_items` snapshot table.
 
 ### Column details
 
@@ -102,15 +106,18 @@ customers (id, first_name, last_name, telephone, email, address)
 | email | VARCHAR(255) | NOT NULL, UNIQUE, valid email format |
 | address | VARCHAR(255) | NOT NULL |
 
-**orders** (extended in `feature/orders` and `feature/order-checkout`)
+**orders** (extended in `feature/orders`, `feature/order-checkout`, and `feature/order-authorization`)
 | Column | Type | Constraints |
 |---|---|---|
 | id | BIGINT | PK, auto-increment |
-| customer_id | BIGINT | FK → customers.id, nullable after e-commerce refactor (kept for history) |
-| user_id | BIGINT | FK → app_users.id, NOT NULL — added in V14; ties each order to its authenticated owner |
-| order_number | VARCHAR(36) | NOT NULL UNIQUE — UUID generated at creation |
-| status | VARCHAR(20) | NOT NULL DEFAULT 'PENDING' — PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED |
-| total_amount | NUMERIC(12,2) | NOT NULL — sum of all OrderItem lines |
+| customer_id | BIGINT | FK → customers.id, nullable - legacy CRUD orders only |
+| product_id | BIGINT | FK → products.id, nullable - legacy CRUD orders only |
+| quantity | INT | nullable - legacy CRUD orders only |
+| total | NUMERIC(12,2) | nullable - legacy column, made nullable in V15 after backfill |
+| order_number | VARCHAR(36) | NOT NULL UNIQUE — UUID generated at creation, added in V14 |
+| status | VARCHAR(20) | NOT NULL DEFAULT 'PENDING' — PENDING, CONFIRMED, CANCELLED; added in V14 |
+| total_amount | NUMERIC(12,2) | NOT NULL — sum of all OrderItem lines; added in V14 |
+| user_id | BIGINT | FK → app_users.id, nullable — added in V18; set only for checkout orders; legacy CRUD orders have no user_id |
 
 **order_items** (added in V14)
 | Column | Type | Constraints |
@@ -121,28 +128,91 @@ customers (id, first_name, last_name, telephone, email, address)
 | quantity | INT | NOT NULL, > 0 |
 | unit_price | NUMERIC(12,2) | NOT NULL — snapshot at order time |
 
-**product_images** (added in V15)
+**product_images** (added in V16)
 | Column | Type | Constraints |
 |---|---|---|
 | id | BIGINT | PK, auto-increment |
 | product_id | BIGINT | FK → products.id, NOT NULL |
 | filename | VARCHAR(255) | NOT NULL |
 | url | VARCHAR(512) | NOT NULL |
-| sort_order | INT | NOT NULL DEFAULT 0 |
+| is_primary | BOOLEAN | NOT NULL DEFAULT FALSE — partial unique index enforces at most one primary per product |
 
-**cart** (added in V16)
+**carts** (added in V17)
 | Column | Type | Constraints |
 |---|---|---|
 | id | BIGINT | PK, auto-increment |
-| user_id | BIGINT | FK → app_users.id, NOT NULL UNIQUE |
+| user_id | BIGINT | FK → app_users.id, NOT NULL UNIQUE — one cart per user |
 
-**cart_items** (added in V16)
+**cart_items** (added in V17)
 | Column | Type | Constraints |
 |---|---|---|
 | id | BIGINT | PK, auto-increment |
-| cart_id | BIGINT | FK → cart.id, NOT NULL |
+| cart_id | BIGINT | FK → carts.id, NOT NULL |
 | product_id | BIGINT | FK → products.id, NOT NULL |
 | quantity | INT | NOT NULL, > 0 |
+
+**app_users** (V2: base columns; V7: role_user join; V8: account_locked; V9: first_name/last_name)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| username | VARCHAR(255) | NOT NULL UNIQUE |
+| email | VARCHAR(255) | NOT NULL UNIQUE |
+| password | VARCHAR(255) | NOT NULL |
+| enabled | BOOLEAN | NOT NULL DEFAULT FALSE |
+| account_locked | BOOLEAN | NOT NULL DEFAULT FALSE — added in V8 |
+| first_name | VARCHAR(100) | nullable — added in V9 |
+| last_name | VARCHAR(100) | nullable — added in V9 |
+
+**roles** (added in V5 as JPA entity, replacing the `Role` enum from `feature/auth`)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| name | VARCHAR(50) | NOT NULL UNIQUE |
+
+**permissions** (added in V5)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| resource | VARCHAR(100) | NOT NULL |
+| action | VARCHAR(50) | NOT NULL |
+| UNIQUE | (resource, action) | |
+
+**role_user** (join table, added in V7)
+| Column | Type | Constraints |
+|---|---|---|
+| role_id | BIGINT | FK → roles.id |
+| user_id | BIGINT | FK → app_users.id |
+
+**role_permission** (join table, added in V5)
+| Column | Type | Constraints |
+|---|---|---|
+| role_id | BIGINT | FK → roles.id |
+| permission_id | BIGINT | FK → permissions.id |
+
+**activation_tokens** (added in V6)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| token | VARCHAR(255) | NOT NULL UNIQUE |
+| user_id | BIGINT | FK → app_users.id, NOT NULL |
+| expires_at | TIMESTAMP | NOT NULL |
+| used | BOOLEAN | NOT NULL DEFAULT FALSE |
+
+**blacklisted_tokens** (added in V6 — no user FK; identifies revoked JWTs by jti)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| jti | VARCHAR(255) | NOT NULL UNIQUE |
+| invalidated_at | TIMESTAMP | NOT NULL |
+
+**password_reset_tokens** (added in V6)
+| Column | Type | Constraints |
+|---|---|---|
+| id | BIGINT | PK, auto-increment |
+| token | VARCHAR(255) | NOT NULL UNIQUE |
+| user_id | BIGINT | FK → app_users.id, NOT NULL |
+| expires_at | TIMESTAMP | NOT NULL |
+| used | BOOLEAN | NOT NULL DEFAULT FALSE |
 
 ## Branching strategy
 
@@ -169,6 +239,8 @@ Each feature is developed on its own branch, then merged into `develop` via a do
 
 ## Project structure
 
+The tree below shows the full final state across all branches.
+
 ```
 spring-boot-tutorial/
 ├── src/
@@ -178,70 +250,139 @@ spring-boot-tutorial/
 │   │   │   ├── config/
 │   │   │   │   ├── OpenApiConfig.java
 │   │   │   │   ├── SecurityConfig.java
+│   │   │   │   ├── MethodSecurityConfig.java
 │   │   │   │   ├── JacksonConfig.java
 │   │   │   │   ├── CorsConfig.java
 │   │   │   │   ├── CacheConfig.java
-│   │   │   │   └── JpaAuditingConfig.java
+│   │   │   │   ├── JpaAuditingConfig.java
+│   │   │   │   ├── AsyncConfig.java
+│   │   │   │   ├── SchedulingConfig.java
+│   │   │   │   └── StorageConfig.java
 │   │   │   ├── entity/
 │   │   │   │   ├── Category.java
 │   │   │   │   ├── Product.java
+│   │   │   │   ├── ProductImage.java
 │   │   │   │   ├── Customer.java
 │   │   │   │   ├── Order.java
+│   │   │   │   ├── OrderItem.java
+│   │   │   │   ├── OrderStatus.java (enum)
+│   │   │   │   ├── Cart.java
+│   │   │   │   ├── CartItem.java
 │   │   │   │   └── user/
 │   │   │   │       ├── AppUser.java
-│   │   │   │       └── Role.java
+│   │   │   │       ├── Role.java
+│   │   │   │       ├── Permission.java
+│   │   │   │       ├── ActivationToken.java
+│   │   │   │       ├── BlacklistedToken.java
+│   │   │   │       └── PasswordResetToken.java
 │   │   │   ├── repository/
 │   │   │   │   ├── CategoryRepository.java
 │   │   │   │   ├── ProductRepository.java
+│   │   │   │   ├── ProductImageRepository.java
 │   │   │   │   ├── CustomerRepository.java
 │   │   │   │   ├── OrderRepository.java
-│   │   │   │   └── AppUserRepository.java
+│   │   │   │   ├── CartRepository.java
+│   │   │   │   ├── CartItemRepository.java
+│   │   │   │   ├── AppUserRepository.java
+│   │   │   │   ├── RoleRepository.java
+│   │   │   │   ├── PermissionRepository.java
+│   │   │   │   ├── ActivationTokenRepository.java
+│   │   │   │   ├── BlacklistedTokenRepository.java
+│   │   │   │   └── PasswordResetTokenRepository.java
 │   │   │   ├── dto/
 │   │   │   │   ├── common/
 │   │   │   │   │   ├── ApiResponse.java
 │   │   │   │   │   └── PageResponse.java
 │   │   │   │   ├── category/ (CategoryRequest, CategoryResponse)
 │   │   │   │   ├── product/ (ProductRequest, ProductResponse)
+│   │   │   │   ├── image/ (ProductImageResponse)
 │   │   │   │   ├── customer/ (CustomerRequest, CustomerResponse)
-│   │   │   │   ├── order/ (OrderRequest, OrderResponse)
+│   │   │   │   ├── order/ (OrderRequest, OrderResponse, OrderItemResponse, OrderStatusUpdateRequest)
+│   │   │   │   ├── cart/ (CartItemRequest, CartItemUpdateRequest, CartItemResponse, CartResponse)
+│   │   │   │   ├── role/ (RoleRequest, RoleResponse, UpdateRolePermissionsRequest)
+│   │   │   │   ├── permission/ (PermissionRequest, PermissionResponse)
+│   │   │   │   ├── user/ (UserResponse, UpdateProfileRequest, UpdateUserRolesRequest)
 │   │   │   │   └── auth/ (RegisterRequest, LoginRequest, AuthResponse)
 │   │   │   ├── mapper/
 │   │   │   │   ├── CategoryMapper.java
 │   │   │   │   ├── ProductMapper.java
+│   │   │   │   ├── ProductImageMapper.java
 │   │   │   │   ├── CustomerMapper.java
-│   │   │   │   └── OrderMapper.java
+│   │   │   │   ├── OrderMapper.java
+│   │   │   │   ├── CartMapper.java
+│   │   │   │   ├── RoleMapper.java
+│   │   │   │   ├── PermissionMapper.java
+│   │   │   │   └── AppUserMapper.java
 │   │   │   ├── service/
 │   │   │   │   ├── CategoryService.java
 │   │   │   │   ├── ProductService.java
+│   │   │   │   ├── FileStorageService.java
+│   │   │   │   ├── ProductImageService.java
 │   │   │   │   ├── CustomerService.java
 │   │   │   │   ├── OrderService.java
+│   │   │   │   ├── OrderEmailService.java
+│   │   │   │   ├── CartService.java
 │   │   │   │   ├── AuthService.java
+│   │   │   │   ├── UserService.java
+│   │   │   │   ├── RoleService.java
+│   │   │   │   ├── PermissionService.java
+│   │   │   │   ├── EmailService.java
+│   │   │   │   ├── ActivationTokenService.java
+│   │   │   │   ├── PasswordResetTokenService.java
+│   │   │   │   ├── BlacklistedTokenService.java
 │   │   │   │   └── impl/
 │   │   │   │       ├── CategoryServiceImpl.java
 │   │   │   │       ├── ProductServiceImpl.java
+│   │   │   │       ├── LocalFileStorageService.java
+│   │   │   │       ├── ProductImageServiceImpl.java
 │   │   │   │       ├── CustomerServiceImpl.java
 │   │   │   │       ├── OrderServiceImpl.java
-│   │   │   │       └── AuthServiceImpl.java
+│   │   │   │       ├── OrderEmailServiceImpl.java
+│   │   │   │       ├── CartServiceImpl.java
+│   │   │   │       ├── AuthServiceImpl.java
+│   │   │   │       ├── UserServiceImpl.java
+│   │   │   │       ├── RoleServiceImpl.java
+│   │   │   │       ├── PermissionServiceImpl.java
+│   │   │   │       ├── EmailServiceImpl.java
+│   │   │   │       ├── ActivationTokenServiceImpl.java
+│   │   │   │       ├── PasswordResetTokenServiceImpl.java
+│   │   │   │       └── BlacklistedTokenServiceImpl.java
 │   │   │   ├── controller/
 │   │   │   │   ├── CategoryController.java
 │   │   │   │   ├── ProductController.java
 │   │   │   │   ├── CustomerController.java
 │   │   │   │   ├── OrderController.java
-│   │   │   │   └── AuthController.java
+│   │   │   │   ├── CartController.java
+│   │   │   │   ├── AuthController.java
+│   │   │   │   ├── UserController.java
+│   │   │   │   ├── RoleController.java
+│   │   │   │   └── PermissionController.java
 │   │   │   ├── exception/
 │   │   │   │   ├── ResourceNotFoundException.java
 │   │   │   │   ├── BusinessRuleException.java
+│   │   │   │   ├── InvalidTokenException.java
 │   │   │   │   └── GlobalExceptionHandler.java
 │   │   │   ├── security/
 │   │   │   │   ├── JwtService.java
+│   │   │   │   ├── JwtProperties.java
 │   │   │   │   ├── JwtAuthFilter.java
-│   │   │   │   └── UserDetailsServiceImpl.java
+│   │   │   │   ├── UserDetailsServiceImpl.java
+│   │   │   │   ├── JwtAuthenticationEntryPoint.java
+│   │   │   │   ├── JwtAccessDeniedHandler.java
+│   │   │   │   └── CustomPermissionEvaluator.java
+│   │   │   ├── validation/
+│   │   │   │   ├── password/ (ValidPassword, PasswordValidator, PasswordsMatch, PasswordsMatchValidator)
+│   │   │   │   └── unique/ (Unique, UniqueValidator)
 │   │   │   ├── event/
 │   │   │   │   ├── OrderCreatedEvent.java
 │   │   │   │   └── OrderCreatedEventListener.java
 │   │   │   ├── aspect/
 │   │   │   │   ├── LoggingAspect.java
-│   │   │   │   └── ExecutionTimeAspect.java
+│   │   │   │   ├── ExecutionTimeAspect.java
+│   │   │   │   └── RepositoryAuditAspect.java
+│   │   │   ├── token/
+│   │   │   │   ├── SecureTokenGenerator.java
+│   │   │   │   └── TokenCleanupScheduler.java
 │   │   │   └── actuator/
 │   │   │       └── AppInfoEndpoint.java
 │   │   └── resources/
@@ -251,12 +392,26 @@ spring-boot-tutorial/
 │   │       ├── application-prod.yml
 │   │       └── db/migration/
 │   │           ├── V1__init_schema.sql
-│   │           └── V2__init_users_and_roles.sql
+│   │           ├── V2__init_users_and_roles.sql
+│   │           ├── V3__add_product_version.sql
+│   │           ├── V4__add_category_audit_columns.sql
+│   │           ├── V5__roles_permissions.sql
+│   │           ├── V6__tokens.sql
+│   │           ├── V7__role_user.sql
+│   │           ├── V8__add_account_locked.sql
+│   │           ├── V9__add_name_fields_to_app_users.sql
+│   │           ├── V13__add_product_description_active_decimal_price.sql
+│   │           ├── V14__evolve_orders_domain.sql
+│   │           ├── V15__make_orders_total_legacy_nullable.sql
+│   │           ├── V16__create_product_images.sql
+│   │           ├── V17__create_cart_tables.sql
+│   │           └── V18__add_user_id_to_orders.sql
 │   └── test/
 │       └── java/com/edgareldy/springboottutorial/
 │           ├── controller/ (MockMvc tests)
 │           ├── service/ (Mockito unit tests)
-│           └── repository/ (@DataJpaTest / Testcontainers)
+│           ├── repository/ (@DataJpaTest / Testcontainers)
+│           └── integration/ (EcommerceIntegrationTest, OrderAuthorizationTest, SecurityAuthorizationTest)
 ├── docker-compose.yml
 ├── Dockerfile
 ├── .github/workflows/ci.yml
