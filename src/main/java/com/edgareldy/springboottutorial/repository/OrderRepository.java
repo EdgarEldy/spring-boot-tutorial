@@ -63,8 +63,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                                                         @Param("productId") Long productId);
 
     @Query("SELECT o FROM Order o "
-            + "JOIN FETCH o.customer "
-            + "JOIN FETCH o.product p JOIN FETCH p.category "
+            + "LEFT JOIN FETCH o.customer "
+            + "LEFT JOIN FETCH o.product p LEFT JOIN FETCH p.category "
             + "LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.product "
             + "WHERE o.id = :id")
     Optional<Order> findByIdWithDetails(@Param("id") Long id);
