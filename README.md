@@ -731,6 +731,61 @@ The exception is never re-thrown. The order is unaffected by an email failure.
 - [x] `OrderEmailServiceImplTest` (3 cases: confirmation, admin notification, SMTP exception swallowed)
 - [x] `OrderCreatedEventListenerTest` (2 cases: with user, without user)
 
+## feature/order-authorization
+
+Role-based access control on order endpoints and status lifecycle management.
+A `ROLE_USER` sees only their own orders; a `ROLE_ADMIN` sees all orders and
+can update statuses. Ownership checks live in the service layer, never only in
+the controller.
+
+### Authorization matrix
+
+| Endpoint | ROLE_USER | ROLE_ADMIN | Unauthenticated |
+|---|---|---|---|
+| `GET /api/v1/orders` | Own orders only | All orders | 401 |
+| `GET /api/v1/orders/{id}` | Own order or 404 | Any order | 401 |
+| `POST /api/v1/orders` (checkout) | Allowed | Allowed | 401 |
+| `PATCH /api/v1/orders/{id}/status` | 403 | Allowed | 401 |
+| `PUT /api/v1/orders/{id}` | 403 | Allowed | 401 |
+| `DELETE /api/v1/orders/{id}` | 403 | Allowed | 401 |
+| `GET /api/v1/cart/**` | Allowed | 403 | 401 |
+
+### 404 vs 403 on order ownership
+
+When a `ROLE_USER` requests an order that belongs to another user, the API
+returns **404**, not 403. Returning 403 would reveal that the resource exists;
+404 is the correct response to avoid leaking ownership information.
+
+### Status transition rules
+
+Only a `ROLE_ADMIN` may change an order's status. Allowed transitions:
+
+| From | To | Result |
+|---|---|---|
+| `PENDING` | `CONFIRMED` | 200 |
+| `PENDING` | `CANCELLED` | 200 |
+| `CONFIRMED` | `CANCELLED` | 200 |
+| Any other pair | - | 422 Unprocessable Entity |
+
+### New files
+
+- `OrderStatusUpdateRequest` - DTO for `PATCH /{id}/status`, carries `@NotNull OrderStatus`
+- `OrderAuthorizationTest` - Testcontainers integration test with 3 actors (userA, userB, admin)
+
+### Tasks
+
+- [x] `OrderStatusUpdateRequest` DTO
+- [x] `findByUserId` (EntityGraph on items + items.product) in `OrderRepository`
+- [x] `findByIdAndUserId` (JOIN FETCH items, filters by user) in `OrderRepository`
+- [x] `OrderService.findAll(String username, boolean isAdmin, Pageable)` replaces old `findAll(Long, Long, Pageable)`
+- [x] `OrderService.findById(Long id, String username, boolean isAdmin)` replaces old `findById(Long)`
+- [x] `OrderService.updateStatus(Long id, OrderStatus)` with transition validation
+- [x] `OrderServiceImpl` authorization logic (empty page on user-not-found for list)
+- [x] `OrderController` rewritten with `@AuthenticationPrincipal`, `@PreAuthorize` on status/update/delete
+- [x] `SecurityConfig` updated with explicit GET/POST/PATCH/PUT/DELETE rules for `/api/v1/orders/**`
+- [x] `OrderControllerTest` updated (12 cases including `updateStatus` happy/error paths)
+- [x] `OrderAuthorizationTest` (8 cases: ownership, admin access, status transitions, 401)
+
 ## Order of work
 
 1. `feature/core-architecture` → Pull Request to `develop`
