@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import java.math.BigDecimal;
 
 /**
  * Payload accepted by {@code POST}/{@code PUT} {@code /api/v1/products}.
@@ -11,6 +12,8 @@ import jakarta.validation.constraints.Positive;
  * layer, not this record, is responsible for checking that. The JSON
  * contract is snake_case, decoupled from the Java fields' own camelCase
  * names via explicit {@link JsonProperty} annotations.
+ * {@code description} is optional (nullable). {@code unitPrice} uses
+ * {@link BigDecimal} for exact decimal representation.
  * <p>
  * Created edgar.muhamyangabo on 7/4/26
  * Author : edgar.muhamyangabo
@@ -27,9 +30,12 @@ public record ProductRequest(
         @NotBlank(message = "Product name must not be blank")
         String productName,
 
+        @JsonProperty("description")
+        String description,
+
         @JsonProperty("unit_price")
         @NotNull(message = "Unit price must not be null")
         @Positive(message = "Unit price must be greater than 0")
-        Float unitPrice
+        BigDecimal unitPrice
 ) {
 }

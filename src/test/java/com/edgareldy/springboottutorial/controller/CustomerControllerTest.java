@@ -25,6 +25,7 @@ import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.security.JwtService;
 import com.edgareldy.springboottutorial.service.CustomerService;
 import com.edgareldy.springboottutorial.service.OrderService;
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,7 +80,8 @@ class CustomerControllerTest {
     private static CustomerResponse savedResponse() {
         return new CustomerResponse(
                 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
-                List.of(new OrderedProductResponse(7L, 3L, "Keyboard", 50.0f, 2, 100.0)), 100.0);
+                List.of(new OrderedProductResponse(7L, 3L, "Keyboard", new BigDecimal("50.00"), 2, new BigDecimal("100.00"))),
+                new BigDecimal("100.00"));
     }
 
     @Test
@@ -191,10 +193,12 @@ class CustomerControllerTest {
 
     @Test
     void _11_ShouldReturn200_WhenListingOrdersOfExistingCustomer() throws Exception {
-        ProductResponse product = new ProductResponse(1L, "Keyboard", 50.0f, 1L, "Electronics");
+        ProductResponse product = new ProductResponse(
+                1L, "Keyboard", new BigDecimal("50.00"), null, true, 1L, "Electronics");
         OrderCustomerResponse customer = new OrderCustomerResponse(
                 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way");
-        OrderResponse order = new OrderResponse(1L, customer, product, 2, 100.0);
+        OrderResponse order = new OrderResponse(1L, customer, product, 2,
+                "ORD-TEST-0001", "PENDING", new BigDecimal("100.00"), List.of());
         PageResponse<OrderResponse> page = new PageResponse<>(List.of(order), 0, 20, 1, 1);
         when(customerService.findById(1L)).thenReturn(savedResponse());
         when(orderService.findAll(eq(1L), isNull(), any())).thenReturn(page);

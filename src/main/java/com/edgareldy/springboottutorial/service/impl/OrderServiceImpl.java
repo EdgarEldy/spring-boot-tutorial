@@ -6,6 +6,8 @@ import com.edgareldy.springboottutorial.dto.order.OrderRequest;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
 import com.edgareldy.springboottutorial.entity.Customer;
 import com.edgareldy.springboottutorial.entity.Order;
+import com.edgareldy.springboottutorial.entity.OrderItem;
+import com.edgareldy.springboottutorial.entity.OrderStatus;
 import com.edgareldy.springboottutorial.entity.Product;
 import com.edgareldy.springboottutorial.event.OrderCreatedEvent;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
@@ -15,8 +17,11 @@ import com.edgareldy.springboottutorial.repository.OrderProjection;
 import com.edgareldy.springboottutorial.repository.OrderRepository;
 import com.edgareldy.springboottutorial.repository.ProductRepository;
 import com.edgareldy.springboottutorial.service.OrderService;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -61,9 +66,10 @@ public class OrderServiceImpl implements OrderService {
                         .collect(Collectors.groupingBy(OrderProjection::customerId));
         return PageResponse.from(customers.map(customer -> {
             List<OrderProjection> orders = ordersByCustomer.getOrDefault(customer.getId(), List.of());
-            double total = orders.stream().mapToDouble(OrderProjection::total).sum();
-            // Rounded to cents: summing doubles can leave noise such as 3949.9700000000003.
-            return orderMapper.toCustomerOrdersResponse(customer, orders, Math.round(total * 100) / 100.0);
+            BigDecimal total = orders.stream()
+                    .map(OrderProjection::totalAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            return orderMapper.toCustomerOrdersResponse(customer, orders, total);
         }));
     }
 
@@ -79,22 +85,60 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponse create(OrderRequest request) {
         Customer customer = getCustomerOrThrow(request.customerId());
         Product product = getProductOrThrow(request.productId());
-        double total = request.quantity() * product.getUnitPrice();
-        Order saved = orderRepository.save(orderMapper.toEntity(request, customer, product, total));
+        BigDecimal subtotal = product.getUnitPrice().multiply(BigDecimal.valueOf(request.quantity()));
+        String orderNumber = "ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+        OrderItem item = OrderItem.builder()
+                .product(product)
+                .productName(product.getProductName())
+                .unitPrice(product.getUnitPrice())
+                .quantity(request.quantity())
+                .subtotal(subtotal)
+                .build();
+
+        Order order = Order.builder()
+                .customer(customer)
+                .product(product)
+                .quantity(request.quantity())
+                .totalAmount(subtotal)
+                .orderNumber(orderNumber)
+                .status(OrderStatus.PENDING)
+                .items(new ArrayList<>(List.of(item)))
+                .build();
+        item.setOrder(order);
+
+        Order saved = orderRepository.save(order);
         eventPublisher.publishEvent(new OrderCreatedEvent(
-                saved.getId(), customer.getId(), product.getId(), saved.getQuantity(), saved.getTotal()));
+                saved.getId(), customer.getId(), product.getId(),
+                saved.getQuantity(), saved.getTotalAmount(), saved.getOrderNumber()));
         return orderMapper.toResponse(saved);
     }
 
     @Override
     @Transactional
     public OrderResponse update(Long id, OrderRequest request) {
-        Order order = orderRepository.findById(id)
+        Order order = orderRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id " + id));
         Customer customer = getCustomerOrThrow(request.customerId());
         Product product = getProductOrThrow(request.productId());
-        double total = request.quantity() * product.getUnitPrice();
-        orderMapper.updateEntity(request, customer, product, total, order);
+        BigDecimal subtotal = product.getUnitPrice().multiply(BigDecimal.valueOf(request.quantity()));
+
+        OrderItem item = OrderItem.builder()
+                .product(product)
+                .productName(product.getProductName())
+                .unitPrice(product.getUnitPrice())
+                .quantity(request.quantity())
+                .subtotal(subtotal)
+                .build();
+
+        order.setCustomer(customer);
+        order.setProduct(product);
+        order.setQuantity(request.quantity());
+        order.setTotalAmount(subtotal);
+        order.getItems().clear();
+        order.getItems().add(item);
+        item.setOrder(order);
+
         return orderMapper.toResponse(orderRepository.save(order));
     }
 

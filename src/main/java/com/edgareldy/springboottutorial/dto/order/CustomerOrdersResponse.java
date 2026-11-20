@@ -1,5 +1,6 @@
 package com.edgareldy.springboottutorial.dto.order;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -15,6 +16,6 @@ import java.util.List;
 public record CustomerOrdersResponse(
         OrderCustomerResponse customer,
         List<OrderedProductResponse> products,
-        double total
+        BigDecimal total
 ) {
 }

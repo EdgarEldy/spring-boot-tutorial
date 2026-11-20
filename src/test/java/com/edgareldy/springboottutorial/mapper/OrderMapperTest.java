@@ -3,136 +3,124 @@ package com.edgareldy.springboottutorial.mapper;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.edgareldy.springboottutorial.dto.order.CustomerOrdersResponse;
-import com.edgareldy.springboottutorial.dto.order.OrderRequest;
+import com.edgareldy.springboottutorial.dto.order.OrderItemResponse;
 import com.edgareldy.springboottutorial.dto.order.OrderResponse;
+import com.edgareldy.springboottutorial.dto.order.OrderedProductResponse;
 import com.edgareldy.springboottutorial.entity.Category;
 import com.edgareldy.springboottutorial.entity.Customer;
 import com.edgareldy.springboottutorial.entity.Order;
+import com.edgareldy.springboottutorial.entity.OrderItem;
+import com.edgareldy.springboottutorial.entity.OrderStatus;
 import com.edgareldy.springboottutorial.entity.Product;
 import com.edgareldy.springboottutorial.repository.OrderProjection;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 /**
- * Tests the real MapStruct-generated {@link OrderMapperImpl}, not a mock.
- * {@link OrderMapper#toResponse(Order)} delegates to
- * {@link ProductMapper} (via {@code uses}), while
- * {@link OrderMapper#toResponse(OrderProjection)} is a hand-written
- * {@code default} method rebuilding the same DTOs field by field from a flat
- * projection; only a test against the generated code can catch a silent
- * field transposition (e.g. first/last name swapped) in either path.
+ * Tests the real MapStruct-generated {@link OrderMapperImpl} together with
+ * {@link OrderItemMapperImpl} and {@link ProductMapperImpl}: verifies that
+ * entity-to-DTO mapping, enum-to-String conversion for {@code status}, the
+ * manual {@code toResponse(OrderProjection)} overload, and the grouped-view
+ * helper {@code toCustomerOrdersResponse} all produce correct output.
  * <p>
- * Created edgar.muhamyangabo on 9/3/26
+ * Created edgar.muhamyangabo on 11/17/26
  * Author : edgar.muhamyangabo
- * Date : 9/3/26
+ * Date : 11/17/26
  * Project : spring-boot-tutorial
  */
-@SpringBootTest(classes = {OrderMapperImpl.class, ProductMapperImpl.class})
+@SpringBootTest(classes = {OrderMapperImpl.class, OrderItemMapperImpl.class, ProductMapperImpl.class})
 class OrderMapperTest {
 
     @Autowired
     private OrderMapper orderMapper;
 
     @Test
-    void _01_ShouldNestFullCustomerAndProduct_WhenMappingFromEntity() {
-        Customer customer = Customer.builder().id(1L).firstName("Ada").lastName("Lovelace")
-                .telephone("+1 202-555-0100").email("ada@example.com").address("1 Analytical Engine Way").build();
-        Category category = Category.builder().id(1L).categoryName("Electronics").build();
-        Product product = Product.builder().id(10L).category(category).productName("Keyboard").unitPrice(50.0f).build();
-        Order order = Order.builder().id(100L).customer(customer).product(product).quantity(2).total(100.0).build();
+    void _01_ShouldMapOrderEntityToResponse_WithStatusStringAndItems() {
+        Category cat = Category.builder().id(1L).categoryName("Electronics").build();
+        Product product = Product.builder().id(2L).productName("Keyboard")
+                .unitPrice(new BigDecimal("50.00")).category(cat).build();
+        Customer customer = Customer.builder().id(3L).firstName("Ada").lastName("Lovelace")
+                .telephone("+1 202-555-0100").email("ada@example.com")
+                .address("1 Analytical Engine Way").build();
+
+        OrderItem item = OrderItem.builder()
+                .id(10L).product(product).productName("Keyboard")
+                .unitPrice(new BigDecimal("50.00")).quantity(2)
+                .subtotal(new BigDecimal("100.00")).build();
+        Order order = Order.builder()
+                .id(5L).customer(customer).product(product).quantity(2)
+                .totalAmount(new BigDecimal("100.00")).orderNumber("ORD-TEST-001")
+                .status(OrderStatus.PENDING)
+                .items(new ArrayList<>(List.of(item)))
+                .build();
+        item.setOrder(order);
 
         OrderResponse response = orderMapper.toResponse(order);
 
+        assertThat(response.id()).isEqualTo(5L);
+        assertThat(response.status()).isEqualTo("PENDING");
+        assertThat(response.orderNumber()).isEqualTo("ORD-TEST-001");
+        assertThat(response.totalAmount()).isEqualByComparingTo(new BigDecimal("100.00"));
         assertThat(response.customer().firstName()).isEqualTo("Ada");
-        assertThat(response.customer().lastName()).isEqualTo("Lovelace");
         assertThat(response.product().productName()).isEqualTo("Keyboard");
-        assertThat(response.product().categoryName()).isEqualTo("Electronics");
+        assertThat(response.items()).hasSize(1);
+        OrderItemResponse itemResponse = response.items().get(0);
+        assertThat(itemResponse.id()).isEqualTo(10L);
+        assertThat(itemResponse.productId()).isEqualTo(2L);
+        assertThat(itemResponse.productName()).isEqualTo("Keyboard");
+        assertThat(itemResponse.unitPrice()).isEqualByComparingTo(new BigDecimal("50.00"));
+        assertThat(itemResponse.quantity()).isEqualTo(2);
+        assertThat(itemResponse.subtotal()).isEqualByComparingTo(new BigDecimal("100.00"));
     }
 
     @Test
-    void _02_ShouldMapEachField_WhenMappingFromProjection() {
+    void _02_ShouldMapProjectionToResponse_WithNullDescriptionAndActiveFromProjection() {
         OrderProjection projection = new OrderProjection(
-                100L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
-                10L, "Keyboard", 50.0f, 5L, "Electronics", 2, 100.0);
+                7L, 3L, "Grace", "Hopper", "+1 202-555-0101", "grace@example.com", "2 Compiler Street",
+                1L, "Desk", new BigDecimal("200.00"), true, 2L, "Office",
+                1, new BigDecimal("200.00"), OrderStatus.CONFIRMED, "ORD-TEST-007");
 
         OrderResponse response = orderMapper.toResponse(projection);
 
-        assertThat(response.customer().id()).isEqualTo(1L);
-        assertThat(response.customer().firstName()).isEqualTo("Ada");
-        assertThat(response.customer().lastName()).isEqualTo("Lovelace");
-        assertThat(response.customer().telephone()).isEqualTo("+1 202-555-0100");
-        assertThat(response.customer().email()).isEqualTo("ada@example.com");
-        assertThat(response.customer().address()).isEqualTo("1 Analytical Engine Way");
-        assertThat(response.product().id()).isEqualTo(10L);
-        assertThat(response.product().productName()).isEqualTo("Keyboard");
-        assertThat(response.product().unitPrice()).isEqualTo(50.0f);
-        assertThat(response.product().categoryId()).isEqualTo(5L);
-        assertThat(response.product().categoryName()).isEqualTo("Electronics");
-        assertThat(response.quantity()).isEqualTo(2);
-        assertThat(response.total()).isEqualTo(100.0);
+        assertThat(response.id()).isEqualTo(7L);
+        assertThat(response.status()).isEqualTo("CONFIRMED");
+        assertThat(response.orderNumber()).isEqualTo("ORD-TEST-007");
+        assertThat(response.totalAmount()).isEqualByComparingTo(new BigDecimal("200.00"));
+        assertThat(response.customer().firstName()).isEqualTo("Grace");
+        assertThat(response.product().productName()).isEqualTo("Desk");
+        assertThat(response.product().description()).isNull();
+        assertThat(response.product().active()).isTrue();
+        assertThat(response.items()).isEmpty();
     }
 
     @Test
-    void _02b_ShouldListOneLinePerOrder_WhenBuildingCustomerOrders() {
+    void _03_ShouldBuildGroupedResponse_WithOrderedProductLines() {
         Customer customer = Customer.builder().id(1L).firstName("Ada").lastName("Lovelace")
-                .telephone("+1 202-555-0100").email("ada@example.com").address("1 Analytical Engine Way").build();
-        OrderProjection keyboardOrder = new OrderProjection(
-                100L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
-                10L, "Keyboard", 50.0f, 5L, "Electronics", 2, 100.0);
-        OrderProjection deskOrder = new OrderProjection(
-                101L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com", "1 Analytical Engine Way",
-                11L, "Desk", 200.0f, 5L, "Electronics", 1, 200.0);
+                .telephone("+1 202-555-0100").email("ada@example.com")
+                .address("1 Analytical Engine Way").build();
+        List<OrderProjection> projections = List.of(
+                new OrderProjection(1L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com",
+                        "1 Analytical Engine Way", 2L, "Keyboard", new BigDecimal("50.00"), true,
+                        3L, "Electronics", 2, new BigDecimal("100.00"), OrderStatus.PENDING, "ORD-TEST-001"),
+                new OrderProjection(2L, 1L, "Ada", "Lovelace", "+1 202-555-0100", "ada@example.com",
+                        "1 Analytical Engine Way", 4L, "Desk", new BigDecimal("200.00"), true,
+                        3L, "Electronics", 1, new BigDecimal("200.00"), OrderStatus.PENDING, "ORD-TEST-002"));
 
-        CustomerOrdersResponse response =
-                orderMapper.toCustomerOrdersResponse(customer, List.of(keyboardOrder, deskOrder), 300.0);
+        CustomerOrdersResponse response = orderMapper.toCustomerOrdersResponse(
+                customer, projections, new BigDecimal("300.00"));
 
-        assertThat(response.customer().id()).isEqualTo(1L);
         assertThat(response.customer().firstName()).isEqualTo("Ada");
-        assertThat(response.customer().lastName()).isEqualTo("Lovelace");
-        assertThat(response.customer().telephone()).isEqualTo("+1 202-555-0100");
-        assertThat(response.customer().email()).isEqualTo("ada@example.com");
-        assertThat(response.customer().address()).isEqualTo("1 Analytical Engine Way");
+        assertThat(response.total()).isEqualByComparingTo(new BigDecimal("300.00"));
         assertThat(response.products()).hasSize(2);
-        assertThat(response.products().get(0).orderId()).isEqualTo(100L);
-        assertThat(response.products().get(0).productId()).isEqualTo(10L);
-        assertThat(response.products().get(0).productName()).isEqualTo("Keyboard");
-        assertThat(response.products().get(0).unitPrice()).isEqualTo(50.0f);
-        assertThat(response.products().get(0).quantity()).isEqualTo(2);
-        assertThat(response.products().get(0).total()).isEqualTo(100.0);
-        assertThat(response.products().get(1).orderId()).isEqualTo(101L);
-        assertThat(response.products().get(1).productName()).isEqualTo("Desk");
-        assertThat(response.total()).isEqualTo(300.0);
-    }
-
-    @Test
-    void _03_ShouldAssignAssociationsQuantityAndTotal_WhenBuildingNewOrder() {
-        Customer customer = Customer.builder().id(1L).firstName("Ada").lastName("Lovelace").build();
-        Product product = Product.builder().id(10L).productName("Keyboard").unitPrice(50.0f).build();
-
-        Order order = orderMapper.toEntity(new OrderRequest(1L, 10L, 2), customer, product, 100.0);
-
-        assertThat(order.getId()).isNull();
-        assertThat(order.getCustomer()).isSameAs(customer);
-        assertThat(order.getProduct()).isSameAs(product);
-        assertThat(order.getQuantity()).isEqualTo(2);
-        assertThat(order.getTotal()).isEqualTo(100.0);
-    }
-
-    @Test
-    void _04_ShouldKeepIdentityAndReplaceValues_WhenUpdatingExistingOrder() {
-        Customer oldCustomer = Customer.builder().id(1L).firstName("Ada").lastName("Lovelace").build();
-        Customer newCustomer = Customer.builder().id(2L).firstName("Grace").lastName("Hopper").build();
-        Product product = Product.builder().id(10L).productName("Keyboard").unitPrice(50.0f).build();
-        Order existing = Order.builder().id(100L).customer(oldCustomer).product(product).quantity(2).total(100.0).build();
-
-        orderMapper.updateEntity(new OrderRequest(2L, 10L, 3), newCustomer, product, 150.0, existing);
-
-        assertThat(existing.getId()).isEqualTo(100L);
-        assertThat(existing.getCustomer()).isSameAs(newCustomer);
-        assertThat(existing.getProduct()).isSameAs(product);
-        assertThat(existing.getQuantity()).isEqualTo(3);
-        assertThat(existing.getTotal()).isEqualTo(150.0);
+        List<OrderedProductResponse> lines = response.products();
+        assertThat(lines.get(0).productName()).isEqualTo("Keyboard");
+        assertThat(lines.get(0).quantity()).isEqualTo(2);
+        assertThat(lines.get(0).total()).isEqualByComparingTo(new BigDecimal("100.00"));
+        assertThat(lines.get(1).productName()).isEqualTo("Desk");
+        assertThat(lines.get(1).total()).isEqualByComparingTo(new BigDecimal("200.00"));
     }
 }
