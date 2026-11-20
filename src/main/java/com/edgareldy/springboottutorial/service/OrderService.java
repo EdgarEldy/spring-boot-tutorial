@@ -56,6 +56,13 @@ public interface OrderService {
      */
     OrderResponse checkout(String username);
 
+    /**
+     * Returns all orders belonging to a specific customer, using the flat
+     * projection query to avoid N+1. Used by the nested
+     * {@code GET /customers/{id}/orders} endpoint.
+     */
+    PageResponse<OrderResponse> findAllByCustomerId(Long customerId, Pageable pageable);
+
     OrderResponse create(OrderRequest request);
 
     OrderResponse update(Long id, OrderRequest request);
