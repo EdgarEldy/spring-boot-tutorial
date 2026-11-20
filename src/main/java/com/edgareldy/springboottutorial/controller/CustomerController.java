@@ -76,6 +76,6 @@ public class CustomerController {
             @PathVariable Long id, Pageable pageable) {
         customerService.findById(id);
         return ResponseEntity.ok(ApiResponse.success(
-                orderService.findAll(id, null, pageable), "Customer orders retrieved successfully"));
+                orderService.findAllByCustomerId(id, pageable), "Customer orders retrieved successfully"));
     }
 }

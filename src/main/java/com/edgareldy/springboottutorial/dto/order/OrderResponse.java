@@ -1,14 +1,17 @@
 package com.edgareldy.springboottutorial.dto.order;
 
 import com.edgareldy.springboottutorial.dto.product.ProductResponse;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Representation of a single
  * {@link com.edgareldy.springboottutorial.entity.Order} returned by the API
  * (detail, create, update, and the per-customer order list). Carries the
- * customer's contact details and the full {@link ProductResponse}, so a
- * caller never has to make a second request just to get the customer's
- * address or the product's category. The grouped view of
+ * customer's contact details and the full {@link ProductResponse} for backward
+ * compatibility, plus the multi-line {@code items} breakdown and the
+ * {@code totalAmount} computed by the service. The grouped view of
  * {@code GET /api/v1/orders} uses {@link CustomerOrdersResponse} instead.
  * <p>
  * Created edgar.muhamyangabo on 7/8/26
@@ -21,6 +24,15 @@ public record OrderResponse(
         OrderCustomerResponse customer,
         ProductResponse product,
         int quantity,
-        double total
+
+        @JsonProperty("order_number")
+        String orderNumber,
+
+        String status,
+
+        @JsonProperty("total_amount")
+        BigDecimal totalAmount,
+
+        List<OrderItemResponse> items
 ) {
 }
