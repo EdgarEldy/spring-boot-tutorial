@@ -3,6 +3,7 @@ package com.edgareldy.springboottutorial.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.edgareldy.springboottutorial.entity.token.PasswordResetToken;
+import com.edgareldy.springboottutorial.entity.token.PasswordResetTokenType;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.entity.user.Role;
 import java.time.Instant;
@@ -46,7 +47,7 @@ class PasswordResetTokenRepositoryTest {
     @Test
     void _01_ShouldReturnMatchingToken_WhenFindingByToken() {
         passwordResetTokenRepository.save(PasswordResetToken.builder()
-                .user(user).token("reset-token").type("PASSWORD_RESET")
+                .user(user).token("reset-token").type(PasswordResetTokenType.LINK)
                 .createdAt(Instant.now())
                 .expiryDate(Instant.now().plus(1, ChronoUnit.HOURS))
                 .build());
@@ -66,12 +67,12 @@ class PasswordResetTokenRepositoryTest {
     @Test
     void _03_ShouldRemoveOnlyExpiredTokens_WhenDeletingByExpiryDateBefore() {
         PasswordResetToken expired = passwordResetTokenRepository.save(PasswordResetToken.builder()
-                .user(user).token("expired-token").type("PASSWORD_RESET")
+                .user(user).token("expired-token").type(PasswordResetTokenType.LINK)
                 .createdAt(Instant.now())
                 .expiryDate(Instant.now().minus(1, ChronoUnit.HOURS))
                 .build());
         PasswordResetToken active = passwordResetTokenRepository.save(PasswordResetToken.builder()
-                .user(user).token("active-token").type("PASSWORD_RESET")
+                .user(user).token("active-token").type(PasswordResetTokenType.LINK)
                 .createdAt(Instant.now())
                 .expiryDate(Instant.now().plus(1, ChronoUnit.HOURS))
                 .build());
