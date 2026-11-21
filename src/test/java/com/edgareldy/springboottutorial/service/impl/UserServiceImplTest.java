@@ -11,6 +11,7 @@ import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.entity.user.Role;
 import com.edgareldy.springboottutorial.mapper.AppUserMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
+import com.edgareldy.springboottutorial.entity.token.PasswordResetTokenType;
 import com.edgareldy.springboottutorial.service.ActivationTokenService;
 import com.edgareldy.springboottutorial.service.EmailService;
 import com.edgareldy.springboottutorial.service.PasswordResetTokenService;
@@ -65,12 +66,12 @@ class UserServiceImplTest {
     }
 
     @Test
-    void _01_ShouldEnableUser_WhenActivationTokenValid() {
-        when(activationTokenService.validate("tok")).thenReturn(user);
+    void _01_ShouldEnableUser_WhenActivationOtpValid() {
+        when(activationTokenService.validate("ada@example.com", "123456")).thenReturn(user);
         when(appUserRepository.save(user)).thenReturn(user);
         when(appUserMapper.toResponse(user)).thenReturn(userResponse);
 
-        UserResponse result = userService.activate("tok");
+        UserResponse result = userService.activate("ada@example.com", "123456");
 
         assertThat(user.isEnabled()).isTrue();
         assertThat(result.username()).isEqualTo("ada");
@@ -80,7 +81,7 @@ class UserServiceImplTest {
     @Test
     void _02_ShouldSendResetEmail_WhenEmailKnown() {
         when(appUserRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(user));
-        when(passwordResetTokenService.generate(user)).thenReturn("reset-tok");
+        when(passwordResetTokenService.generate(user, PasswordResetTokenType.LINK)).thenReturn("reset-tok");
 
         userService.forgotPassword("ada@example.com");
 
