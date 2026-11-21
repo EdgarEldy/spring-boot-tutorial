@@ -80,6 +80,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/activate-account")
                         .permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/password-reset/**")
+                        .permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/actuator/health")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/categories/**", "/api/v1/products/**")
