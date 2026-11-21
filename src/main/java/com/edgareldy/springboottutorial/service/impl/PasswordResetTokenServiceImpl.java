@@ -1,8 +1,11 @@
 package com.edgareldy.springboottutorial.service.impl;
 
 import com.edgareldy.springboottutorial.entity.token.PasswordResetToken;
+import com.edgareldy.springboottutorial.entity.token.PasswordResetTokenType;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.InvalidTokenException;
+import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
+import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.repository.PasswordResetTokenRepository;
 import com.edgareldy.springboottutorial.security.SecureTokenGenerator;
 import com.edgareldy.springboottutorial.service.PasswordResetTokenService;
@@ -13,12 +16,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Default {@link PasswordResetTokenService} implementation backed by
- * {@link PasswordResetTokenRepository}. In {@link #validateAndConsume}, the
- * token row is deleted before the expiry check so a valid token is never
- * reusable. For an expired token the subsequent {@link InvalidTokenException}
- * causes Spring to roll back the transaction, so the row is not actually
- * removed; it stays until {@code TokenCleanupScheduler} runs.
+ * Default {@link PasswordResetTokenService} implementation. Generates either
+ * a UUID token (LINK, 1-hour TTL) for the web flow or a 6-digit OTP (OTP,
+ * 5-minute TTL) for the mobile flow. In {@link #validateAndConsume}, the row
+ * is deleted before the expiry check: if the token is expired the rollback
+ * leaves it in place until {@code TokenCleanupScheduler} removes it.
  * <p>
  * Created edgar.muhamyangabo on 10/30/26
  * Author : edgar.muhamyangabo
@@ -29,38 +31,59 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PasswordResetTokenServiceImpl implements PasswordResetTokenService {
 
-    private static final Duration EXPIRATION = Duration.ofHours(1);
-    private static final String TYPE_PASSWORD_RESET = "PASSWORD_RESET";
+    private static final Duration LINK_EXPIRATION = Duration.ofHours(1);
+    private static final Duration OTP_EXPIRATION = Duration.ofMinutes(5);
+    private static final int OTP_LENGTH = 6;
 
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final AppUserRepository appUserRepository;
     private final SecureTokenGenerator secureTokenGenerator;
 
     @Override
     @Transactional
-    public String generate(AppUser user) {
+    public String generate(AppUser user, PasswordResetTokenType type) {
         passwordResetTokenRepository.deleteByUser(user);
-        String rawToken = secureTokenGenerator.generate();
+        String rawToken = type == PasswordResetTokenType.OTP
+                ? secureTokenGenerator.generateOtp(OTP_LENGTH)
+                : secureTokenGenerator.generate();
+        Duration ttl = type == PasswordResetTokenType.OTP ? OTP_EXPIRATION : LINK_EXPIRATION;
         Instant now = Instant.now();
-        PasswordResetToken passwordResetToken = PasswordResetToken.builder()
+        PasswordResetToken token = PasswordResetToken.builder()
                 .user(user)
                 .token(rawToken)
                 .createdAt(now)
-                .type(TYPE_PASSWORD_RESET)
-                .expiryDate(now.plus(EXPIRATION))
+                .type(type)
+                .expiryDate(now.plus(ttl))
                 .build();
-        passwordResetTokenRepository.save(passwordResetToken);
+        passwordResetTokenRepository.save(token);
         return rawToken;
     }
 
     @Override
     @Transactional
     public AppUser validateAndConsume(String token) {
-        PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByToken(token)
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
                 .orElseThrow(() -> new InvalidTokenException("Invalid password reset token"));
-        passwordResetTokenRepository.delete(passwordResetToken);
-        if (passwordResetToken.getExpiryDate().isBefore(Instant.now())) {
+        passwordResetTokenRepository.delete(resetToken);
+        if (resetToken.getExpiryDate().isBefore(Instant.now())) {
             throw new InvalidTokenException("Password reset token expired");
         }
-        return passwordResetToken.getUser();
+        return resetToken.getUser();
+    }
+
+    @Override
+    @Transactional
+    public AppUser verifyOtp(String email, String otp) {
+        AppUser user = appUserRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found for email: " + email));
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByUserAndToken(user, otp)
+                .orElseThrow(() -> new InvalidTokenException("Invalid OTP"));
+        if (resetToken.getType() != PasswordResetTokenType.OTP) {
+            throw new InvalidTokenException("Invalid OTP");
+        }
+        if (resetToken.getExpiryDate().isBefore(Instant.now())) {
+            throw new InvalidTokenException("OTP expired");
+        }
+        return user;
     }
 }

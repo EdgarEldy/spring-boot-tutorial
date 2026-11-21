@@ -3,8 +3,10 @@ package com.edgareldy.springboottutorial.service.impl;
 import com.edgareldy.springboottutorial.entity.token.ActivationToken;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.InvalidTokenException;
+import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.exception.TokenExpiredException;
 import com.edgareldy.springboottutorial.repository.ActivationTokenRepository;
+import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.security.SecureTokenGenerator;
 import com.edgareldy.springboottutorial.service.ActivationTokenService;
 import java.time.Duration;
@@ -15,7 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Default {@link ActivationTokenService} implementation backed by
- * {@link ActivationTokenRepository}.
+ * {@link ActivationTokenRepository}. Generates 6-digit numeric OTPs
+ * with a 15-minute TTL. Validation is scoped to the requesting user
+ * (email + OTP) so two accounts that happen to receive the same code
+ * cannot activate each other.
  * <p>
  * Created edgar.muhamyangabo on 10/30/26
  * Author : edgar.muhamyangabo
@@ -26,25 +31,27 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ActivationTokenServiceImpl implements ActivationTokenService {
 
-    private static final Duration EXPIRATION = Duration.ofHours(24);
+    private static final Duration EXPIRATION = Duration.ofMinutes(15);
+    private static final int OTP_LENGTH = 6;
 
     private final ActivationTokenRepository activationTokenRepository;
+    private final AppUserRepository appUserRepository;
     private final SecureTokenGenerator secureTokenGenerator;
 
     @Override
     @Transactional
     public String generate(AppUser user) {
         activationTokenRepository.deleteByUser(user);
-        String rawToken = secureTokenGenerator.generate();
+        String otp = secureTokenGenerator.generateOtp(OTP_LENGTH);
         Instant now = Instant.now();
         ActivationToken activationToken = ActivationToken.builder()
                 .user(user)
-                .token(rawToken)
+                .token(otp)
                 .createdAt(now)
                 .expiresAt(now.plus(EXPIRATION))
                 .build();
         activationTokenRepository.save(activationToken);
-        return rawToken;
+        return otp;
     }
 
     @Override
@@ -57,18 +64,20 @@ public class ActivationTokenServiceImpl implements ActivationTokenService {
 
     @Override
     @Transactional
-    public AppUser validate(String token) {
-        ActivationToken activationToken = activationTokenRepository.findByToken(token)
-                .orElseThrow(() -> new InvalidTokenException("Invalid activation token"));
+    public AppUser validate(String email, String otp) {
+        AppUser user = appUserRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found for email: " + email));
+        ActivationToken activationToken = activationTokenRepository.findByUserAndToken(user, otp)
+                .orElseThrow(() -> new InvalidTokenException("Invalid activation code"));
         if (activationToken.getValidatedAt() != null) {
-            throw new InvalidTokenException("Activation token already used");
+            throw new InvalidTokenException("Activation code already used");
         }
         if (activationToken.getExpiresAt() != null
                 && activationToken.getExpiresAt().isBefore(Instant.now())) {
-            throw new TokenExpiredException("Activation token expired");
+            throw new TokenExpiredException("Activation code expired");
         }
         activationToken.setValidatedAt(Instant.now());
         activationTokenRepository.save(activationToken);
-        return activationToken.getUser();
+        return user;
     }
 }
