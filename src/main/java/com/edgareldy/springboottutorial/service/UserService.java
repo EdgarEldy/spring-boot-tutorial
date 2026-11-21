@@ -14,7 +14,7 @@ import com.edgareldy.springboottutorial.dto.auth.UserResponse;
  */
 public interface UserService {
 
-    UserResponse activate(String token);
+    UserResponse activate(String email, String otp);
 
     void forgotPassword(String email);
 
