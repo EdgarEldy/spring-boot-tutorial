@@ -26,6 +26,15 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<PasswordResetToken> findByToken(String token);
 
+    /**
+     * Looks up a password-reset token by both owner and token value. Used by
+     * the OTP verify step to scope the lookup to a specific user, preventing
+     * two users who happen to share the same 6-digit OTP from verifying each
+     * other's reset request.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<PasswordResetToken> findByUserAndToken(AppUser user, String token);
+
     void deleteAllByExpiryDateBefore(Instant instant);
 
     void deleteByUser(AppUser user);

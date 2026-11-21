@@ -14,7 +14,9 @@ import com.edgareldy.springboottutorial.entity.user.AppUser;
  */
 public interface EmailService {
 
-    void sendActivationEmail(AppUser user, String token);
+    void sendActivationEmail(AppUser user, String otp);
 
     void sendPasswordResetEmail(AppUser user, String token);
+
+    void sendPasswordResetOtpEmail(AppUser user, String otp);
 }

@@ -100,6 +100,30 @@ Réservé ADMIN (`@PreAuthorize("hasRole('ADMIN')")` au niveau classe). Endpoint
 `appUserRepository.count() == 0`. Il interroge d'abord `roleRepository.findByRoleName("ADMIN")`
 ; si le rôle n'existe pas, le seed est ignoré pour éviter une erreur de clé étrangère.
 
+La réinitialisation des mots de passe est pilotée par la propriété
+`app.seed.reset-user-passwords` (défaut `false`). Mettre à `true` temporairement dans
+`application-dev.yml` pour re-hasher tous les comptes dev existants après avoir durci la
+contrainte `@ValidPassword`.
+
+### PasswordResetController
+
+Contrôleur dédié regroupant les quatre flux de réinitialisation de mot de passe sous
+`/api/v1/password-reset`. Tous les endpoints sont publics (`permitAll()` dans `SecurityConfig`).
+
+| Méthode | Chemin | Flow | Action |
+|---|---|---|---|
+| POST | `/api/v1/password-reset/web` | LINK | Envoie un lien UUID de reset par email |
+| POST | `/api/v1/password-reset/mobile` | OTP | Envoie un OTP à 6 chiffres par email |
+| POST | `/api/v1/password-reset/verify-otp` | OTP | Vérifie le code (non-destructif) |
+| POST | `/api/v1/password-reset/confirm` | Les deux | Consomme le token et fixe le nouveau mot de passe |
+
+L'endpoint `/web` duplique intentionnellement `POST /api/v1/auth/forgot-password` pour
+regrouper symétriquement les deux flows. L'étape `/verify-otp` est non-destructive : le même
+OTP est re-soumis à `/confirm` une fois que l'utilisateur a saisi le nouveau mot de passe.
+
+`UserService` gagne deux nouvelles méthodes : `forgotPasswordMobile(String email)` et
+`verifyPasswordResetOtp(String email, String otp)`.
+
 ---
 
 ## Fichiers clés
@@ -112,9 +136,11 @@ Réservé ADMIN (`@PreAuthorize("hasRole('ADMIN')")` au niveau classe). Endpoint
 | `src/main/java/.../validation/match/PasswordsMatchValidator.java` | Vérification multi-champs |
 | `src/main/java/.../validation/unique/Unique.java` | Annotation d'unicité générique |
 | `src/main/java/.../validation/unique/UniqueValidator.java` | Requête EntityManager |
+| `src/main/java/.../dto/auth/VerifyOtpRequest.java` | Corps de requête email + OTP |
 | `src/main/java/.../service/UserService.java` | Interface de service utilisateur |
 | `src/main/java/.../service/impl/UserServiceImpl.java` | Logique complète de gestion |
 | `src/main/java/.../controller/UserController.java` | Endpoints réservés ADMIN |
+| `src/main/java/.../controller/PasswordResetController.java` | Endpoints publics de reset |
 | `src/main/resources/db/migration/V7__add_role_user_join_table.sql` | Table de jointure + seed |
 | `src/main/resources/db/migration/V8__add_account_locked.sql` | Colonne account_locked |
 | `src/main/resources/db/migration/V9__add_name_fields_to_app_users.sql` | Colonnes prénom/nom |

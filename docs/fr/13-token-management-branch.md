@@ -86,6 +86,45 @@ JWT pour récupérer l'email sans aller-retour supplémentaire.
 
 ---
 
+## Activation OTP et réinitialisation mobile (ajouts ultérieurs)
+
+Le flux original utilisait des tokens UUID (liens) pour l'activation et la réinitialisation
+du mot de passe. Cette section documente la migration vers des OTP pour les clients mobiles.
+
+### Enum PasswordResetTokenType
+
+Discriminateur `LINK` / `OTP` stocké dans la table `password_reset_tokens`. Flyway V19
+ajoute la colonne, remplit les lignes existantes avec `LINK` et ajoute une contrainte CHECK.
+
+### Activation par OTP
+
+`ActivationTokenServiceImpl` génère désormais un code numérique à 6 chiffres (via
+`SecureTokenGenerator.generateOtp(int)`) avec un TTL de 15 minutes au lieu d'un lien UUID.
+
+La méthode `validate(String email, String otp)` scope la recherche du token à l'utilisateur
+demandeur : deux comptes ayant par hasard le même code ne peuvent pas s'activer mutuellement.
+
+`activate_account.html` affiche le code en grand texte gras au lieu d'un lien cliquable.
+
+`AuthController.activate()` passe de `GET ?token=` à `POST` avec un corps JSON
+`{"email": "...", "activation_code": "123456"}` (nouveau record `ActivateAccountRequest`).
+
+### Deux flux de réinitialisation de mot de passe
+
+`PasswordResetTokenServiceImpl.generate(AppUser, PasswordResetTokenType)` crée soit un token
+UUID (LINK, TTL 1 heure) soit un OTP à 6 chiffres (OTP, TTL 5 minutes).
+
+Deux méthodes distinctes gèrent la vérification :
+
+- `verifyOtp(String email, String otp)` - non-destructif : confirme que le code est valide sans
+  le consommer. Utilisé par l'étape mobile "afficher l'écran nouveau mot de passe".
+- `validateAndConsume(String token)` - destructif : valide et marque le token comme utilisé.
+  Partagé par les flows web (UUID) et mobile (OTP) pour l'étape de confirmation.
+
+Un nouveau template `reset_password_otp.html` affiche le code OTP pour les utilisateurs mobiles.
+
+---
+
 ## Fichiers clés
 
 | Fichier | Rôle |
@@ -93,13 +132,16 @@ JWT pour récupérer l'email sans aller-retour supplémentaire.
 | `src/main/java/.../entity/user/ActivationToken.java` | Entité token d'activation |
 | `src/main/java/.../entity/user/BlacklistedToken.java` | Entité JWT blacklisté |
 | `src/main/java/.../entity/user/PasswordResetToken.java` | Entité token de reset |
+| `src/main/java/.../entity/token/PasswordResetTokenType.java` | Discriminateur LINK / OTP |
 | `src/main/java/.../entity/user/RefreshToken.java` | Entité token de rafraîchissement |
 | `src/main/java/.../service/EmailService.java` | Interface email asynchrone |
 | `src/main/java/.../service/impl/EmailServiceImpl.java` | Thymeleaf + @Async |
-| `src/main/java/.../security/SecureTokenGenerator.java` | Génération de token cryptographique |
+| `src/main/java/.../security/SecureTokenGenerator.java` | Génération token + OTP |
 | `src/main/java/.../scheduler/TokenCleanupScheduler.java` | Nettoyage @Scheduled |
 | `src/main/java/.../service/BlacklistedTokenService.java` | Lookup PESSIMISTIC_WRITE |
-| `src/main/resources/templates/activate_account.html` | Template email d'activation |
-| `src/main/resources/templates/reset_password.html` | Template email de reset |
+| `src/main/resources/templates/activate_account.html` | Template activation OTP |
+| `src/main/resources/templates/reset_password.html` | Template reset web |
+| `src/main/resources/templates/reset_password_otp.html` | Template reset OTP mobile |
 | `src/main/resources/db/migration/V5__add_token_tables.sql` | Tables de tokens |
 | `src/main/resources/db/migration/V6__add_refresh_tokens.sql` | Table refresh token |
+| `src/main/resources/db/migration/V19__add_password_reset_token_type.sql` | Colonne type OTP |

@@ -35,4 +35,5 @@ target/
 .env
 
 ### claude ###
-.claude/
+.claude/settings.local.json
+.claude/memory/
