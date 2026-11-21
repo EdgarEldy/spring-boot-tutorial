@@ -39,6 +39,10 @@ public class DataSeeder {
 
     static final String DEMO_PASSWORD = "Admin1234!";
 
+    // Set to true temporarily when existing dev accounts need their passwords
+    // reset to DEMO_PASSWORD after the @ValidPassword constraint was tightened.
+    private static final boolean resetUserPasswords = false;
+
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final AppUserRepository appUserRepository;
