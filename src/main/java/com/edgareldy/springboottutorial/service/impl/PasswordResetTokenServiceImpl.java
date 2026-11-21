@@ -72,7 +72,7 @@ public class PasswordResetTokenServiceImpl implements PasswordResetTokenService 
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public AppUser verifyOtp(String email, String otp) {
         AppUser user = appUserRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found for email: " + email));
