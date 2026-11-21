@@ -285,6 +285,36 @@ class UserServiceImplTest {
     }
 
     @Test
+    void _09b_ShouldSendOtpEmail_WhenMobileResetRequested() {
+        appUser.setEnabled(true);
+        when(appUserRepository.findByEmailIgnoreCase("ada@example.com"))
+                .thenReturn(Optional.of(appUser));
+        when(passwordResetTokenService.generate(appUser, PasswordResetTokenType.OTP)).thenReturn("654321");
+
+        userService.forgotPasswordMobile("ada@example.com");
+
+        verify(emailService).sendPasswordResetOtpEmail(eq(appUser), eq("654321"));
+    }
+
+    @Test
+    void _09c_ShouldSkipOtpEmail_WhenAccountNotEnabledForMobile() {
+        when(appUserRepository.findByEmailIgnoreCase("ada@example.com"))
+                .thenReturn(Optional.of(appUser));
+
+        userService.forgotPasswordMobile("ada@example.com");
+
+        verify(passwordResetTokenService, never()).generate(any(), any());
+        verify(emailService, never()).sendPasswordResetOtpEmail(any(), any());
+    }
+
+    @Test
+    void _09d_ShouldDelegateToService_WhenVerifyOtpCalled() {
+        userService.verifyPasswordResetOtp("ada@example.com", "654321");
+
+        verify(passwordResetTokenService).verifyOtp("ada@example.com", "654321");
+    }
+
+    @Test
     void _11_ShouldReHashPassword_WhenResetTokenValid() {
         when(passwordResetTokenService.validateAndConsume("reset-tok")).thenReturn(appUser);
         when(passwordEncoder.encode("new-password")).thenReturn("new-hashed");
