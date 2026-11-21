@@ -36,10 +36,13 @@ public interface UserService {
 
     UserResponse updateProfile(Long id, UpdateProfileRequest request);
 
-
-    UserResponse activate(String token);
+    UserResponse activate(String email, String otp);
 
     void forgotPassword(String email);
+
+    void forgotPasswordMobile(String email);
+
+    void verifyPasswordResetOtp(String email, String otp);
 
     void resetPassword(String token, String newPassword);
 }

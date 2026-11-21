@@ -17,10 +17,10 @@ import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
-import com.edgareldy.springboottutorial.exception.TokenExpiredException;
 import com.edgareldy.springboottutorial.mapper.AppUserMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.repository.RoleRepository;
+import com.edgareldy.springboottutorial.entity.token.PasswordResetTokenType;
 import com.edgareldy.springboottutorial.service.ActivationTokenService;
 import com.edgareldy.springboottutorial.service.EmailService;
 import com.edgareldy.springboottutorial.service.PasswordResetTokenService;
@@ -219,8 +219,8 @@ class UserServiceImplTest {
     }
 
     @Test
-    void _08_ShouldEnableUser_WhenActivationTokenValid() {
-        when(activationTokenService.validate("tok")).thenReturn(appUser);
+    void _08_ShouldEnableUser_WhenActivationOtpValid() {
+        when(activationTokenService.validate("ada@example.com", "123456")).thenReturn(appUser);
         AppUser enabled = AppUser.builder()
                 .id(1L).username("ada").email("ada@example.com").password("hashed")
                 .enabled(true).roles(Set.of(userRole)).build();
@@ -229,23 +229,8 @@ class UserServiceImplTest {
         when(appUserRepository.save(appUser)).thenReturn(enabled);
         when(appUserMapper.toResponse(enabled)).thenReturn(enabledResponse);
 
-        assertThat(userService.activate("tok")).isEqualTo(enabledResponse);
+        assertThat(userService.activate("ada@example.com", "123456")).isEqualTo(enabledResponse);
         assertThat(appUser.isEnabled()).isTrue();
-    }
-
-    @Test
-    void _08b_ShouldResendActivationEmailAndRethrow_WhenTokenExpired() {
-        when(activationTokenService.validate("expired-tok"))
-                .thenThrow(new TokenExpiredException("Activation token expired"));
-        when(activationTokenService.getUserByToken("expired-tok")).thenReturn(appUser);
-        when(activationTokenService.generate(appUser)).thenReturn("new-tok");
-
-        assertThatThrownBy(() -> userService.activate("expired-tok"))
-                .isInstanceOf(TokenExpiredException.class);
-
-        verify(activationTokenService).getUserByToken("expired-tok");
-        verify(activationTokenService).generate(appUser);
-        verify(emailService).sendActivationEmail(appUser, "new-tok");
     }
 
     @Test
@@ -253,7 +238,7 @@ class UserServiceImplTest {
         appUser.setEnabled(true);
         when(appUserRepository.findByEmailIgnoreCase("ada@example.com"))
                 .thenReturn(Optional.of(appUser));
-        when(passwordResetTokenService.generate(appUser)).thenReturn("reset-token");
+        when(passwordResetTokenService.generate(appUser, PasswordResetTokenType.LINK)).thenReturn("reset-token");
 
         userService.forgotPassword("ada@example.com");
 
@@ -267,7 +252,7 @@ class UserServiceImplTest {
 
         userService.forgotPassword("unknown@example.com");
 
-        verify(passwordResetTokenService, never()).generate(any());
+        verify(passwordResetTokenService, never()).generate(any(), any());
         verify(emailService, never()).sendPasswordResetEmail(any(), any());
     }
 
@@ -281,7 +266,7 @@ class UserServiceImplTest {
 
         userService.forgotPassword("dis@example.com");
 
-        verify(passwordResetTokenService, never()).generate(any());
+        verify(passwordResetTokenService, never()).generate(any(), any());
         verify(emailService, never()).sendPasswordResetEmail(any(), any());
     }
 
@@ -295,8 +280,52 @@ class UserServiceImplTest {
 
         userService.forgotPassword("lck@example.com");
 
-        verify(passwordResetTokenService, never()).generate(any());
+        verify(passwordResetTokenService, never()).generate(any(), any());
         verify(emailService, never()).sendPasswordResetEmail(any(), any());
+    }
+
+    @Test
+    void _09b_ShouldSendOtpEmail_WhenMobileResetRequested() {
+        appUser.setEnabled(true);
+        when(appUserRepository.findByEmailIgnoreCase("ada@example.com"))
+                .thenReturn(Optional.of(appUser));
+        when(passwordResetTokenService.generate(appUser, PasswordResetTokenType.OTP)).thenReturn("654321");
+
+        userService.forgotPasswordMobile("ada@example.com");
+
+        verify(emailService).sendPasswordResetOtpEmail(eq(appUser), eq("654321"));
+    }
+
+    @Test
+    void _09c_ShouldSkipOtpEmail_WhenAccountNotEnabledForMobile() {
+        when(appUserRepository.findByEmailIgnoreCase("ada@example.com"))
+                .thenReturn(Optional.of(appUser));
+
+        userService.forgotPasswordMobile("ada@example.com");
+
+        verify(passwordResetTokenService, never()).generate(any(), any());
+        verify(emailService, never()).sendPasswordResetOtpEmail(any(), any());
+    }
+
+    @Test
+    void _09d_ShouldDelegateToService_WhenVerifyOtpCalled() {
+        userService.verifyPasswordResetOtp("ada@example.com", "654321");
+
+        verify(passwordResetTokenService).verifyOtp("ada@example.com", "654321");
+    }
+
+    @Test
+    void _09e_ShouldSkipOtpEmail_WhenAccountLockedForMobile() {
+        AppUser locked = AppUser.builder()
+                .id(3L).username("lck").email("lck@example.com").password("hashed")
+                .enabled(true).accountLocked(true).roles(Set.of(userRole)).build();
+        when(appUserRepository.findByEmailIgnoreCase("lck@example.com"))
+                .thenReturn(Optional.of(locked));
+
+        userService.forgotPasswordMobile("lck@example.com");
+
+        verify(passwordResetTokenService, never()).generate(any(), any());
+        verify(emailService, never()).sendPasswordResetOtpEmail(any(), any());
     }
 
     @Test

@@ -26,6 +26,15 @@ public interface ActivationTokenRepository extends JpaRepository<ActivationToken
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<ActivationToken> findByToken(String token);
 
+    /**
+     * Looks up an activation token by both owner and token value. Used by the
+     * OTP flow to scope the lookup to a specific user, preventing two users
+     * who happen to share the same 6-digit OTP from activating each other's
+     * account.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<ActivationToken> findByUserAndToken(AppUser user, String token);
+
     void deleteAllByExpiresAtBefore(Instant instant);
 
     void deleteByUser(AppUser user);

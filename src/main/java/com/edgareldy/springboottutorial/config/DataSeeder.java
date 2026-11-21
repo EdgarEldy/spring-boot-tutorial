@@ -49,6 +49,10 @@ public class DataSeeder {
     @Bean
     public CommandLineRunner seedDemoData(
             @Value("${app.seed.reset-user-passwords:false}") boolean resetUserPasswords) {
+        return buildRunner(resetUserPasswords);
+    }
+
+    CommandLineRunner buildRunner(boolean resetPasswords) {
         return args -> {
             if (categoryRepository.count() == 0) {
                 Category electronics = categoryRepository.save(Category.builder().categoryName("Electronics").build());
@@ -77,7 +81,7 @@ public class DataSeeder {
                 appUserRepository.save(admin);
             }
 
-            if (resetUserPasswords) {
+            if (resetPasswords) {
                 String encodedPassword = passwordEncoder.encode(DEMO_PASSWORD);
                 List<AppUser> users = appUserRepository.findAll();
                 users.forEach(user -> user.setPassword(encodedPassword));

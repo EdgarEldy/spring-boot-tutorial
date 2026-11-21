@@ -93,6 +93,29 @@ ADMIN-only (`@PreAuthorize("hasRole('ADMIN')")` at class level). Endpoints:
 It queries `roleRepository.findByRoleName("ADMIN")` first; if the role does not exist, the
 seed is skipped to avoid a foreign key error.
 
+The password-reset path is controlled by an `app.seed.reset-user-passwords` property
+(default `false`). Set it to `true` temporarily in `application-dev.yml` to re-hash all
+existing dev accounts after tightening the `@ValidPassword` constraint.
+
+### PasswordResetController
+
+A dedicated controller grouping all four password-reset flows under `/api/v1/password-reset`.
+All endpoints are public (`permitAll()` in `SecurityConfig`).
+
+| Method | Path | Flow | Action |
+|---|---|---|---|
+| POST | `/api/v1/password-reset/web` | LINK | Send UUID reset link by email |
+| POST | `/api/v1/password-reset/mobile` | OTP | Send 6-digit OTP by email |
+| POST | `/api/v1/password-reset/verify-otp` | OTP | Confirm code is valid (non-destructive) |
+| POST | `/api/v1/password-reset/confirm` | Both | Consume token and set new password |
+
+The `/web` endpoint intentionally mirrors `POST /api/v1/auth/forgot-password` to group both
+reset flows symmetrically. The `/verify-otp` step is non-destructive: the same OTP is
+re-submitted to `/confirm` once the user has entered the new password.
+
+`UserService` gains two new methods: `forgotPasswordMobile(String email)` and
+`verifyPasswordResetOtp(String email, String otp)`.
+
 ---
 
 ## Key files
@@ -105,9 +128,11 @@ seed is skipped to avoid a foreign key error.
 | `src/main/java/.../validation/match/PasswordsMatchValidator.java` | Cross-field check |
 | `src/main/java/.../validation/unique/Unique.java` | Generic uniqueness annotation |
 | `src/main/java/.../validation/unique/UniqueValidator.java` | EntityManager query |
+| `src/main/java/.../dto/auth/VerifyOtpRequest.java` | Email + OTP request body |
 | `src/main/java/.../service/UserService.java` | User service interface |
 | `src/main/java/.../service/impl/UserServiceImpl.java` | Full user management logic |
 | `src/main/java/.../controller/UserController.java` | ADMIN-only user endpoints |
+| `src/main/java/.../controller/PasswordResetController.java` | Public password-reset endpoints |
 | `src/main/resources/db/migration/V7__add_role_user_join_table.sql` | Join table + seed |
 | `src/main/resources/db/migration/V8__add_account_locked.sql` | account_locked column |
 | `src/main/resources/db/migration/V9__add_name_fields_to_app_users.sql` | Name columns |

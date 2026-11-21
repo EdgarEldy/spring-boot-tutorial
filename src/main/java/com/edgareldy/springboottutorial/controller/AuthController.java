@@ -1,5 +1,6 @@
 package com.edgareldy.springboottutorial.controller;
 
+import com.edgareldy.springboottutorial.dto.auth.ActivateAccountRequest;
 import com.edgareldy.springboottutorial.dto.auth.AuthResponse;
 import com.edgareldy.springboottutorial.dto.auth.ForgotPasswordRequest;
 import com.edgareldy.springboottutorial.dto.auth.LoginRequest;
@@ -90,9 +91,12 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(claims, "Token claims retrieved successfully"));
     }
 
-    @GetMapping("/activate-account")
-    public ResponseEntity<ApiResponse<UserResponse>> activate(@RequestParam String token) {
-        return ResponseEntity.ok(ApiResponse.success(userService.activate(token), "Account activated successfully"));
+    @PostMapping("/activate-account")
+    public ResponseEntity<ApiResponse<UserResponse>> activate(
+            @Valid @RequestBody ActivateAccountRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                userService.activate(request.email(), request.otp()),
+                "Account activated successfully"));
     }
 
     @PostMapping("/forgot-password")

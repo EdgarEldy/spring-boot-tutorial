@@ -58,11 +58,10 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     @Async("emailTaskExecutor")
-    public void sendActivationEmail(AppUser user, String token) {
-        String link = frontendUrl + "/auth/activate-account?token=" + token;
+    public void sendActivationEmail(AppUser user, String otp) {
         Context context = new Context(Locale.ENGLISH);
         context.setVariable("username", user.getUsername());
-        context.setVariable("activationLink", link);
+        context.setVariable("activationToken", otp);
         String html = templateEngine.process(EmailTemplateName.ACTIVATE_ACCOUNT.getName(), context);
         sendEmail(user.getEmail(), "Activate your account", html);
     }
@@ -75,6 +74,16 @@ public class EmailServiceImpl implements EmailService {
         context.setVariable("username", user.getUsername());
         context.setVariable("resetLink", link);
         String html = templateEngine.process(EmailTemplateName.RESET_PASSWORD.getName(), context);
+        sendEmail(user.getEmail(), "Reset your password", html);
+    }
+
+    @Override
+    @Async("emailTaskExecutor")
+    public void sendPasswordResetOtpEmail(AppUser user, String otp) {
+        Context context = new Context(Locale.ENGLISH);
+        context.setVariable("username", user.getUsername());
+        context.setVariable("resetOtp", otp);
+        String html = templateEngine.process(EmailTemplateName.RESET_PASSWORD_OTP.getName(), context);
         sendEmail(user.getEmail(), "Reset your password", html);
     }
 

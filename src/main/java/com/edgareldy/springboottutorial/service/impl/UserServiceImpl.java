@@ -8,13 +8,13 @@ import com.edgareldy.springboottutorial.entity.Role;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.BusinessRuleException;
 import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
-import com.edgareldy.springboottutorial.exception.TokenExpiredException;
 import com.edgareldy.springboottutorial.mapper.AppUserMapper;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.repository.RoleRepository;
 import com.edgareldy.springboottutorial.service.ActivationTokenService;
 import com.edgareldy.springboottutorial.service.EmailService;
 import com.edgareldy.springboottutorial.service.PasswordResetTokenService;
+import com.edgareldy.springboottutorial.entity.token.PasswordResetTokenType;
 import com.edgareldy.springboottutorial.service.UserService;
 import java.util.HashSet;
 import java.util.List;
@@ -133,20 +133,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse activate(String token) {
-        try {
-            AppUser user = activationTokenService.validate(token);
-            user.setEnabled(true);
-            return appUserMapper.toResponse(appUserRepository.save(user));
-        } catch (TokenExpiredException e) {
-            // Token expired: generate a fresh one and re-send the email, then
-            // rethrow so the caller still gets an error response (the user must
-            // click the new link before they can log in).
-            AppUser user = activationTokenService.getUserByToken(token);
-            String newToken = activationTokenService.generate(user);
-            emailService.sendActivationEmail(user, newToken);
-            throw e;
-        }
+    public UserResponse activate(String email, String otp) {
+        AppUser user = activationTokenService.validate(email, otp);
+        user.setEnabled(true);
+        return appUserMapper.toResponse(appUserRepository.save(user));
     }
 
     @Override
@@ -156,9 +146,26 @@ public class UserServiceImpl implements UserService {
             if (!user.isEnabled() || user.isAccountLocked()) {
                 return;
             }
-            String token = passwordResetTokenService.generate(user);
+            String token = passwordResetTokenService.generate(user, PasswordResetTokenType.LINK);
             emailService.sendPasswordResetEmail(user, token);
         });
+    }
+
+    @Override
+    @Transactional
+    public void forgotPasswordMobile(String email) {
+        appUserRepository.findByEmailIgnoreCase(email).ifPresent(user -> {
+            if (!user.isEnabled() || user.isAccountLocked()) {
+                return;
+            }
+            String otp = passwordResetTokenService.generate(user, PasswordResetTokenType.OTP);
+            emailService.sendPasswordResetOtpEmail(user, otp);
+        });
+    }
+
+    @Override
+    public void verifyPasswordResetOtp(String email, String otp) {
+        passwordResetTokenService.verifyOtp(email, otp);
     }
 
     @Override

@@ -95,7 +95,7 @@ class DataSeederTest {
         when(passwordEncoder.encode(DataSeeder.DEMO_PASSWORD)).thenReturn("encoded-demo-password");
         when(appUserRepository.findAll()).thenReturn(List.of(admin, user));
 
-        dataSeeder.seedDemoData(true).run();
+        dataSeeder.buildRunner(true).run();
 
         verify(appUserRepository).saveAll(List.of(admin, user));
         org.junit.jupiter.api.Assertions.assertEquals("encoded-demo-password", admin.getPassword());

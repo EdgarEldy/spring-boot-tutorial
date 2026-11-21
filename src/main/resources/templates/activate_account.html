@@ -37,20 +37,16 @@
             color: #6B7280;
             line-height: 1.6;
         }
-        .activation-link {
-            display: block;
+        .activation-code {
+            font-size: 36px;
+            font-weight: bold;
             text-align: center;
-            margin-top: 24px;
-        }
-        .activation-link a {
-            display: inline-block;
-            padding: 12px 32px;
-            background-color: #4F46E5;
-            color: #ffffff;
-            text-decoration: none;
-            border-radius: 6px;
-            font-size: 15px;
-            font-weight: 600;
+            letter-spacing: 8px;
+            color: #4F46E5;
+            margin: 24px 0;
+            padding: 16px;
+            background-color: #EEF2FF;
+            border-radius: 8px;
         }
         .expiry-notice {
             margin-top: 24px;
@@ -78,13 +74,13 @@
     </div>
     <p class="greeting">Hello <strong th:text="${username}">username</strong>,</p>
     <p class="message">
-        Thank you for signing up! Please activate your account by clicking the button below.
+        Thank you for signing up! Enter the code below in the app to activate your account.
     </p>
-    <div class="activation-link">
-        <a th:href="${activationLink}" target="_blank">Activate my account</a>
+    <div class="activation-code">
+        <span th:text="${activationToken}">000000</span>
     </div>
     <div class="expiry-notice">
-        This link expires in <strong>24 hours</strong>. If you did not create an account, you can safely ignore this email.
+        This code expires in <strong>15 minutes</strong>. If you did not create an account, you can safely ignore this email.
     </div>
     <div class="footer">
         &copy; 2026 Spring Boot Tutorial. All rights reserved.
