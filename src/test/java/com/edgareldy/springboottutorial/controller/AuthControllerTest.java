@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.edgareldy.springboottutorial.config.SecurityConfig;
+import com.edgareldy.springboottutorial.dto.auth.ActivateAccountRequest;
 import com.edgareldy.springboottutorial.dto.auth.AuthResponse;
 import com.edgareldy.springboottutorial.dto.auth.LoginRequest;
 import com.edgareldy.springboottutorial.dto.auth.RegisterRequest;
@@ -185,11 +186,14 @@ class AuthControllerTest {
     }
 
     @Test
-    void _10_ShouldReturn200_WhenActivateTokenValid() throws Exception {
+    void _10_ShouldReturn200_WhenActivateOtpValid() throws Exception {
         UserResponse response = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", Role.USER);
-        when(userService.activate("valid-token")).thenReturn(response);
+        when(userService.activate("ada@example.com", "123456")).thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/auth/activate-account").param("token", "valid-token"))
+        mockMvc.perform(post("/api/v1/auth/activate-account")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new ActivateAccountRequest("ada@example.com", "123456"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.username").value("ada"))
                 .andExpect(jsonPath("$.message").value("Account activated successfully"));
