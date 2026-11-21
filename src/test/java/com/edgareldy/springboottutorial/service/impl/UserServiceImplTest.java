@@ -315,6 +315,20 @@ class UserServiceImplTest {
     }
 
     @Test
+    void _09e_ShouldSkipOtpEmail_WhenAccountLockedForMobile() {
+        AppUser locked = AppUser.builder()
+                .id(3L).username("lck").email("lck@example.com").password("hashed")
+                .enabled(true).accountLocked(true).roles(Set.of(userRole)).build();
+        when(appUserRepository.findByEmailIgnoreCase("lck@example.com"))
+                .thenReturn(Optional.of(locked));
+
+        userService.forgotPasswordMobile("lck@example.com");
+
+        verify(passwordResetTokenService, never()).generate(any(), any());
+        verify(emailService, never()).sendPasswordResetOtpEmail(any(), any());
+    }
+
+    @Test
     void _11_ShouldReHashPassword_WhenResetTokenValid() {
         when(passwordResetTokenService.validateAndConsume("reset-tok")).thenReturn(appUser);
         when(passwordEncoder.encode("new-password")).thenReturn("new-hashed");
