@@ -12,6 +12,7 @@ import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.InvalidTokenException;
 import com.edgareldy.springboottutorial.exception.TokenExpiredException;
 import com.edgareldy.springboottutorial.repository.ActivationTokenRepository;
+import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.security.SecureTokenGenerator;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -26,7 +27,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
  * Unit tests for {@link ActivationTokenServiceImpl}, with
- * {@link ActivationTokenRepository} and {@link SecureTokenGenerator} mocked.
+ * {@link ActivationTokenRepository}, {@link AppUserRepository} and
+ * {@link SecureTokenGenerator} mocked.
  * <p>
  * Created edgar.muhamyangabo on 10/30/26
  * Author : edgar.muhamyangabo
@@ -38,6 +40,9 @@ class ActivationTokenServiceImplTest {
 
     @Mock
     private ActivationTokenRepository activationTokenRepository;
+
+    @Mock
+    private AppUserRepository appUserRepository;
 
     @Mock
     private SecureTokenGenerator secureTokenGenerator;
@@ -53,30 +58,31 @@ class ActivationTokenServiceImplTest {
     }
 
     @Test
-    void _01_ShouldPurgePreviousTokensThenSave_WhenTokenIsGenerated() {
-        when(secureTokenGenerator.generate()).thenReturn("raw-token");
+    void _01_ShouldPurgePreviousTokensThenSave_WhenOtpIsGenerated() {
+        when(secureTokenGenerator.generateOtp(6)).thenReturn("123456");
 
         String result = activationTokenService.generate(user);
 
-        assertThat(result).isEqualTo("raw-token");
+        assertThat(result).isEqualTo("123456");
         verify(activationTokenRepository).deleteByUser(user);
         ArgumentCaptor<ActivationToken> captor = ArgumentCaptor.forClass(ActivationToken.class);
         verify(activationTokenRepository).save(captor.capture());
         assertThat(captor.getValue().getUser()).isEqualTo(user);
-        assertThat(captor.getValue().getToken()).isEqualTo("raw-token");
+        assertThat(captor.getValue().getToken()).isEqualTo("123456");
         assertThat(captor.getValue().getExpiresAt()).isAfter(Instant.now());
         assertThat(captor.getValue().getValidatedAt()).isNull();
     }
 
     @Test
-    void _02_ShouldMarkTokenValidatedAndReturnUser_WhenTokenIsValid() {
+    void _02_ShouldMarkTokenValidatedAndReturnUser_WhenOtpIsValid() {
         ActivationToken activationToken = ActivationToken.builder()
-                .id(1L).user(user).token("raw-token")
-                .createdAt(Instant.now()).expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
+                .id(1L).user(user).token("123456")
+                .createdAt(Instant.now()).expiresAt(Instant.now().plus(10, ChronoUnit.MINUTES))
                 .build();
-        when(activationTokenRepository.findByToken("raw-token")).thenReturn(Optional.of(activationToken));
+        when(appUserRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(user));
+        when(activationTokenRepository.findByUserAndToken(user, "123456")).thenReturn(Optional.of(activationToken));
 
-        AppUser result = activationTokenService.validate("raw-token");
+        AppUser result = activationTokenService.validate("ada@example.com", "123456");
 
         assertThat(result).isEqualTo(user);
         assertThat(activationToken.getValidatedAt()).isNotNull();
@@ -84,38 +90,41 @@ class ActivationTokenServiceImplTest {
     }
 
     @Test
-    void _03_ShouldThrowException_WhenTokenIsMissing() {
-        when(activationTokenRepository.findByToken("missing")).thenReturn(Optional.empty());
+    void _03_ShouldThrowException_WhenOtpIsNotFound() {
+        when(appUserRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(user));
+        when(activationTokenRepository.findByUserAndToken(user, "000000")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> activationTokenService.validate("missing"))
+        assertThatThrownBy(() -> activationTokenService.validate("ada@example.com", "000000"))
                 .isInstanceOf(InvalidTokenException.class);
     }
 
     @Test
-    void _04_ShouldThrowException_WhenTokenIsAlreadyValidated() {
+    void _04_ShouldThrowException_WhenOtpIsAlreadyValidated() {
         ActivationToken activationToken = ActivationToken.builder()
-                .id(1L).user(user).token("raw-token")
-                .createdAt(Instant.now()).expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
+                .id(1L).user(user).token("123456")
+                .createdAt(Instant.now()).expiresAt(Instant.now().plus(10, ChronoUnit.MINUTES))
                 .validatedAt(Instant.now())
                 .build();
-        when(activationTokenRepository.findByToken("raw-token")).thenReturn(Optional.of(activationToken));
+        when(appUserRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(user));
+        when(activationTokenRepository.findByUserAndToken(user, "123456")).thenReturn(Optional.of(activationToken));
 
-        assertThatThrownBy(() -> activationTokenService.validate("raw-token"))
+        assertThatThrownBy(() -> activationTokenService.validate("ada@example.com", "123456"))
                 .isInstanceOf(InvalidTokenException.class);
 
         verify(activationTokenRepository, never()).save(any());
     }
 
     @Test
-    void _05_ShouldThrowTokenExpiredException_WhenTokenIsExpired() {
+    void _05_ShouldThrowTokenExpiredException_WhenOtpIsExpired() {
         ActivationToken activationToken = ActivationToken.builder()
-                .id(1L).user(user).token("raw-token")
-                .createdAt(Instant.now().minus(2, ChronoUnit.DAYS))
-                .expiresAt(Instant.now().minus(1, ChronoUnit.DAYS))
+                .id(1L).user(user).token("123456")
+                .createdAt(Instant.now().minus(30, ChronoUnit.MINUTES))
+                .expiresAt(Instant.now().minus(10, ChronoUnit.MINUTES))
                 .build();
-        when(activationTokenRepository.findByToken("raw-token")).thenReturn(Optional.of(activationToken));
+        when(appUserRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(user));
+        when(activationTokenRepository.findByUserAndToken(user, "123456")).thenReturn(Optional.of(activationToken));
 
-        assertThatThrownBy(() -> activationTokenService.validate("raw-token"))
+        assertThatThrownBy(() -> activationTokenService.validate("ada@example.com", "123456"))
                 .isInstanceOf(TokenExpiredException.class);
     }
 }
