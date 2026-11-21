@@ -6,6 +6,7 @@ import com.edgareldy.springboottutorial.dto.auth.VerifyOtpRequest;
 import com.edgareldy.springboottutorial.dto.common.ApiResponse;
 import com.edgareldy.springboottutorial.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,10 @@ public class PasswordResetController {
     private final UserService userService;
 
     @Operation(summary = "Request a password-reset link (web flow)")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Request accepted (email sent if address is registered)"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation error")
+    })
     @PostMapping("/web")
     public ResponseEntity<ApiResponse<Void>> forgotPasswordWeb(
             @Valid @RequestBody ForgotPasswordRequest request) {
@@ -45,6 +50,10 @@ public class PasswordResetController {
     }
 
     @Operation(summary = "Request a password-reset OTP (mobile flow)")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Request accepted (OTP sent if address is registered)"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation error")
+    })
     @PostMapping("/mobile")
     public ResponseEntity<ApiResponse<Void>> forgotPasswordMobile(
             @Valid @RequestBody ForgotPasswordRequest request) {
@@ -54,6 +63,10 @@ public class PasswordResetController {
     }
 
     @Operation(summary = "Verify a password-reset OTP without consuming it")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "OTP is valid"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid or expired OTP")
+    })
     @PostMapping("/verify-otp")
     public ResponseEntity<ApiResponse<Void>> verifyOtp(
             @Valid @RequestBody VerifyOtpRequest request) {
@@ -62,6 +75,11 @@ public class PasswordResetController {
     }
 
     @Operation(summary = "Confirm password reset with a valid token or OTP")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Password reset successfully"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid or expired token, or validation error"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
+    })
     @PostMapping("/confirm")
     public ResponseEntity<ApiResponse<Void>> confirm(
             @RequestParam String token,
