@@ -130,12 +130,19 @@ collection:
           created: 1788200000000
           modified: 1794204173784
           isPrivate: false
-          description: ""
+          description: "POST with JSON body since OTP migration (was GET ?token=)"
           sortKey: -1788200400000
-        method: GET
-        parameters:
-          - name: token
-            value: _dM4yacMy7E-_b5XrD_dFly2ZP4tc_bENe7GayTkbQw
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "email": "ada@example.com",
+              "activation_code": "123456"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -230,6 +237,127 @@ collection:
         authentication:
           type: bearer
           token: "{{ token }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Password Reset
+    meta:
+      id: fld_passwordreset0001000000000000
+      created: 1795900000000
+      modified: 1795900000000
+      sortKey: -1788200649900
+      description: "Web (UUID link) and mobile (6-digit OTP) password reset flows"
+    children:
+      - url: "{{ baseUrl }}/api/v1/password-reset/web"
+        name: Forgot password (web link)
+        meta:
+          id: req_passwordreset_web0000000000000
+          created: 1795900000000
+          modified: 1795900000000
+          isPrivate: false
+          description: "Sends a UUID reset link to the email (1-hour TTL). Public endpoint."
+          sortKey: -1795900100000
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "email": "ada@example.com"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/password-reset/mobile"
+        name: Forgot password (mobile OTP)
+        meta:
+          id: req_passwordreset_mobile000000000
+          created: 1795900000000
+          modified: 1795900000000
+          isPrivate: false
+          description: "Sends a 6-digit OTP to the email (5-minute TTL). Public endpoint."
+          sortKey: -1795900200000
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "email": "ada@example.com"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/password-reset/verify-otp"
+        name: Verify OTP (non-destructive)
+        meta:
+          id: req_passwordreset_verifyotp00000
+          created: 1795900000000
+          modified: 1795900000000
+          isPrivate: false
+          description: "Checks the OTP is valid without consuming it. Call before showing the new-password screen."
+          sortKey: -1795900300000
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "email": "ada@example.com",
+              "otp": "123456"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ baseUrl }}/api/v1/password-reset/confirm"
+        name: Confirm reset (token or OTP)
+        meta:
+          id: req_passwordreset_confirm0000000
+          created: 1795900000000
+          modified: 1795900000000
+          isPrivate: false
+          description: "Consumes the token/OTP and sets the new password. Pass token as query param."
+          sortKey: -1795900400000
+        method: POST
+        parameters:
+          - name: token
+            value: 123456
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "new_password": "NewPassword1@",
+              "confirm_password": "NewPassword1@"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
         settings:
           renderRequestBody: true
           encodeUrl: true
