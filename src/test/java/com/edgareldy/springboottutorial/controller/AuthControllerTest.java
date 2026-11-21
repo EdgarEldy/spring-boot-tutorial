@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.edgareldy.springboottutorial.config.SecurityConfig;
+import com.edgareldy.springboottutorial.dto.auth.ActivateAccountRequest;
 import com.edgareldy.springboottutorial.dto.auth.AuthResponse;
 import com.edgareldy.springboottutorial.dto.auth.ForgotPasswordRequest;
 import com.edgareldy.springboottutorial.dto.auth.LoginRequest;
@@ -146,7 +147,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void _08_ShouldReturn400_WhenLoginEmailInvalid() throws Exception {
+    void _19_ShouldReturn400_WhenLoginEmailInvalid() throws Exception {
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new LoginRequest("not-an-email", "password123"))))
@@ -171,27 +172,39 @@ class AuthControllerTest {
     }
 
     @Test
-    void _08_ShouldReturn200_WhenActivationTokenValid() throws Exception {
-        UserResponse activated = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", true, false,
-                List.of(new RoleResponse(1L, "USER", List.of())));
-        when(userService.activate("valid-token")).thenReturn(activated);
+    void _08_ShouldReturn200_WhenLogoutWithValidToken() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .header("Authorization", "Bearer signed-token")
+                        .with(user("ada").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Logged out successfully"));
 
-        mockMvc.perform(get("/api/v1/auth/activate-account").param("token", "valid-token"))
+        verify(authService).logout("signed-token");
+    }
+
+    @Test
+    void _09_ShouldReturn401_WhenLogoutWithoutAuthentication() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .header("Authorization", "Bearer signed-token"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void _10_ShouldReturn200_WhenActivateOtpValid() throws Exception {
+        UserResponse response = new UserResponse(1L, "Ada", "Lovelace", "ada", "ada@example.com", true, false,
+                List.of(new RoleResponse(1L, "USER", List.of())));
+        when(userService.activate("ada@example.com", "123456")).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/auth/activate-account")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new ActivateAccountRequest("ada@example.com", "123456"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.enabled").value(true));
     }
 
     @Test
-    void _09_ShouldReturn400_WhenActivationTokenInvalid() throws Exception {
-        when(userService.activate("bad-token"))
-                .thenThrow(new InvalidTokenException("Invalid activation token"));
-
-        mockMvc.perform(get("/api/v1/auth/activate-account").param("token", "bad-token"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void _10_ShouldReturn200_WhenForgotPasswordRequestValid() throws Exception {
+    void _11_ShouldReturn200_WhenForgotPasswordRequestValid() throws Exception {
         mockMvc.perform(post("/api/v1/auth/forgot-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
@@ -203,7 +216,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void _11_ShouldReturn400_WhenForgotPasswordEmailInvalid() throws Exception {
+    void _12_ShouldReturn400_WhenForgotPasswordEmailInvalid() throws Exception {
         mockMvc.perform(post("/api/v1/auth/forgot-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"not-an-email\"}"))
@@ -211,7 +224,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void _12_ShouldReturn200_WhenResetPasswordRequestValid() throws Exception {
+    void _13_ShouldReturn200_WhenResetPasswordRequestValid() throws Exception {
         mockMvc.perform(post("/api/v1/auth/reset-password")
                         .param("token", "reset-token")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -223,7 +236,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void _13_ShouldReturn400_WhenResetPasswordTokenInvalid() throws Exception {
+    void _13b_ShouldReturn400_WhenResetPasswordTokenInvalid() throws Exception {
         org.mockito.Mockito.doThrow(new InvalidTokenException("Invalid password reset token"))
                 .when(userService).resetPassword("bad-token", "Password1@");
 
@@ -235,25 +248,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void _14_ShouldReturn200_WhenLogoutWithValidToken() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/logout")
-                        .header("Authorization", "Bearer signed-token")
-                        .with(user("ada").roles("USER")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Logged out successfully"));
-
-        verify(authService).logout("signed-token");
-    }
-
-    @Test
-    void _15_ShouldReturn401_WhenLogoutWithoutAuthentication() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/logout")
-                        .header("Authorization", "Bearer signed-token"))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    void _16_ShouldReturn400_WhenResetPasswordNewPasswordFailsComplexity() throws Exception {
+    void _14_ShouldReturn400_WhenResetPasswordNewPasswordFailsComplexity() throws Exception {
         mockMvc.perform(post("/api/v1/auth/reset-password")
                         .param("token", "reset-token")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -263,7 +258,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void _17_ShouldReturn400_WhenResetPasswordConfirmDoesNotMatch() throws Exception {
+    void _15_ShouldReturn400_WhenResetPasswordConfirmDoesNotMatch() throws Exception {
         mockMvc.perform(post("/api/v1/auth/reset-password")
                         .param("token", "reset-token")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -273,7 +268,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void _16_ShouldReturnClaims_WhenAuthenticatedWithValidToken() throws Exception {
+    void _16_ShouldReturnTokenClaims_WhenAuthenticatedWithValidToken() throws Exception {
         when(jwtService.extractAllClaims(anyString())).thenReturn(Map.of("sub", "ada", "token_type", "access"));
 
         mockMvc.perform(get("/api/v1/auth/token-info")

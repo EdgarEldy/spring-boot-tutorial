@@ -16,6 +16,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import static org.springframework.security.config.Customizer.withDefaults;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -66,6 +67,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(authenticationEntryPoint)
@@ -76,7 +78,9 @@ public class SecurityConfig {
                                 "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password",
                                 "/api/v1/auth/refresh-token")
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/activate-account")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/activate-account")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/password-reset/**")
                         .permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/actuator/health")
                         .permitAll()
