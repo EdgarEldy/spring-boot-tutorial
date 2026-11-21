@@ -144,7 +144,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void _08_ShouldReturn400_WhenLoginEmailInvalid() throws Exception {
+    void _19_ShouldReturn400_WhenLoginEmailInvalid() throws Exception {
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new LoginRequest("not-an-email", "password123"))))
