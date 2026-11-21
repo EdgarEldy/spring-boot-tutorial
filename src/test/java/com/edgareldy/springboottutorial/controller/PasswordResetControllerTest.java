@@ -119,4 +119,17 @@ class PasswordResetControllerTest {
 
         verify(userService).resetPassword("reset-otp", "Password1@");
     }
+
+    @Test
+    void _06_ShouldReturn400_WhenConfirmTokenInvalid() throws Exception {
+        doThrow(new InvalidTokenException("Invalid or expired token"))
+                .when(userService).resetPassword("bad-token", "Password1@");
+
+        mockMvc.perform(post("/api/v1/password-reset/confirm")
+                        .param("token", "bad-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new ResetPasswordRequest("Password1@", "Password1@"))))
+                .andExpect(status().isBadRequest());
+    }
 }
