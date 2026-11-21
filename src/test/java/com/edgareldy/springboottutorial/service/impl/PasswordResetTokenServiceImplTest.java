@@ -11,6 +11,7 @@ import com.edgareldy.springboottutorial.entity.token.PasswordResetToken;
 import com.edgareldy.springboottutorial.entity.token.PasswordResetTokenType;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.InvalidTokenException;
+import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.repository.PasswordResetTokenRepository;
 import com.edgareldy.springboottutorial.security.SecureTokenGenerator;
@@ -176,5 +177,15 @@ class PasswordResetTokenServiceImplTest {
 
         assertThatThrownBy(() -> passwordResetTokenService.verifyOtp("ada@example.com", "123456"))
                 .isInstanceOf(InvalidTokenException.class);
+    }
+
+    @Test
+    void _10_verifyOtp_ShouldThrow_WhenUserEmailNotFound() {
+        when(appUserRepository.findByEmailIgnoreCase("unknown@example.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> passwordResetTokenService.verifyOtp("unknown@example.com", "123456"))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(passwordResetTokenRepository, never()).findByUserAndToken(any(), any());
     }
 }
