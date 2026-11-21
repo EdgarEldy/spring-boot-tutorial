@@ -7,6 +7,7 @@ import com.edgareldy.springboottutorial.repository.AppUserRepository;
 import com.edgareldy.springboottutorial.service.ActivationTokenService;
 import com.edgareldy.springboottutorial.service.EmailService;
 import com.edgareldy.springboottutorial.service.PasswordResetTokenService;
+import com.edgareldy.springboottutorial.entity.token.PasswordResetTokenType;
 import com.edgareldy.springboottutorial.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,8 +37,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse activate(String token) {
-        AppUser user = activationTokenService.validate(token);
+    public UserResponse activate(String email, String otp) {
+        AppUser user = activationTokenService.validate(email, otp);
         user.setEnabled(true);
         return appUserMapper.toResponse(appUserRepository.save(user));
     }
@@ -46,7 +47,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void forgotPassword(String email) {
         appUserRepository.findByEmailIgnoreCase(email).ifPresent(user -> {
-            String token = passwordResetTokenService.generate(user);
+            String token = passwordResetTokenService.generate(user, PasswordResetTokenType.LINK);
             emailService.sendPasswordResetEmail(user, token);
         });
     }
