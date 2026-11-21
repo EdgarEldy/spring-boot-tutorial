@@ -40,5 +40,9 @@ public interface UserService {
 
     void forgotPassword(String email);
 
+    void forgotPasswordMobile(String email);
+
+    void verifyPasswordResetOtp(String email, String otp);
+
     void resetPassword(String token, String newPassword);
 }
