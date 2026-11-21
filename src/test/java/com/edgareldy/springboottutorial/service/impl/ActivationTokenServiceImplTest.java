@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.edgareldy.springboottutorial.entity.token.ActivationToken;
 import com.edgareldy.springboottutorial.entity.user.AppUser;
 import com.edgareldy.springboottutorial.exception.InvalidTokenException;
+import com.edgareldy.springboottutorial.exception.ResourceNotFoundException;
 import com.edgareldy.springboottutorial.exception.TokenExpiredException;
 import com.edgareldy.springboottutorial.repository.ActivationTokenRepository;
 import com.edgareldy.springboottutorial.repository.AppUserRepository;
@@ -126,5 +127,15 @@ class ActivationTokenServiceImplTest {
 
         assertThatThrownBy(() -> activationTokenService.validate("ada@example.com", "123456"))
                 .isInstanceOf(TokenExpiredException.class);
+    }
+
+    @Test
+    void _06_ShouldThrowResourceNotFoundException_WhenEmailIsNotRegistered() {
+        when(appUserRepository.findByEmailIgnoreCase("unknown@example.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> activationTokenService.validate("unknown@example.com", "123456"))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(activationTokenRepository, never()).findByUserAndToken(any(), any());
     }
 }
