@@ -2,6 +2,8 @@ package com.edgareldy.springboottutorial.entity.token;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import lombok.AllArgsConstructor;
@@ -32,8 +34,9 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = true)
 public class PasswordResetToken extends AuditableToken {
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
-    private String type;
+    private PasswordResetTokenType type;
 
     @Column(name = "expiry_date", nullable = false)
     private Instant expiryDate;
