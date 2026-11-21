@@ -164,7 +164,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public void verifyPasswordResetOtp(String email, String otp) {
         passwordResetTokenService.verifyOtp(email, otp);
     }
