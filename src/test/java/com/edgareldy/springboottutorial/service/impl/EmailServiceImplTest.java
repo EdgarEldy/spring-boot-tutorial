@@ -55,19 +55,18 @@ class EmailServiceImplTest {
     }
 
     @Test
-    void _01_ShouldPassFrontendActivationLink_WhenActivationEmailIsSent() {
+    void _01_ShouldPassOtpCode_WhenActivationEmailIsSent() {
         given(mailSender.createMimeMessage()).willReturn(new MimeMessage((Session) null));
         given(templateEngine.process(anyString(), any(IContext.class))).willReturn("<html>test</html>");
-        emailService.sendActivationEmail(user, "raw-token");
+        emailService.sendActivationEmail(user, "123456");
 
         ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
         verify(templateEngine).process(
                 eq(EmailTemplateName.ACTIVATE_ACCOUNT.getName()), contextCaptor.capture());
         Context ctx = contextCaptor.getValue();
         assertThat(ctx.getVariable("username")).isEqualTo("ada");
-        assertThat(ctx.getVariable("activationToken")).isEqualTo("raw-token");
-        assertThat(ctx.getVariable("activationLink"))
-                .isEqualTo(FRONTEND_URL + "/auth/activate-account?token=raw-token");
+        assertThat(ctx.getVariable("activationToken")).isEqualTo("123456");
+        assertThat(ctx.getVariable("activationLink")).isNull();
         verify(mailSender).send(any(MimeMessage.class));
     }
 
@@ -88,16 +87,36 @@ class EmailServiceImplTest {
     }
 
     @Test
-    void _03_ShouldRunOnEmailTaskExecutor_WhenEmailsAreSent() throws NoSuchMethodException {
+    void _03_ShouldPassOtpCode_WhenPasswordResetOtpEmailIsSent() {
+        given(mailSender.createMimeMessage()).willReturn(new MimeMessage((Session) null));
+        given(templateEngine.process(anyString(), any(IContext.class))).willReturn("<html>test</html>");
+        emailService.sendPasswordResetOtpEmail(user, "654321");
+
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        verify(templateEngine).process(
+                eq(EmailTemplateName.RESET_PASSWORD_OTP.getName()), contextCaptor.capture());
+        Context ctx = contextCaptor.getValue();
+        assertThat(ctx.getVariable("username")).isEqualTo("ada");
+        assertThat(ctx.getVariable("resetOtp")).isEqualTo("654321");
+        verify(mailSender).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void _04_ShouldRunOnEmailTaskExecutor_WhenEmailsAreSent() throws NoSuchMethodException {
         var sendActivation = EmailServiceImpl.class.getMethod(
                 "sendActivationEmail", AppUser.class, String.class);
         var sendReset = EmailServiceImpl.class.getMethod(
                 "sendPasswordResetEmail", AppUser.class, String.class);
+        var sendResetOtp = EmailServiceImpl.class.getMethod(
+                "sendPasswordResetOtpEmail", AppUser.class, String.class);
 
         assertThat(sendActivation.getAnnotation(
                 org.springframework.scheduling.annotation.Async.class).value())
                 .isEqualTo("emailTaskExecutor");
         assertThat(sendReset.getAnnotation(
+                org.springframework.scheduling.annotation.Async.class).value())
+                .isEqualTo("emailTaskExecutor");
+        assertThat(sendResetOtp.getAnnotation(
                 org.springframework.scheduling.annotation.Async.class).value())
                 .isEqualTo("emailTaskExecutor");
     }
