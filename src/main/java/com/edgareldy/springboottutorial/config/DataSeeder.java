@@ -49,10 +49,10 @@ public class DataSeeder {
     @Bean
     public CommandLineRunner seedDemoData(
             @Value("${app.seed.reset-user-passwords:false}") boolean resetUserPasswords) {
-        return seedDemoData(resetUserPasswords);
+        return buildRunner(resetUserPasswords);
     }
 
-    CommandLineRunner seedDemoData(boolean resetPasswords) {
+    CommandLineRunner buildRunner(boolean resetPasswords) {
         return args -> {
             if (categoryRepository.count() == 0) {
                 Category electronics = categoryRepository.save(Category.builder().categoryName("Electronics").build());
