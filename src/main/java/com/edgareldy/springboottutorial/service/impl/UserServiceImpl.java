@@ -153,6 +153,24 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    public void forgotPasswordMobile(String email) {
+        appUserRepository.findByEmailIgnoreCase(email).ifPresent(user -> {
+            if (!user.isEnabled() || user.isAccountLocked()) {
+                return;
+            }
+            String otp = passwordResetTokenService.generate(user, PasswordResetTokenType.OTP);
+            emailService.sendPasswordResetOtpEmail(user, otp);
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void verifyPasswordResetOtp(String email, String otp) {
+        passwordResetTokenService.verifyOtp(email, otp);
+    }
+
+    @Override
+    @Transactional
     public void resetPassword(String token, String newPassword) {
         AppUser user = passwordResetTokenService.validateAndConsume(token);
         user.setPassword(passwordEncoder.encode(newPassword));
