@@ -1,0 +1,438 @@
+@baseUrl = http://localhost:{{localhost}}/api/v1
+@authBase = {{baseUrl}}/auth
+@passwordResetBase = {{baseUrl}}/password-reset
+@authHeader = Bearer {{authToken}}
+
+### Health check (public)
+GET http://localhost:{{localhost}}/actuator/health
+Accept: application/json
+
+### Application runtime information (requires authentication)
+GET http://localhost:{{localhost}}/actuator/appinfo
+Authorization: {{authHeader}}
+Accept: application/json
+
+### Register a user
+# Use a unique username/email. Account activation requires the OTP sent by email.
+POST {{authBase}}/register
+Content-Type: application/json
+
+{
+  "first_name": "Ada",
+  "last_name": "Lovelace",
+  "username": "ada.lovelace",
+  "email": "ada@example.com",
+  "password": "DemoPassword123!",
+  "confirm_password": "DemoPassword123!"
+}
+
+### Activate a user account
+# Replace the OTP with the six-digit code received by email.
+POST {{authBase}}/activate-account
+Content-Type: application/json
+
+{
+  "email": "ada@example.com",
+  "activation_code": "123456"
+}
+
+### Login
+# The response handler stores access_token and refresh_token for subsequent requests.
+POST {{authBase}}/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "Admin1234#"
+}
+> {%
+  client.global.set("authToken", response.body.data.access_token);
+  client.global.set("refreshToken", response.body.data.refresh_token);
+%}
+
+### Refresh access and refresh tokens
+POST {{authBase}}/refresh-token
+Authorization: Bearer {{refreshToken}}
+Content-Type: application/json
+
+> {%
+  client.global.set("authToken", response.body.data.access_token);
+  client.global.set("refreshToken", response.body.data.refresh_token);
+%}
+
+### Get current user profile
+GET {{authBase}}/me
+Authorization: {{authHeader}}
+Accept: application/json
+
+### Get current token claims
+GET {{authBase}}/token-info
+Authorization: {{authHeader}}
+Accept: application/json
+
+### Logout
+POST {{authBase}}/logout
+Authorization: {{authHeader}}
+
+> {%
+  client.global.set("authToken", "");
+  client.global.set("refreshToken", "");
+%}
+
+### Request a web password-reset link (legacy auth endpoint)
+POST {{authBase}}/forgot-password
+Content-Type: application/json
+
+{
+  "email": "ada@example.com"
+}
+
+### Reset password with the link token (legacy auth endpoint)
+# Replace token with the value from the reset link.
+POST {{authBase}}/reset-password?token=PASTE_RESET_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "new_password": "NewDemoPassword123!",
+  "confirm_password": "NewDemoPassword123!"
+}
+
+### Request a web password-reset link
+POST {{passwordResetBase}}/web
+Content-Type: application/json
+
+{
+  "email": "ada@example.com"
+}
+
+### Request a mobile password-reset OTP
+POST {{passwordResetBase}}/mobile
+Content-Type: application/json
+
+{
+  "email": "ada@example.com"
+}
+
+### Verify a mobile password-reset OTP
+POST {{passwordResetBase}}/verify-otp
+Content-Type: application/json
+
+{
+  "email": "ada@example.com",
+  "otp": "123456"
+}
+
+### Confirm password reset with a link token or mobile OTP
+# The token query parameter accepts either the web reset token or the mobile OTP.
+POST {{passwordResetBase}}/confirm?token=PASTE_RESET_TOKEN_OR_OTP_HERE
+Content-Type: application/json
+
+{
+  "new_password": "NewDemoPassword123!",
+  "confirm_password": "NewDemoPassword123!"
+}
+
+### List categories (public, paginated)
+GET {{baseUrl}}/categories?page=0&size=20&sort=id,asc
+Accept: application/json
+
+### Get category details (public)
+GET {{baseUrl}}/categories/1
+Accept: application/json
+
+### Create category (ADMIN)
+POST {{baseUrl}}/categories
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "category_name": "Accessories"
+}
+
+### Update category (ADMIN)
+PUT {{baseUrl}}/categories/1
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "category_name": "Computer Accessories"
+}
+
+### Delete category (ADMIN)
+DELETE {{baseUrl}}/categories/1
+Authorization: {{authHeader}}
+
+### List products (public, paginated)
+GET {{baseUrl}}/products?page=0&size=20&sort=id,asc
+Accept: application/json
+
+### Filter products by category and name
+GET {{baseUrl}}/products?categoryId=1&productName=keyboard&minPrice=10&maxPrice=200&page=0&size=20&sort=unitPrice,asc
+Accept: application/json
+
+### Get product details (public)
+GET {{baseUrl}}/products/1
+Accept: application/json
+
+### Create product (ADMIN)
+POST {{baseUrl}}/products
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "category_id": 1,
+  "product_name": "Mechanical Keyboard",
+  "description": "Compact mechanical keyboard",
+  "unit_price": 79.99
+}
+
+### Update product (ADMIN)
+PUT {{baseUrl}}/products/1
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "category_id": 1,
+  "product_name": "Mechanical Keyboard",
+  "description": "Compact mechanical keyboard",
+  "unit_price": 84.99
+}
+
+### Delete product (ADMIN)
+DELETE {{baseUrl}}/products/1
+Authorization: {{authHeader}}
+
+### Upload a product image (ADMIN)
+# Replace the local file path before sending.
+POST {{baseUrl}}/products/1/images?altText=Keyboard%20front&isPrimary=true
+Authorization: {{authHeader}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="product.jpg"
+Content-Type: image/jpeg
+
+< ./product.jpg
+--WebAppBoundary--
+
+### Delete a product image (ADMIN)
+DELETE {{baseUrl}}/products/1/images/1
+Authorization: {{authHeader}}
+
+### List customers (paginated)
+GET {{baseUrl}}/customers?page=0&size=20&sort=id,asc
+Authorization: {{authHeader}}
+Accept: application/json
+
+### Search customers (paginated)
+GET {{baseUrl}}/customers?search=Ada&page=0&size=20&sort=lastName,asc
+Authorization: {{authHeader}}
+Accept: application/json
+
+### Get customer details
+GET {{baseUrl}}/customers/1
+Authorization: {{authHeader}}
+Accept: application/json
+
+### Create customer (ADMIN)
+POST {{baseUrl}}/customers
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "first_name": "Ada",
+  "last_name": "Lovelace",
+  "telephone": "+441234567890",
+  "email": "ada.customer@example.com",
+  "address": "12 St James's Square, London"
+}
+
+### Update customer (ADMIN)
+PUT {{baseUrl}}/customers/1
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "first_name": "Ada",
+  "last_name": "Lovelace",
+  "telephone": "+441234567890",
+  "email": "ada.customer@example.com",
+  "address": "12 St James's Square, London"
+}
+
+### Delete customer (ADMIN)
+DELETE {{baseUrl}}/customers/1
+Authorization: {{authHeader}}
+
+### List orders for a customer
+GET {{baseUrl}}/customers/1/orders?page=0&size=20&sort=id,desc
+Authorization: {{authHeader}}
+Accept: application/json
+
+### Get authenticated user's cart (USER)
+GET {{baseUrl}}/cart
+Authorization: {{authHeader}}
+Accept: application/json
+
+### Add product to authenticated user's cart (USER)
+POST {{baseUrl}}/cart/items
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "product_id": 1,
+  "quantity": 2
+}
+
+### Update cart item quantity (USER)
+PATCH {{baseUrl}}/cart/items/1
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "quantity": 3
+}
+
+### Remove a cart item (USER)
+DELETE {{baseUrl}}/cart/items/1
+Authorization: {{authHeader}}
+
+### Clear authenticated user's cart (USER)
+DELETE {{baseUrl}}/cart
+Authorization: {{authHeader}}
+
+### Checkout authenticated user's cart (USER)
+POST {{baseUrl}}/orders
+Authorization: {{authHeader}}
+
+### List orders visible to the authenticated user (USER/ADMIN)
+GET {{baseUrl}}/orders?page=0&size=20&sort=id,desc
+Authorization: {{authHeader}}
+Accept: application/json
+
+### Get order details (USER: own order; ADMIN: any order)
+GET {{baseUrl}}/orders/1
+Authorization: {{authHeader}}
+Accept: application/json
+
+### Update order status (ADMIN)
+PATCH {{baseUrl}}/orders/1/status
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "status": "CONFIRMED"
+}
+
+### Update a legacy customer/product order (ADMIN)
+PUT {{baseUrl}}/orders/1
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "customer_id": 1,
+  "product_id": 1,
+  "quantity": 2
+}
+
+### Delete order (ADMIN)
+DELETE {{baseUrl}}/orders/1
+Authorization: {{authHeader}}
+
+### List users (ADMIN, paginated)
+GET {{baseUrl}}/users?page=0&size=20&sort=id,asc
+Authorization: {{authHeader}}
+Accept: application/json
+
+### Get user details (ADMIN)
+GET {{baseUrl}}/users/1
+Authorization: {{authHeader}}
+Accept: application/json
+
+### Update user profile (ADMIN)
+PUT {{baseUrl}}/users/1
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "username": "ada.updated",
+  "email": "ada.updated@example.com"
+}
+
+### Update user roles (ADMIN)
+PATCH {{baseUrl}}/users/1/roles
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "add": [2],
+  "remove": []
+}
+
+### Lock user account (ADMIN; cannot lock yourself)
+PATCH {{baseUrl}}/users/1/lock
+Authorization: {{authHeader}}
+
+### Unlock user account (ADMIN)
+PATCH {{baseUrl}}/users/1/unlock
+Authorization: {{authHeader}}
+
+### Delete user (ADMIN)
+DELETE {{baseUrl}}/users/1
+Authorization: {{authHeader}}
+
+### List roles (ADMIN, paginated)
+GET {{baseUrl}}/roles?page=0&size=20&sort=id,asc
+Authorization: {{authHeader}}
+Accept: application/json
+
+### Create role (ADMIN)
+POST {{baseUrl}}/roles
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "role_name": "SUPPORT"
+}
+
+### Update role (ADMIN)
+PUT {{baseUrl}}/roles/1
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "role_name": "CUSTOMER_SUPPORT"
+}
+
+### Update role permissions (ADMIN)
+PATCH {{baseUrl}}/roles/1/permissions
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "add": [1],
+  "remove": []
+}
+
+### Delete role (ADMIN)
+DELETE {{baseUrl}}/roles/1
+Authorization: {{authHeader}}
+
+### List permissions (ADMIN, paginated)
+GET {{baseUrl}}/permissions?page=0&size=20&sort=id,asc
+Authorization: {{authHeader}}
+Accept: application/json
+
+### Create permission (ADMIN)
+POST {{baseUrl}}/permissions
+Authorization: {{authHeader}}
+Content-Type: application/json
+
+{
+  "resource": "products",
+  "action": "read"
+}
+
+### Delete permission (ADMIN)
+DELETE {{baseUrl}}/permissions/1
+Authorization: {{authHeader}}
