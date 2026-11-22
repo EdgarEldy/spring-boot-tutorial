@@ -347,7 +347,7 @@ collection:
         method: POST
         parameters:
           - name: token
-            value: 123456
+            value: "123456"
         body:
           mimeType: application/json
           text: |-
